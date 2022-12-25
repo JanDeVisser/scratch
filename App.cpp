@@ -35,6 +35,7 @@ App::App(std::string name)
     noecho();
     raw();
     nonl();
+    curs_set(1);
     intrflush(stdscr, false);
     keypad(stdscr, true);
     getmaxyx(stdscr, m_rows, m_cols);
@@ -47,9 +48,13 @@ App::~App()
 void App::event_loop()
 {
     while (!m_quit) {
+        log("loop()");
         render_app();
-        int key = wgetch(stdscr);
-        App::instance()->message("keyname: %d = %s", key, keyname(key));
+        auto *w = stdscr;
+        if (focus() != nullptr)
+            w = focus()->window();
+        int key = wgetch(w);
+        log("keyname: %d = %s", key, keyname(key));
         dispatch(key);
     }
     clear();
@@ -58,6 +63,7 @@ void App::event_loop()
 
 void App::render_app()
 {
+    log("App::render_app");
     auto apply = [this](auto callback) -> void {
         Widgets queue { shared_from_this() };
         do {
@@ -69,13 +75,9 @@ void App::render_app()
             callback(current);
         } while (!queue.empty());
     };
-    clear();
     apply([](auto& widget) { widget->pre_render(); });
-    wrefresh(stdscr);
     apply([](auto& widget) { widget->render(); });
-    wrefresh(stdscr);
     apply([](auto& widget) { widget->post_render(); });
-    wrefresh(stdscr);
 }
 
 void App::dispatch(int key)
@@ -128,6 +130,15 @@ void App::vlog(char const* msg, va_list args)
 void App::logger(pLogger l)
 {
     m_logger = std::move(l);
+}
+pWindowedWidget const& App::focus()
+{
+    return m_focus;
+}
+
+void App::focus(pWindowedWidget f)
+{
+    m_focus = std::move(f);
 }
 
 }

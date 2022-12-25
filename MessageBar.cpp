@@ -10,9 +10,8 @@
 namespace Scratch {
 
 MessageBar::MessageBar()
-    : Widget()
+    : WindowedWidget(App::instance()->rows() - 1, 0, 1, App::instance()->columns())
 {
-    m_window = newwin(1, App::instance()->columns(), App::instance()->rows() - 1, 0);
 }
 
 void MessageBar::vmessage(char const* msg, va_list args)
@@ -29,11 +28,12 @@ void MessageBar::clear()
 
 void MessageBar::render()
 {
+    App::instance()->log("MessageBar::render");
     if (m_message.empty())
         return;
-    wclear(m_window);
-    mvwaddstr(m_window, 0, 0, m_message.c_str());
-    wrefresh(m_window);
+    mvwaddstr(window(), 0, 0, m_message.c_str());
+    wclrtobot(window());
+    wrefresh(window());
     m_message = "";
 }
 

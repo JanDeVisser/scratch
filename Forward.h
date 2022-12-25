@@ -19,7 +19,10 @@
     S(Menu)                  \
     S(MenuBar)               \
     S(MenuEntry)             \
+    S(Messenger)             \
     S(StatusBar)             \
+    S(StatusReporter)        \
+    S(WindowedWidget)        \
     S(Widget)
 
 #define ctrl(x) ((x)&0x1f)
@@ -34,6 +37,6 @@ namespace Scratch {
 ENUMERATE_CLASSES(ENUM_CLASS)
 #undef ENUM_CLASS
 
-using strings=std::vector<std::string>;
+using strings = std::vector<std::string>;
 
 }

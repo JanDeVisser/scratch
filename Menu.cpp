@@ -55,7 +55,6 @@ int Menu::selected() const
 
 void Menu::render() const
 {
-    wclear(m_window);
     box(m_window, 0, 0);
     int ix = 0;
     for (auto const& entry : entries()) {
@@ -73,14 +72,13 @@ void Menu::render() const
 
 void Menu::up()
 {
-    if (m_selected > 0)
-        m_selected--;
+    if (--m_selected < 0)
+        m_selected = static_cast<int>(m_entries.size()) - 1;
 }
 
 void Menu::down()
 {
-    if (m_selected < (m_entries.size() - 1))
-        m_selected++;
+    m_selected = (m_selected + 1) % static_cast<int>(m_entries.size());
 }
 
 void Menu::enter()
@@ -91,10 +89,10 @@ void Menu::enter()
 MenuBar::MenuBar(MenuDescriptions const& description)
     : WindowedWidget(0, 0, 1, App::instance()->columns())
 {
-    m_width = 0;
+    m_bar_width = 0;
     for (auto const& menu_description : description) {
-        m_entries.emplace_back(std::make_shared<Menu>(m_width + 1, menu_description));
-        m_width += static_cast<int>(menu_description.title.length()) + 2;
+        m_entries.emplace_back(std::make_shared<Menu>(m_bar_width + 1, menu_description));
+        m_bar_width += static_cast<int>(menu_description.title.length()) + 2;
     }
 }
 
@@ -105,14 +103,16 @@ bool MenuBar::active() const
 
 void MenuBar::left()
 {
-    if (active() && (m_selected > 0))
-        m_selected--;
+    if (active()) {
+        if (--m_selected < 0)
+            m_selected = static_cast<int>(m_entries.size()) - 1;
+    }
 }
 
 void MenuBar::right()
 {
     if (active() && (m_selected < (m_entries.size() - 1)))
-        m_selected++;
+        m_selected = (m_selected + 1) % static_cast<int>(m_entries.size());
 }
 
 void MenuBar::up()
@@ -138,8 +138,7 @@ void MenuBar::enter()
     bool handled { false };
     if (!active()) {
         if (key == KEY_F(10)) {
-            m_active = !m_active;
-            handled = true;
+            m_active = handled = true;
         }
         return handled;
     }
@@ -158,7 +157,7 @@ void MenuBar::enter()
         right();
         break;
     case KEY_F(10):
-        m_active = !m_active;
+        m_active = false;
         break;
     case 13:
         enter();
@@ -166,6 +165,7 @@ void MenuBar::enter()
     default:
         break;
     }
+    // The menubar is modal, so it should swallow all keys when it's active:
     return true;
 }
 
@@ -176,9 +176,10 @@ void MenuBar::enter()
 
 void MenuBar::render()
 {
-    wclear(window());
+    App::instance()->log("MenuBar::render");
     wattron(window(), A_REVERSE);
     int ix = 0;
+    wmove(window(), 0, 0);
     for (auto const& menu : m_entries) {
         if (active() && selected() == ix++) {
             wattroff(window(), A_REVERSE);
@@ -187,7 +188,7 @@ void MenuBar::render()
         wprintw(window(), "  %s", menu->title().c_str());
         wattron(window(), A_REVERSE);
     }
-    wprintw(window(), "%-*.*s", width() - m_width, width() - m_width, " ");
+    wprintw(window(), "%-*.*s", width() - m_bar_width, width() - m_bar_width, " ");
     wattroff(window(), A_REVERSE);
     wrefresh(window());
 }

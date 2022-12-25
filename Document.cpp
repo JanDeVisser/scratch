@@ -49,7 +49,7 @@ void Document::split_line(size_t column, size_t row)
     auto right = m_lines[row].substr(column);
     m_lines[row].erase(column);
     auto iter = m_lines.begin();
-    for (auto ix = 0u; ix < row; ++ix, ++iter);
+    for (auto ix = 0u; ix <= row; ++ix, ++iter);
     m_lines.insert(iter, right);
 }
 

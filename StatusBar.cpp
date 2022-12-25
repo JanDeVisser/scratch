@@ -15,14 +15,14 @@ StatusBar::StatusBar()
 
 void StatusBar::render()
 {
+    App::instance()->log("StatusBar::render");
     auto reporter = App::instance()->get_component<StatusReporter>();
     std::string status;
     if (reporter != nullptr)
         status = reporter->status();
 
-    wclear(window());
     wattron(window(), A_REVERSE);
-    wprintw(window(), "%-*.*s%s  ", App::instance()->columns() - status.length() - 2, App::instance()->columns() - status.length() - 2, " ", status.c_str());
+    mvwprintw(window(), 0, 0, "%-*.*s%s  ", App::instance()->columns() - status.length() - 2, App::instance()->columns() - status.length() - 2, " ", status.c_str());
     wattroff(window(), A_REVERSE);
     wrefresh(window());
 }

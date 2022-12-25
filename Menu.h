@@ -74,7 +74,7 @@ public:
 private:
     Menus m_entries;
 
-    int m_width;
+    int m_bar_width;
     bool m_active { false };
     size_t m_selected { 0 };
 };

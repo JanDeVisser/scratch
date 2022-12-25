@@ -22,13 +22,15 @@ void LogViewer::vlog(char const* msg, va_list args)
 
 void LogViewer::render()
 {
-    wclear(window());
+    App::instance()->log("LogViewer::render()");
     int offset = 0;
     if (m_messages.size() > App::instance()->rows() - 3)
         offset = m_messages.size() - App::instance()->rows() - 3;
     for (size_t screen_line = 0; (screen_line < App::instance()->rows() - 3) && offset + screen_line < m_messages.size(); ++screen_line) {
         mvwaddstr(window(), screen_line, 0, m_messages[offset+screen_line].c_str());
+        wclrtoeol(window());
     }
+    wclrtobot(window());
     wrefresh(window());
 }
 

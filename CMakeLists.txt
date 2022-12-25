@@ -3,6 +3,7 @@ project(scratch)
 
 cmake_policy(SET CMP0048 NEW)
 cmake_policy(SET CMP0115 NEW)
+cmake_policy(SET CMP0135 NEW)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -17,7 +18,8 @@ set(CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR})
 set(scratch_DIR ${CMAKE_INSTALL_PREFIX})
 set(scratch_DATADIR ${CMAKE_INSTALL_PREFIX}/share)
 
-include_directories("${PROJECT_SOURCE_DIR}")
+include_directories("${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/obelixlibs")
+add_subdirectory(obelixlibs)
 
 # configure_file(
 #         "${PROJECT_SOURCE_DIR}/config.h.in"
@@ -45,6 +47,8 @@ add_executable(
 target_link_libraries(
         scratch
         ncurses
+        oblcore
+        obllexer
 )
 
 target_compile_features(scratch PUBLIC cxx_std_20)

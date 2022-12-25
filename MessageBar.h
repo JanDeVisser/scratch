@@ -13,7 +13,7 @@
 
 namespace Scratch {
 
-class MessageBar : public Widget, public Messenger {
+class MessageBar : public WindowedWidget, public Messenger {
 public:
     MessageBar();
     void vmessage(char const*, va_list) override;
@@ -21,7 +21,6 @@ public:
     void render() override;
 private:
     std::string m_message;
-    WINDOW *m_window { nullptr };
 };
 
 }

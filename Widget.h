@@ -55,10 +55,10 @@ public:
     [[nodiscard]] int left() const;
     [[nodiscard]] int height() const;
     [[nodiscard]] int width() const;
+    [[nodiscard]] WINDOW * window() const override;
 
 protected:
     WindowedWidget(int, int, int, int);
-    [[nodiscard]] WINDOW * window() const override;
 
 private:
     WINDOW * m_window;

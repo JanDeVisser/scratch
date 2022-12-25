@@ -34,6 +34,7 @@ void run_app(int argc, char **argv)
     app->log("Hello");
     app->add_component(std::make_shared<StatusBar>());
     app->add_component(std::make_shared<MessageBar>());
+    app->focus(editor);
     app->event_loop();
 }
 

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <App.h>
 #include <WidgetStack.h>
 
 namespace Scratch {
@@ -18,8 +19,13 @@ void WidgetStack::add(pWidget page)
 void WidgetStack::next()
 {
     if (!m_widgets.empty()) {
+        auto has_focus = App::instance()->focus() == std::dynamic_pointer_cast<WindowedWidget>(m_selected[0]);
         m_current = (m_current + 1) % static_cast<int>(m_widgets.size());
         m_selected = { m_widgets[m_current] };
+        if (has_focus) {
+            if (auto window_pane = std::dynamic_pointer_cast<WindowedWidget>(m_selected[0]); window_pane != nullptr)
+                App::instance()->focus(window_pane);
+        }
     }
 }
 

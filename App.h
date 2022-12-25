@@ -54,6 +54,8 @@ public:
     void vmessage(char const*, va_list) override;
     void vlog(char const*, va_list) override;
     void logger(pLogger l);
+    pWindowedWidget const& focus();
+    void focus(pWindowedWidget);
 
     void event_loop();
 
@@ -69,6 +71,7 @@ private:
     std::string m_name;
     bool m_quit { false };
     pLogger m_logger { nullptr };
+    pWindowedWidget m_focus { nullptr };
 
     int m_cols;
     int m_rows;

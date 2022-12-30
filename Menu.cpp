@@ -35,7 +35,6 @@ Menu::Menu(int column, MenuDescription const& description)
         if (width < entry.label().length())
             width = static_cast<int>(entry.label().length());
     }
-    m_window = newwin(static_cast<int>(m_entries.size()) + 2, width + 2, 1, m_column);
 }
 
 std::string const& Menu::title() const
@@ -55,6 +54,7 @@ int Menu::selected() const
 
 void Menu::render() const
 {
+#if 0
     box(m_window, 0, 0);
     int ix = 0;
     for (auto const& entry : entries()) {
@@ -68,6 +68,7 @@ void Menu::render() const
         ix++;
     }
     wrefresh(m_window);
+#endif
 }
 
 void Menu::up()
@@ -87,7 +88,7 @@ void Menu::enter()
 }
 
 MenuBar::MenuBar(MenuDescriptions const& description)
-    : WindowedWidget(0, 0, 1, App::instance()->columns())
+    : WindowedWidget(0, 0, 1, App::instance().columns())
 {
     m_bar_width = 0;
     for (auto const& menu_description : description) {
@@ -133,11 +134,11 @@ void MenuBar::enter()
         m_entries[m_selected]->enter();
 }
 
-[[nodiscard]] bool MenuBar::handle(int key)
+[[nodiscard]] bool MenuBar::handle(KeyCode key)
 {
     bool handled { false };
     if (!active()) {
-        if (key == KEY_F(10)) {
+        if (key == KEY_F10) {
             m_active = handled = true;
         }
         return handled;
@@ -156,7 +157,7 @@ void MenuBar::enter()
     case KEY_RIGHT:
         right();
         break;
-    case KEY_F(10):
+    case KEY_F10:
         m_active = false;
         break;
     case 13:
@@ -176,7 +177,8 @@ void MenuBar::enter()
 
 void MenuBar::render()
 {
-    App::instance()->log("MenuBar::render");
+#if 0
+    App::instance().log("MenuBar::render");
     wattron(window(), A_REVERSE);
     int ix = 0;
     wmove(window(), 0, 0);
@@ -191,6 +193,7 @@ void MenuBar::render()
     wprintw(window(), "%-*.*s", width() - m_bar_width, width() - m_bar_width, " ");
     wattroff(window(), A_REVERSE);
     wrefresh(window());
+#endif
 }
 
 }

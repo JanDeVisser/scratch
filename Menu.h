@@ -8,7 +8,6 @@
 
 #include <functional>
 #include <memory>
-#include <ncurses.h>
 #include <string>
 #include <vector>
 
@@ -54,7 +53,6 @@ private:
     int m_column;
     std::string m_title;
     MenuEntries m_entries {};
-    WINDOW* m_window;
     int m_selected { 0 };
 };
 
@@ -67,7 +65,7 @@ public:
     void up();
     void down();
     void enter();
-    [[nodiscard]] bool handle(int) override;
+    [[nodiscard]] bool handle(KeyCode) override;
     [[nodiscard]] size_t selected() const;
     void render() override;
 

@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <ncurses.h>
-
 #include <App.h>
 
 namespace Scratch {

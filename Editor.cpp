@@ -11,52 +11,78 @@
 
 namespace Scratch {
 
+extern_logging_category(scratch);
+
+enum class HighlightColor {
+    Comment = 1,
+    Identifier,
+    Keyword,
+    Number,
+    String,
+};
+
 Editor::Editor()
-    : WindowedWidget(1, 0, App::instance()->rows() - 3, App::instance()->columns())
-    , m_document(std::make_shared<Document>())
+    : WindowedWidget(1, 0, App::instance().rows() - 3, App::instance().columns())
 {
-    keypad(window(), true);
 }
 
 void Editor::render()
 {
-    App::instance()->log("Editor::render");
-    for (size_t screen_line = 0; (screen_line < App::instance()->rows() - 3) && (screen_top() + screen_line < document()->line_count()); ++screen_line) {
-        mvwaddstr(window(), screen_line, 0, document()->line(screen_top() + screen_line).c_str());
-        wclrtoeol(window());
+    debug(scratch, "Editor::render");
+
+    int screen_line = 0;
+    display()->clear();
+    document().rewind();
+    for (auto token = document().lex(); token.code() != TokenCode::EndOfFile; token = document().lex()) {
+        switch (token.code()) {
+        case TokenCode::NewLine:
+            display()->newline();
+            break;
+        case TokenCode::Comment:
+            display()->append({ token.value(), DisplayStyle::Colored, { ForegroundColor::Gray, BackgroundColor::Black } });
+            break;
+        case TokenCode::Identifier:
+            display()->append({ token.value() });
+            break;
+        case KeywordConst:
+        case KeywordIf:
+        case KeywordElse:
+        case KeywordNamespace:
+        case KeywordNullptr:
+        case KeywordWhile:
+            display()->append({ token.value(), DisplayStyle::Colored, { ForegroundColor::Red, BackgroundColor::Black } });
+            break;
+        default:
+            display()->append({ token.value() });
+            break;
+        }
     }
-    wclrtobot(window());
-    wmove(window(), point_line() - screen_top(), point_column() - screen_left());
-    wrefresh(window());
+    display()->render(m_point_line, m_point_column);
 }
 
 void Editor::post_render()
 {
-    App::instance()->log("Editor::post_render: point_line %d screen_top %d point_column %d screen_left %d",
-                         point_line(), screen_top(), point_column(), screen_left());
-    wmove(window(), point_line() - screen_top(), point_column() - screen_left());
-    wrefresh(window());
 }
 
-bool Editor::handle(int key)
+bool Editor::handle(KeyCode key)
 {
     switch (key) {
     case KEY_UP:
         if (m_point_line > 0) {
             m_point_line--;
-            if (m_point_column > document()->line_length(m_point_line))
-                m_point_column = document()->line_length(m_point_line);
+            if (m_point_column > document().line_length(m_point_line))
+                m_point_column = document().line_length(m_point_line);
             if (m_screen_top > m_point_line)
                 m_screen_top = m_point_line;
         }
         break;
     case KEY_DOWN:
-        if (m_point_line < (m_document->line_count() - 1)) {
+        if (m_point_line < (document().line_count() - 1)) {
             m_point_line++;
-            if (m_point_column > document()->line_length(m_point_line))
-                m_point_column = document()->line_length(m_point_line);
-            if (m_point_line - m_screen_top >= App::instance()->rows() - 3)
-                m_screen_top = m_point_line - App::instance()->rows() + 4;
+            if (m_point_column > document().line_length(m_point_line))
+                m_point_column = document().line_length(m_point_line);
+            if (m_point_line - m_screen_top >= App::instance().rows())
+                m_screen_top = m_point_line - App::instance().rows() + 1;
         }
         break;
     case KEY_LEFT:
@@ -65,29 +91,29 @@ bool Editor::handle(int key)
         }
         break;
     case KEY_RIGHT:
-        if (m_point_column < m_document->line_length(m_point_line)) {
+        if (m_point_column < document().line_length(m_point_line)) {
             ++m_point_column;
         }
         break;
     case KEY_BACKSPACE:
     case 127:
     case '\b':
-        m_document->backspace(m_point_column, m_point_line);
+        document().backspace(m_point_column, m_point_line);
         if (m_point_column > 0) {
             m_point_column--;
         } else if (m_point_line > 0) {
             m_point_line--;
-            m_point_column = document()->line_length(m_point_line);
+            m_point_column = document().line_length(m_point_line);
         }
         break;
     case 13:
-        m_document->split_line(m_point_column, m_point_line);
+        document().split_line(m_point_column, m_point_line);
         ++m_point_line;
         m_point_column = 0;
         break;
     default:
         if (isprint(key)) {
-            m_document->insert(m_point_column, m_point_line, static_cast<char>(key));
+            document().insert(m_point_column, m_point_line, static_cast<char>(key));
             m_point_column++;
         } else {
             return false;
@@ -100,7 +126,7 @@ bool Editor::handle(int key)
 std::string Editor::status()
 {
     char buffer[81];
-    snprintf(buffer, 80, "%-20.20s %4d : %4d", document()->filename().c_str(), point_line(), point_column());
+    snprintf(buffer, 80, "%-20.20s %4d : %4d", document().filename().c_str(), point_line(), point_column());
     return std::string(buffer);
 }
 

@@ -15,7 +15,6 @@
     S(App)                   \
     S(Document)              \
     S(Editor)                \
-    S(Logger)                \
     S(Menu)                  \
     S(MenuBar)               \
     S(MenuEntry)             \
@@ -24,8 +23,6 @@
     S(StatusReporter)        \
     S(WindowedWidget)        \
     S(Widget)
-
-#define ctrl(x) ((x)&0x1f)
 
 namespace Scratch {
 

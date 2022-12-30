@@ -6,8 +6,6 @@
 
 #pragma once
 
-#include <ncurses.h>
-
 #include <Document.h>
 #include <StatusBar.h>
 #include <Widget.h>
@@ -24,14 +22,14 @@ public:
     [[nodiscard]] int point_column() const { return m_point_column; }
     [[nodiscard]] int virtual_point_column() const { return m_virtual_point_column; }
 
-    [[nodiscard]] pDocument const& document() const { return m_document; }
+    [[nodiscard]] Document& document() { return m_document; }
     std::string status() override;
 
     void render() override;
     void post_render() override;
-    [[nodiscard]] bool handle(int) override;
+    [[nodiscard]] bool handle(KeyCode) override;
 private:
-    pDocument m_document;
+    Document m_document {};
 
     size_t m_screen_top {0};
     size_t m_screen_left {0};

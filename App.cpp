@@ -4,41 +4,31 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <array>
+#include <cstdio>
+
 #include <App.h>
-#include <Menu.h>
+#include <Editor.h>
+#include <Forward.h>
 #include <MessageBar.h>
 #include <StatusBar.h>
 
 namespace Scratch {
 
-pApp App::s_app { nullptr };
+App* App::s_app { nullptr };
 
-pApp const& App::create(std::string name)
+App& App::instance()
 {
-    assert(s_app == nullptr);
-    s_app = std::shared_ptr<App>(new App(std::move(name)));
-    return s_app;
+    oassert(s_app != nullptr, "No App instantiated");
+    return *s_app;
 }
 
-pApp const& App::instance()
-{
-    return s_app;
-}
-
-App::App(std::string name)
+App::App(std::string name, Display *display)
     : m_name(std::move(name))
+    , m_display(display)
 {
-    if (!getenv("TERM"))
-        setenv("TERM", "xterm-256color", 1);
-    initscr();
-    clear();
-    noecho();
-    raw();
-    nonl();
-    curs_set(1);
-    intrflush(stdscr, false);
-    keypad(stdscr, true);
-    getmaxyx(stdscr, m_rows, m_cols);
+    oassert(s_app == nullptr, "App is a singleton");
+    s_app = this;
 }
 
 App::~App()
@@ -48,64 +38,60 @@ App::~App()
 void App::event_loop()
 {
     while (!m_quit) {
-        log("loop()");
         render_app();
-        auto *w = stdscr;
-        if (focus() != nullptr)
-            w = focus()->window();
-        int key = wgetch(w);
-        log("keyname: %d = %s", key, keyname(key));
-        dispatch(key);
+        auto key_maybe = Display::getkey();
+        if (key_maybe.is_error()) {
+            if (key_maybe.error() == EINTR) {
+                auto resize_maybe = resize();
+                if (resize_maybe.is_error()) {
+                    fprintf(stderr, "ERROR: %s\n", resize_maybe.error().c_str());
+                    break;
+                }
+                continue;
+            }
+            fprintf(stderr, "ERROR: something went wrong during reading of the user input: %s\n", strerror(errno));
+            break;
+        }
+        dispatch(key_maybe.value());
     }
-    clear();
-    endwin();
+    printf("\033[2J\033[H");
 }
 
 void App::render_app()
 {
-    log("App::render_app");
-    auto apply = [this](auto callback) -> void {
-        Widgets queue { shared_from_this() };
-        do {
-            auto current = queue.back();
-            queue.pop_back();
-            queue.insert(queue.end(),
-                     current->components().begin(),
-                     current->components().end());
-            callback(current);
-        } while (!queue.empty());
-    };
-    apply([](auto& widget) { widget->pre_render(); });
-    apply([](auto& widget) { widget->render(); });
-    apply([](auto& widget) { widget->post_render(); });
+    for (auto const& c : components()) {
+        c->pre_render();
+    }
+    for (auto const& c : components()) {
+        c->render();
+    }
+    for (auto iter = components().rbegin(); iter != components().rend(); ++iter) {
+        (*iter)->post_render();
+    }
 }
 
-void App::dispatch(int key)
+void App::dispatch(KeyCode key)
 {
-    Widgets queue { shared_from_this() };
-    do {
-        auto current = queue.back();
-        queue.pop_back();
-        queue.insert(queue.end(),
-                 std::make_reverse_iterator(current->components().end()),
-                 std::make_reverse_iterator(current->components().begin()));
-        if (current->handle(key))
-            return;
-    } while (!queue.empty());
+    if (!handle(key)) {
+        for (auto const& c : components()) {
+            if (c->handle(key))
+                break;
+        }
+    }
 }
 
-bool App::handle(int key)
+bool App::handle(KeyCode key)
 {
-    if (key == ctrl('q')) {
+    if (key == CTRL_Q) {
         quit();
         return true;
     }
     return false;
 }
 
-WINDOW * App::window() const
+ErrorOr<void,std::string> App::resize()
 {
-    return stdscr;
+    return {};
 }
 
 void App::vmessage(char const* msg, va_list args)
@@ -116,29 +102,9 @@ void App::vmessage(char const* msg, va_list args)
     }
 }
 
-void App::vlog(char const* msg, va_list args)
+void App::add_component(Widget* component)
 {
-    auto logger = m_logger;
-    if (logger == nullptr) {
-        logger = get_component<Logger>();
-    }
-    if (logger != nullptr) {
-        logger->vlog(msg, args);
-    }
-}
-
-void App::logger(pLogger l)
-{
-    m_logger = std::move(l);
-}
-pWindowedWidget const& App::focus()
-{
-    return m_focus;
-}
-
-void App::focus(pWindowedWidget f)
-{
-    m_focus = std::move(f);
+    m_components.emplace_back(component);
 }
 
 }

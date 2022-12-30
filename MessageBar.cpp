@@ -10,7 +10,7 @@
 namespace Scratch {
 
 MessageBar::MessageBar()
-    : WindowedWidget(App::instance()->rows() - 1, 0, 1, App::instance()->columns())
+    : WindowedWidget(App::instance().rows() - 1, 0, 1, App::instance().columns())
 {
 }
 
@@ -28,13 +28,15 @@ void MessageBar::clear()
 
 void MessageBar::render()
 {
-    App::instance()->log("MessageBar::render");
+#if 0
+    App::instance().log("MessageBar::render");
     if (m_message.empty())
         return;
     mvwaddstr(window(), 0, 0, m_message.c_str());
     wclrtobot(window());
     wrefresh(window());
     m_message = "";
+#endif
 }
 
 }

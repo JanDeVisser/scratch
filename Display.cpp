@@ -28,6 +28,28 @@ ENUMERATE_KEYCODES(ENUM_KEYCODE)
 
 #define START_STYLE_SEQ(code) "\033[" #code "m"
 
+inline void write_number(uint16_t num)
+{
+    char buffer[8];
+    char *ptr;
+    size_t bytes {0};
+    if (num == 0) {
+        buffer[0] = '0';
+        ptr = buffer;
+        bytes = 1;
+    } else {
+        ptr = buffer + 7;
+        while (num > 0) {
+            --ptr;
+            bytes++;
+            auto digit = num % 10;
+            *ptr = (char) ('0' + digit);
+            num /= 10;
+        }
+    }
+    fwrite(ptr, 1, bytes, stdout);
+}
+
 inline void start_style(DisplayStyle style = DisplayStyle::None, std::pair<ForegroundColor, BackgroundColor> const& colors = { ForegroundColor::White, BackgroundColor::Black })
 {
     switch (style) {
@@ -39,14 +61,23 @@ inline void start_style(DisplayStyle style = DisplayStyle::None, std::pair<Foreg
     case DisplayStyle::Dim:
         fwrite(START_STYLE_SEQ(2), 1, 4, stdout);
         break;
-    case DisplayStyle::Reverse:
-        fwrite(START_STYLE_SEQ(7), 1, 4, stdout);
+    case DisplayStyle::Italic:
+        fwrite(START_STYLE_SEQ(3), 1, 4, stdout);
         break;
     case DisplayStyle::Underline:
         fwrite(START_STYLE_SEQ(4), 1, 4, stdout);
         break;
+    case DisplayStyle::Reverse:
+        fwrite(START_STYLE_SEQ(7), 1, 4, stdout);
+        break;
     case DisplayStyle::Colored:
-        fprintf(stdout, "\033[%d;%dm", static_cast<int>(colors.first), static_cast<int>(colors.second));
+        fwrite("\033[", 1, 2, stdout);
+        write_number(static_cast<uint16_t>(colors.first));
+        if (colors.second != BackgroundColor::None) {
+            fwrite(";", 1, 1, stdout);
+            write_number(static_cast<uint16_t>(colors.second));
+        }
+        fwrite("m", 1, 1, stdout);
         break;
     }
 }
@@ -83,6 +114,7 @@ void DisplayToken::render(size_t start, size_t end) const
     case DisplayStyle::Dim:
     case DisplayStyle::Reverse:
     case DisplayStyle::Underline:
+    case DisplayStyle::Italic:
     case DisplayStyle::Colored:
         start_style(m_style, m_colors);
         fwrite(text.c_str(), 1, text.length(), stdout);
@@ -101,35 +133,14 @@ void DisplayLine::append(DisplayToken display_token)
     m_tokens.push_back(std::move(display_token));
 }
 
-void DisplayLine::render(size_t offset, size_t length)
+size_t DisplayLine::render() const
 {
     size_t count = 0u;
-    auto right_margin = offset + length;
     for (auto const& display_token : m_tokens) {
-        if (count + display_token.text_length() < offset) {
-            count += display_token.text_length();
-            continue;
-        }
-        if (count < offset && count + display_token.text_length() < offset) {
-            display_token.render(offset - count, 0);
-            count += display_token.text_length();
-            continue;
-        }
-        if (count >= offset && count + display_token.text_length() < right_margin) {
-            display_token.render(0, 0);
-            count += display_token.text_length();
-            continue;
-        }
-        if (count >= offset && count + display_token.text_length() >= right_margin) {
-            display_token.render(0, right_margin - count - display_token.text_length());
-            count += display_token.text_length();
-            break;
-        }
+        display_token.render(0, 0);
+        count += display_token.text_length();
     }
-    while (count < offset + length) {
-        fwrite(" ", 1, 1, stdout);
-        count++;
-    }
+    return count;
 }
 
 void window_resize_signal(int)
@@ -201,26 +212,39 @@ void Display::newline()
 {
     if (m_lines.empty())
         m_lines.emplace_back();
-    m_lines.emplace_back();
+    if (m_lines.size() < rows())
+        m_lines.emplace_back();
 }
 
 void Display::clear()
 {
     m_lines.clear();
+    m_cursor_row = m_cursor_column = 0;
 }
 
-void Display::render(size_t cursor_row, size_t cursor_col)
+void Display::render()
 {
     fwrite("\033[H", 1, 3, stdout);
-    for (auto ix = m_top; ix < m_top + m_rows && ix < m_lines.size(); ++ix) {
-        m_lines[ix].render(m_left, m_columns);
+    for (auto const& line : m_lines) {
+        auto count = line.render();
+        while (count < columns()) {
+            fwrite(" ", 1, 1, stdout);
+            count++;
+        }
     }
-    fwrite("\033[J", 1, 3, stdout);
-    fprintf(stdout, "\033[%zu;%zuH", cursor_row + 1, cursor_col + 1);
+    fwrite("\033[J\033[", 1, 5, stdout);
+    write_number(m_cursor_row+1);
+    fwrite(";", 1, 1, stdout);
+    write_number(m_cursor_column+1);
+    fwrite("H", 1, 1, stdout);
     fflush(stdout);
 }
 
-extern_logging_category(scratch);
+void Display::cursor_at(size_t row, size_t column)
+{
+    m_cursor_row = row;
+    m_cursor_column = column;
+}
 
 ErrorOr<KeyCode, int> Display::getkey()
 {
@@ -236,12 +260,26 @@ ErrorOr<KeyCode, int> Display::getkey()
         }
 
         auto handle_single_char_sequence = [](unsigned char ch) -> KeyCode {
-            if (0 < ch && ch < '\033')
-                return ControlFlag | (ch + 'a' - 1);
+            if (ch == 0x0d || ch == 0x0a)
+                return KEY_ENTER;
+            if (0 < ch && ch < 0x1b)
+                return ControlFlag | (ch + 'A' - 1);
+            if (ch == 0x1b)
+                return KEY_ESCAPE;
+            if (ch == 0x7f)
+                return KEY_BACKSPACE;
             if (isprint(ch))
                 return static_cast<KeyCode>(ch);
             return 0;
         };
+
+        std::string s;
+        for (auto ch : seq) {
+            if (ch == 0)
+                break;
+            s += format("0x{x} ", static_cast<int>(ch));
+        }
+        debug(scratch, "Read key sequence {}", s);
 
         if (seq_len == 1) {
             ret = handle_single_char_sequence(seq[0]);
@@ -259,6 +297,8 @@ ErrorOr<KeyCode, int> Display::getkey()
             ret = handle_single_char_sequence(ch);
             if (ret != 0)
                 break;
+        }
+        if (ret == 0) {
         }
     } while (ret == 0);
     debug(scratch, "getkey() returns {}", ret);

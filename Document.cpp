@@ -38,22 +38,18 @@ Document::Document()
         Token(KeywordFor, "for"),
         Token(KeywordConst, "const"),
         Token(KeywordStruct, "struct"),
+        Token(KeywordClass, "class"),
         Token(KeywordStatic, "static"),
         Token(KeywordEnum, "enum"),
         Token(KeywordNamespace, "namespace"),
         Token(KeywordNullptr, "nullptr"),
-        TokenCode::BinaryIncrement,
-        TokenCode::BinaryDecrement,
-        TokenCode::UnaryIncrement,
-        TokenCode::UnaryDecrement,
-        TokenCode::GreaterEqualThan,
-        TokenCode::LessEqualThan,
-        TokenCode::EqualsTo,
-        TokenCode::NotEqualTo,
-        TokenCode::LogicalAnd,
-        TokenCode::LogicalOr,
-        TokenCode::ShiftLeft,
-        TokenCode::ShiftRight);
+        Token(KeywordInclude, "#include"),
+        Token(KeywordDefine, "#define"),
+        Token(KeywordHashElse, "#else"),
+        Token(KeywordElif, "#elif"),
+        Token(KeywordEndif, "#endif"),
+        Token(KeywordPragma, "#pragma")
+        );
 }
 
 std::string const& Document::line(size_t line_no) const
@@ -73,6 +69,11 @@ size_t Document::line_count() const
     return m_lines.size();
 }
 
+size_t Document::parsed() const
+{
+    return !m_parser.tokens().empty();
+}
+
 void Document::backspace(size_t column, size_t row)
 {
     assert(row < m_lines.size());
@@ -83,6 +84,7 @@ void Document::backspace(size_t column, size_t row)
     } else {
         join_lines(row-1);
     }
+    m_parser.assign(m_lines);
     invalidate();
 }
 
@@ -98,6 +100,7 @@ void Document::split_line(size_t column, size_t row)
     auto iter = m_lines.begin();
     for (auto ix = 0u; ix <= row; ++ix, ++iter);
     m_lines.insert(iter, right);
+    m_parser.assign(m_lines);
     invalidate();
 }
 
@@ -116,12 +119,14 @@ void Document::insert(size_t column, size_t row, char ch)
     assert(row < m_lines.size());
     assert(column <= m_lines[row].length());
     m_lines[row].insert(column, 1, ch);
+    m_parser.assign(m_lines);
     invalidate();
 }
 
 void Document::clear()
 {
     m_lines.clear();
+    m_parser.assign(m_lines);
     invalidate();
 }
 

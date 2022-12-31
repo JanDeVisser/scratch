@@ -10,11 +10,6 @@
 
 namespace Scratch {
 
-class StatusReporter {
-public:
-    virtual std::string status() = 0;
-};
-
 class StatusBar : public WindowedWidget {
 public:
     explicit StatusBar();

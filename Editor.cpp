@@ -30,38 +30,61 @@ void Editor::render()
 {
     debug(scratch, "Editor::render");
 
-    int screen_line = 0;
-    display()->clear();
-    document().rewind();
-    for (auto token = document().lex(); token.code() != TokenCode::EndOfFile; token = document().lex()) {
-        switch (token.code()) {
-        case TokenCode::NewLine:
-            display()->newline();
-            break;
-        case TokenCode::Comment:
-            display()->append({ token.value(), DisplayStyle::Colored, { ForegroundColor::Gray, BackgroundColor::Black } });
-            break;
-        case TokenCode::Identifier:
-            display()->append({ token.value() });
-            break;
-        case KeywordConst:
-        case KeywordIf:
-        case KeywordElse:
-        case KeywordNamespace:
-        case KeywordNullptr:
-        case KeywordWhile:
-            display()->append({ token.value(), DisplayStyle::Colored, { ForegroundColor::Red, BackgroundColor::Black } });
-            break;
-        default:
-            display()->append({ token.value() });
-            break;
+    if (!document().parsed()) {
+        m_lines.clear();
+        m_lines.emplace_back();
+        for (auto token = document().lex(); token.code() != TokenCode::EndOfFile; token = document().lex()) {
+            switch (token.code()) {
+            case TokenCode::NewLine:
+                m_lines.emplace_back();
+                break;
+            default:
+                m_lines.back().tokens.push_back(token);
+                break;
+            }
         }
     }
-    display()->render(m_point_line, m_point_column);
+
+    for (auto ix = m_screen_top; ix < m_screen_top + display()->rows() - 2; ++ix) {
+        auto const& line = m_lines[ix];
+        for (auto const& token : line.tokens) {
+            switch (token.code()) {
+            case TokenCode::Comment:
+                display()->append({ token.value(), DisplayStyle::Colored, { ForegroundColor::Cyan, BackgroundColor::None } });
+                break;
+            case TokenCode::Identifier:
+                display()->append({ token.value() });
+                break;
+            case KeywordConst:
+            case KeywordIf:
+            case KeywordElse:
+            case KeywordNamespace:
+            case KeywordNullptr:
+            case KeywordWhile:
+            case KeywordClass:
+            case KeywordStruct:
+                display()->append({ token.value(), DisplayStyle::Colored, { ForegroundColor::Magenta, BackgroundColor::None } });
+                break;
+            case KeywordInclude:
+            case KeywordDefine:
+            case KeywordHashElse:
+            case KeywordElif:
+            case KeywordEndif:
+            case KeywordPragma:
+                display()->append({ token.value(), DisplayStyle::Colored, { ForegroundColor::BrightYellow, BackgroundColor::None } });
+                break;
+            default:
+                display()->append({ token.value() });
+                break;
+            }
+        }
+        display()->newline();
+    }
 }
 
 void Editor::post_render()
 {
+    display()->cursor_at(m_point_line, m_point_column);
 }
 
 bool Editor::handle(KeyCode key)

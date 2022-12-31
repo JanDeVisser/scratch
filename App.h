@@ -8,10 +8,14 @@
 
 #include <string>
 
+#include <core/Logging.h>
+
 #include <Display.h>
 #include <Widget.h>
 
 namespace Scratch {
+
+extern_logging_category(scratch);
 
 class Messenger {
 public:

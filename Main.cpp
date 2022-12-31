@@ -24,7 +24,7 @@ public:
     Config() = default;
     Config(int argc, char const** argv);
 
-    std::string filename { "" };
+    std::string filename;
 
     template <typename T>
     T cmdline_flag(std::string const& flag, T const& default_value = T()) const
@@ -81,15 +81,15 @@ void run_app(int argc, char const** argv)
     }
     App app("Scratch", display_maybe.value());
 
-    auto menu = new MenuBar(MenuDescriptions {
-        { "File", { { "Quit", [&app]() { app.quit(); } } } }
-    });
+//    auto menu = new MenuBar(MenuDescriptions {
+//        { "File", { { "Quit", [&app]() { app.quit(); } } } }
+//    });
 //    app.add_component(menu);
     auto editor = new Editor();
     editor->document().load("App.cpp");
     app.add_component(editor);
-//    app.add_component(new StatusBar());
-//    app.add_component(new MessageBar());
+    app.add_component(new StatusBar());
+    app.add_component(new MessageBar());
     app.event_loop();
 }
 

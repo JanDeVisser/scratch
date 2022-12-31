@@ -34,6 +34,13 @@ constexpr static TokenCode KeywordStatic = TokenCode::Keyword25;
 constexpr static TokenCode KeywordEnum = TokenCode::Keyword26;
 constexpr static TokenCode KeywordNamespace = TokenCode::Keyword27;
 constexpr static TokenCode KeywordNullptr = TokenCode::Keyword28;
+constexpr static TokenCode KeywordInclude = TokenCode::Keyword29;
+constexpr static TokenCode KeywordDefine = TokenCode::Keyword30;
+constexpr static TokenCode KeywordEndif = TokenCode::Keyword31;
+constexpr static TokenCode KeywordElif = TokenCode::Keyword32;
+constexpr static TokenCode KeywordPragma = TokenCode::Keyword33;
+constexpr static TokenCode KeywordClass = TokenCode::Keyword34;
+constexpr static TokenCode KeywordHashElse = TokenCode::Keyword35;
 
 class Document {
 public:
@@ -42,6 +49,7 @@ public:
     [[nodiscard]] std::string const& line(size_t) const;
     [[nodiscard]] size_t line_length(size_t) const;
     [[nodiscard]] size_t line_count() const;
+    [[nodiscard]] size_t parsed() const;
     [[nodiscard]] std::string const& filename() const;
 
     void backspace(size_t column, size_t row);

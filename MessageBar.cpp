@@ -28,15 +28,12 @@ void MessageBar::clear()
 
 void MessageBar::render()
 {
-#if 0
-    App::instance().log("MessageBar::render");
-    if (m_message.empty())
-        return;
-    mvwaddstr(window(), 0, 0, m_message.c_str());
-    wclrtobot(window());
-    wrefresh(window());
+    debug(scratch, "MessageBar::render");
+    if (!m_message.empty()) {
+        display()->append({ m_message });
+    }
+    display()->newline();
     m_message = "";
-#endif
 }
 
 }

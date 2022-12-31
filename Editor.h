@@ -12,7 +12,13 @@
 
 namespace Scratch {
 
-class Editor : public WindowedWidget, public StatusReporter {
+struct Line {
+    Line() = default;
+    std::string text;
+    std::vector<Token> tokens {};
+};
+
+class Editor : public WindowedWidget {
 public:
     Editor();
 
@@ -23,13 +29,14 @@ public:
     [[nodiscard]] int virtual_point_column() const { return m_virtual_point_column; }
 
     [[nodiscard]] Document& document() { return m_document; }
-    std::string status() override;
+    std::string status();
 
     void render() override;
     void post_render() override;
     [[nodiscard]] bool handle(KeyCode) override;
 private:
     Document m_document {};
+    std::vector<Line> m_lines {};
 
     size_t m_screen_top {0};
     size_t m_screen_left {0};

@@ -5,6 +5,7 @@
  */
 
 #include <StatusBar.h>
+#include <Editor.h>
 
 namespace Scratch {
 
@@ -15,18 +16,16 @@ StatusBar::StatusBar()
 
 void StatusBar::render()
 {
-#if 0
-    App::instance().log("StatusBar::render");
-    auto reporter = App::instance().get_component<StatusReporter>();
+    debug(scratch, "StatusBar::render");
+    auto editor = App::instance().get_component<Editor>();
     std::string status;
-    if (reporter != nullptr)
-        status = reporter->status();
+    if (editor != nullptr)
+        status = editor->status();
 
-    wattron(window(), A_REVERSE);
-    mvwprintw(window(), 0, 0, "%-*.*s%s  ", App::instance().columns() - status.length() - 2, App::instance().columns() - status.length() - 2, " ", status.c_str());
-    wattroff(window(), A_REVERSE);
-    wrefresh(window());
-#endif
+    char buffer[display()->columns() + 1];
+    snprintf(buffer, display()->columns(), "%-*.*s%s  ", (int)App::instance().columns() - status.length() - 2, (int)App::instance().columns() - status.length() - 2, " ", status.c_str());
+    display()->append({ std::string(buffer), DisplayStyle::Reverse });
+    display()->newline();
 }
 
 }

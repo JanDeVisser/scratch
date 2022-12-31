@@ -18,7 +18,7 @@ public:
     void clear();
     void render() override;
 private:
-    std::string m_message;
+    std::string m_message { "Welcome to Scratch" };
 };
 
 }

@@ -78,12 +78,15 @@ struct KeyCode {
             return format("^{c}", static_cast<char>(code & 0xFFFF));
         }
 
+        switch (code) {
 #undef ENUM_KEYCODE
 #define ENUM_KEYCODE(key, c, seq) \
-        if ((c) == code) return #key;
-        ENUMERATE_KEYCODES(ENUM_KEYCODE)
+        case c: return #key;
+            ENUMERATE_KEYCODES(ENUM_KEYCODE)
 #undef ENUM_KEYCODE
-        return format("{}", code);
+        default:
+            return format("{}", code);
+        }
     }
 
 };
@@ -148,9 +151,11 @@ enum class DisplayStyle {
     Dim,
     Underline,
     Reverse,
+    Italic,
 };
 
 enum class ForegroundColor {
+    None = 0,
     Black = 30,
     Red,
     Green,
@@ -169,6 +174,7 @@ enum class ForegroundColor {
 };
 
 enum class BackgroundColor {
+    None = 0,
     Black = 40,
     Red,
     Green,
@@ -204,7 +210,7 @@ public:
     DisplayLine() = default;
     DisplayLine(DisplayToken);
     void append(DisplayToken);
-    void render(size_t, size_t);
+    size_t render() const;
 private:
     std::vector<DisplayToken> m_tokens;
 };
@@ -216,7 +222,8 @@ public:
     void append(DisplayToken);
     void newline();
     void clear();
-    void render(size_t, size_t);
+    void render();
+    void cursor_at(size_t, size_t);
     [[nodiscard]] size_t rows() const { return m_rows; }
     [[nodiscard]] size_t columns() const { return m_columns; }
     [[nodiscard]] static ErrorOr<KeyCode, int> getkey();
@@ -226,8 +233,8 @@ private:
 
     size_t m_rows;
     size_t m_columns;
-    size_t m_top { 0 };
-    size_t m_left { 0 };
+    size_t m_cursor_row { 0 };
+    size_t m_cursor_column { 0 };
     std::vector<DisplayLine> m_lines;
     struct termios m_terminal_state;
 };

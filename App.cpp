@@ -59,6 +59,7 @@ void App::event_loop()
 
 void App::render_app()
 {
+    display()->clear();
     for (auto const& c : components()) {
         c->pre_render();
     }
@@ -68,6 +69,7 @@ void App::render_app()
     for (auto iter = components().rbegin(); iter != components().rend(); ++iter) {
         (*iter)->post_render();
     }
+    display()->render();
 }
 
 void App::dispatch(KeyCode key)

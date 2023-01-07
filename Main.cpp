@@ -4,14 +4,18 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <SDL2_gfxPrimitives.h>
+
 #include <core/Logging.h>
 
 #include <App.h>
 #include <Editor.h>
-#include <Menu.h>
-#include <MessageBar.h>
-#include <StatusBar.h>
-#include <Widget.h>
+//#include <Menu.h>
+//#include <MessageBar.h>
+//#include <Scrollbar.h>
+#include <SDLContext.h>
+//#include <StatusBar.h>
+//#include <Widget.h>
 
 using namespace Obelix;
 
@@ -55,10 +59,9 @@ Config::Config(int argc, char const** argv)
                 std::string flag = argv[ix] + 2;
                 m_cmdline_flags[flag.substr(0, eq_ptr - ptr)] = std::string(eq_ptr + 1);
             }
+            continue;
         }
-        if (!strcmp(argv[ix], "--help")) {
-            help = true;
-        }
+        filename = argv[ix];
     }
     bool enable_log = cmdline_flag<bool>("debug", false);
     auto logfile = cmdline_flag<std::string>("log");
@@ -69,6 +72,8 @@ Config::Config(int argc, char const** argv)
     if (enable_log)
         Obelix::Logger::get_logger().enable("scratch");
 }
+
+#ifdef SCRATCH_CONSOLE
 
 void run_app(int argc, char const** argv)
 {
@@ -86,10 +91,35 @@ void run_app(int argc, char const** argv)
 //    });
 //    app.add_component(menu);
     auto editor = new Editor();
-    editor->document().load("App.cpp");
     app.add_component(editor);
     app.add_component(new StatusBar());
     app.add_component(new MessageBar());
+    app.event_loop();
+}
+
+#endif
+
+void run_app(int argc, char const** argv)
+{
+    Config config(argc, argv);
+    debug(scratch, "The logger works!");
+
+    auto ctx = new SDLContext(WINDOW_WIDTH, WINDOW_HEIGHT);
+    App app("Scratch", ctx);
+
+//    auto menu = new MenuBar(MenuDescriptions {
+//        { "File", { { "Quit", [&app]() { app.quit(); } } } }
+//    });
+//    app.add_component(menu);
+    auto editor = new Editor();
+    app.add_component(editor);
+    if (!config.filename.empty())
+        editor->open_file(config.filename);
+//    app.add_component(new StatusBar());
+//    app.add_component(new MessageBar());
+//    app.add_component(new ScrollBar(editor, ScrollDirection::Horizontal));
+//    app.add_component(new ScrollBar(editor, ScrollDirection::Vertical));
+
     app.event_loop();
 }
 

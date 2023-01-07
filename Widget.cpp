@@ -13,27 +13,14 @@ Widget::Widget()
 {
 }
 
-void Widget::pre_render()
-{
-}
-
 void Widget::render()
 {
 }
 
-void Widget::post_render()
-{
-}
-
-bool Widget::handle(KeyCode key)
-{
-    return false;
-}
-
-Display* Widget::display()
-{
-    return App::instance().display();
-}
+//bool Widget::handle(KeyCode key)
+//{
+//    return false;
+//}
 
 WindowedWidget::WindowedWidget(int top, int left, int height, int width)
     : Widget()

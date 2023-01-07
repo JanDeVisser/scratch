@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <Display.h>
 #include <Forward.h>
 
 namespace Scratch {
@@ -15,15 +14,12 @@ class Widget : public std::enable_shared_from_this<Widget> {
 public:
     virtual ~Widget() = default;
 
-    virtual void pre_render();
     virtual void render();
-    virtual void post_render();
 
-    [[nodiscard]] virtual bool handle(KeyCode);
+    //[[nodiscard]] virtual bool handle(KeyCode);
 
 protected:
     Widget();
-    Display* display();
 
 private:
 };

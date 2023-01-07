@@ -32,18 +32,18 @@ constexpr static uint16_t FunctionFlag = 0x0200;
     S(KEY_DOWN, FunctionFlag | 'j', "\x1b\x5b\x42")        \
     S(KEY_RIGHT, FunctionFlag | 'l', "\x1b\x5b\x43")       \
     S(KEY_UP, FunctionFlag | 'k', "\x1b\x5b\x41")          \
-    S(KEY_F1, ControlFlag | '1', "\x1b\x4f\x50")           \
-    S(KEY_F2, ControlFlag | '2', "\x1b\x4f\x51")           \
-    S(KEY_F3, ControlFlag | '3', "\x1b\x4f\x52")           \
-    S(KEY_F4, ControlFlag | '4', "\x1b\x4f\x53")           \
-    S(KEY_F5, ControlFlag | '5', "\x1b\x5b\x31\x35\x7e")   \
-    S(KEY_F6, ControlFlag | '6', "\x1b\x5b\x31\x37\x7e")   \
-    S(KEY_F7, ControlFlag | '7', "\x1b\x5b\x31\x38\x7e")   \
-    S(KEY_F8, ControlFlag | '8', "\x1b\x5b\x31\x39\x7e")   \
-    S(KEY_F9, ControlFlag | '9', "\x1b\x5b\x32\x30\x7e")   \
-    S(KEY_F10, ControlFlag | 'A', "\x1b\x5b\x32\x31\x7e")  \
-    S(KEY_F11, ControlFlag | 'B', "\x1b\x5b\x32\x33\x7e")  \
-    S(KEY_F12, ControlFlag | 'C', "\x1b\x5b\x32\x34\x7e")
+    S(KEY_F1, FunctionFlag | '1', "\x1b\x4f\x50")           \
+    S(KEY_F2, FunctionFlag | '2', "\x1b\x4f\x51")           \
+    S(KEY_F3, FunctionFlag | '3', "\x1b\x4f\x52")           \
+    S(KEY_F4, FunctionFlag | '4', "\x1b\x4f\x53")           \
+    S(KEY_F5, FunctionFlag | '5', "\x1b\x5b\x31\x35\x7e")   \
+    S(KEY_F6, FunctionFlag | '6', "\x1b\x5b\x31\x37\x7e")   \
+    S(KEY_F7, FunctionFlag | '7', "\x1b\x5b\x31\x38\x7e")   \
+    S(KEY_F8, FunctionFlag | '8', "\x1b\x5b\x31\x39\x7e")   \
+    S(KEY_F9, FunctionFlag | '9', "\x1b\x5b\x32\x30\x7e")   \
+    S(KEY_F10, FunctionFlag | 'A', "\x1b\x5b\x32\x31\x7e")  \
+    S(KEY_F11, FunctionFlag | 'B', "\x1b\x5b\x32\x33\x7e")  \
+    S(KEY_F12, FunctionFlag | 'C', "\x1b\x5b\x32\x34\x7e")
 
 struct KeyCode {
     constexpr KeyCode(int c, uint16_t flags = 0)

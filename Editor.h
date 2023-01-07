@@ -7,42 +7,30 @@
 #pragma once
 
 #include <Document.h>
-#include <StatusBar.h>
+#include <EditorState.h>
+//#include <StatusBar.h>
 #include <Widget.h>
 
 namespace Scratch {
-
-struct Line {
-    Line() = default;
-    std::string text;
-    std::vector<Token> tokens {};
-};
 
 class Editor : public WindowedWidget {
 public:
     Editor();
 
-    [[nodiscard]] int screen_top() const { return m_screen_top; }
-    [[nodiscard]] int screen_left() const { return m_screen_left; }
-    [[nodiscard]] int point_line() const { return m_point_line; }
-    [[nodiscard]] int point_column() const { return m_point_column; }
-    [[nodiscard]] int virtual_point_column() const { return m_virtual_point_column; }
-
-    [[nodiscard]] Document& document() { return m_document; }
+    [[nodiscard]] Document& document() { return m_current_document; }
+    std::string open_file(std::string const& file_name);
+    std::string save_file();
     std::string status();
 
     void render() override;
-    void post_render() override;
-    [[nodiscard]] bool handle(KeyCode) override;
+//    [[nodiscard]] bool handle(KeyCode) override;
+    void append(DisplayToken const&);
+    void newline();
 private:
-    Document m_document {};
-    std::vector<Line> m_lines {};
-
-    size_t m_screen_top {0};
-    size_t m_screen_left {0};
-    size_t m_point_line {0};
-    size_t m_point_column {0};
-    size_t m_virtual_point_column {0};
+    std::vector<Document> m_documents { {} };
+    Document& m_current_document { m_documents.front() };
+    int m_line;
+    int m_column;
 };
 
 }

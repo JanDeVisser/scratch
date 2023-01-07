@@ -21,9 +21,13 @@ void StatusBar::render()
     std::string status;
     if (editor != nullptr)
         status = editor->status();
+    if (status.length() > display()->columns() - 2)
+        status = status.substr(0, display()->columns() - 2);
 
     char buffer[display()->columns() + 1];
-    snprintf(buffer, display()->columns(), "%-*.*s%s  ", (int)App::instance().columns() - status.length() - 2, (int)App::instance().columns() - status.length() - 2, " ", status.c_str());
+    memset(buffer, ' ', display()->columns());
+    buffer[display()->columns()] = '\0';
+    memcpy(buffer + display()->columns()-status.length()-2, status.c_str(), status.length());
     display()->append({ std::string(buffer), DisplayStyle::Reverse });
     display()->newline();
 }

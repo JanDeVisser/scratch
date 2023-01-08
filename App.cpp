@@ -190,23 +190,12 @@ void App::render()
 
 int App::width() const
 {
-    return m_width;
+    return context()->width();
 }
 
 int App::height() const
 {
-    return m_height;
-}
-
-int App::rows() const
-{
-    return height() / context()->character_width();
-}
-
-
-int App::columns() const
-{
-    return m_height / context()->character_height();
+    return context()->height();
 }
 
 intptr_t App::active() const

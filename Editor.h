@@ -22,12 +22,15 @@ public:
     std::string save_file();
     std::string status();
 
+    [[nodiscard]] int rows() const;
+    [[nodiscard]] int columns() const;
+
     void render() override;
 //    [[nodiscard]] bool handle(KeyCode) override;
     void append(DisplayToken const&);
     void newline();
 private:
-    std::vector<Document> m_documents { {} };
+    std::vector<Document> m_documents { { this } };
     Document& m_current_document { m_documents.front() };
     int m_line;
     int m_column;

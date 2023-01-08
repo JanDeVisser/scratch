@@ -15,8 +15,18 @@ namespace Scratch {
 extern_logging_category(scratch);
 
 Editor::Editor()
-    : WindowedWidget(1, 0, App::instance().rows() - 3, App::instance().columns())
+    : WindowedWidget(Vector<int,4> { 0, 0, 0, 0 }, Vector<int,4> { WIDGET_BORDER_X, WIDGET_BORDER_X, WIDGET_BORDER_Y, WIDGET_BORDER_Y })
 {
+}
+
+int Editor::rows() const
+{
+    return content_height() / (int)(App::instance().context()->character_height() * 1.2);
+}
+
+int Editor::columns() const
+{
+    return content_width() / App::instance().context()->character_width();
 }
 
 void Editor::render()
@@ -29,9 +39,8 @@ void Editor::render()
 void Editor::append(DisplayToken const& token)
 {
     auto x = m_column * App::instance().context()->character_width();
-    auto y = m_line * App::instance().context()->character_height();
-    App::instance().context()->render_text(x, y, token.text,
-        App::instance().color(token.color));
+    auto y = m_line * App::instance().context()->character_height() * 1.2;
+    render_text(x, (int) y, token.text, App::instance().color(token.color));
     m_column += (int) token.text.length();
 }
 
@@ -67,7 +76,7 @@ std::string Editor::status()
 {
     char buffer[81];
     snprintf(buffer, 80, "%-20.20s %4d : %4d", document().filename().c_str(), document().point_line(), document().point_column());
-    return std::string(buffer);
+    return { buffer };
 }
 
 }

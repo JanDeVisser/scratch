@@ -19,7 +19,8 @@ using namespace Obelix;
 
 namespace Scratch {
 
-Document::Document()
+Document::Document(Editor *editor)
+    : m_editor(editor)
 {
     m_lines.emplace_back();
     m_parser.lexer().add_scanner<Obelix::QStringScanner>("\"'", true);
@@ -182,24 +183,30 @@ std::string const& Document::filename() const
 
 void Document::render(Editor *editor)
 {
-    debug(scratch, "Document::render");
-
     if (!parsed()) {
         m_lines.clear();
         m_lines.emplace_back();
+        auto count = 0u;
+        auto start = std::chrono::steady_clock::now();
         for (auto token = lex(); token.code() != TokenCode::EndOfFile; token = lex()) {
+            count++;
             switch (token.code()) {
             case TokenCode::NewLine:
                 m_lines.emplace_back();
                 break;
             default:
                 m_lines.back().tokens.push_back(token);
+                m_lines.back().text += token.value();
                 break;
             }
         }
+        auto end = std::chrono::steady_clock::now();
+        auto elapsed = (long)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        debug(scratch, "Parsing done. Generated {} tokens in {}ms", count, elapsed);
     }
 
-    for (auto ix = m_screen_top; ix < m_screen_top + App::instance().rows() - 2; ++ix) {
+    auto start_render = std::chrono::steady_clock::now();
+    for (auto ix = m_screen_top; ix < m_lines.size() && ix < m_screen_top + m_editor->rows() - 2; ++ix) {
         auto const& line = m_lines[ix];
         auto len = 0u;
         for (auto const& token : line.tokens) {
@@ -209,8 +216,8 @@ void Document::render(Editor *editor)
                 continue;
             } else if (len < m_screen_left) {
                 t = t.substr(m_screen_left - len);
-            } else if (len + t.length() > m_screen_left + App::instance().columns()) {
-                t = t.substr(0, m_screen_left + App::instance().columns() - len);
+            } else if (len + t.length() > m_screen_left + m_editor->columns()) {
+                t = t.substr(0, m_screen_left + m_editor->columns() - len);
             }
             switch (token.code()) {
             case TokenCode::Comment:
@@ -236,18 +243,21 @@ void Document::render(Editor *editor)
                 editor->append(DisplayToken{ t, PaletteIndex::Keyword });
                 break;
             case TokenDirective:
-                editor->append(DisplayToken{ t, PaletteIndex::Keyword });
+                editor->append(DisplayToken{ t, PaletteIndex::Preprocessor });
                 break;
             default:
                 editor->append(DisplayToken{ t });
                 break;
             }
             len += token.value().length();
-            if (len >= m_screen_left + App::instance().columns())
+            if (len >= m_screen_left + m_editor->columns())
                 break;
         }
         editor->newline();
     }
+    auto end_render = std::chrono::steady_clock::now();
+    auto elapsed_render = (long)std::chrono::duration_cast<std::chrono::milliseconds>(end_render - start_render).count();
+    debug(scratch, "Rendering done in {}ms", elapsed_render);
 }
 
 #if 0
@@ -336,7 +346,6 @@ Token Document::lex()
     if (!m_pending.empty()) {
         token = m_pending.front();
         m_pending.pop_front();
-        m_lines.back().text += token.value();
         return token;
     }
 
@@ -345,7 +354,6 @@ Token Document::lex()
         switch (token.code()) {
         case TokenCode::NewLine:
             m_pending.emplace_back(token);
-            m_lines.emplace_back();
             break;
 
         case KeywordInclude:
@@ -384,8 +392,6 @@ Token Document::lex()
 
     token = m_pending.front();
     m_pending.pop_front();
-    if (token.code() != TokenCode::NewLine) // HACK
-        m_lines.back().text += token.value();
     return token;
 }
 

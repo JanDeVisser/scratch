@@ -96,8 +96,6 @@ public:
     [[nodiscard]] SDLContext const* context() const { return m_context.get(); }
     SDL_Renderer* renderer();
 
-    [[nodiscard]] int rows() const;
-    [[nodiscard]] int columns() const;
 //    [[nodiscard]] bool handle(KeyCode) override;
 //    void vmessage(char const*, va_list) override;
 

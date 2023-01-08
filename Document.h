@@ -69,7 +69,7 @@ struct Line {
 
 class Document {
 public:
-    Document();
+    Document(Editor *);
 
     [[nodiscard]] std::string const& line(size_t) const;
     [[nodiscard]] size_t line_length(size_t) const;
@@ -112,6 +112,7 @@ private:
 
     void assign_to_parser();
 
+    Editor* m_editor;
     std::string m_filename;
     bool m_dirty { false };
     bool m_cleared { true };

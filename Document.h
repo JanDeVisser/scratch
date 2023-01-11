@@ -55,6 +55,7 @@ constexpr static TokenCode TokenDirective = TokenCode::Keyword32;
 constexpr static TokenCode TokenDirectiveParam = TokenCode::Keyword33;
 constexpr static TokenCode TokenType = TokenCode::Keyword34;
 constexpr static TokenCode TokenOperator = TokenCode::Keyword35;
+constexpr static TokenCode TokenConstant = TokenCode::Keyword36;
 
 struct Line {
     Line() = default;
@@ -83,10 +84,10 @@ public:
     [[nodiscard]] int point_column() const { return m_point_column; }
     [[nodiscard]] int virtual_point_column() const { return m_virtual_point_column; }
 
-    void backspace(size_t column, size_t row);
-    void split_line(size_t column, size_t row);
-    void insert(size_t column, size_t row, char);
-    void join_lines(size_t);
+    void backspace();
+    void split_line();
+    void insert(std::string const&);
+    void join_lines();
 
     void clear();
     std::string load(std::string);
@@ -95,7 +96,8 @@ public:
     [[nodiscard]] bool dirty() const { return m_dirty; }
 
     void render(Editor *editor);
-//    bool handle(KeyCode);
+    bool dispatch(Editor *editor, SDL_Keysym);
+    void handle_text_input();
 
     Token lex();
     void rewind();

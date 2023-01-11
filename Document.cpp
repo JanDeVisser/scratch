@@ -19,7 +19,7 @@ using namespace Obelix;
 
 namespace Scratch {
 
-Document::Document(Editor *editor)
+Document::Document(Editor* editor)
     : m_editor(editor)
 {
     m_lines.emplace_back();
@@ -58,8 +58,7 @@ Document::Document(Editor *editor)
         Token(KeywordElif, "#elif"),
         Token(KeywordElifdef, "#elifdef"),
         Token(KeywordEndif, "#endif"),
-        Token(KeywordPragma, "#pragma")
-        );
+        Token(KeywordPragma, "#pragma"));
 }
 
 std::string const& Document::line(size_t line_no) const
@@ -74,8 +73,8 @@ void Document::assign_to_parser()
     for (auto const& l : m_lines) {
         s += l.text + "\n";
     }
-    while (s.length() > 2 && s.substr(s.length()-2) == "\n\n")
-        s = s.substr(0, s.length()-1);
+    while (s.length() > 2 && s.substr(s.length() - 2) == "\n\n")
+        s = s.substr(0, s.length() - 1);
     m_parser.assign(s);
     invalidate();
 }
@@ -96,56 +95,72 @@ size_t Document::parsed() const
     return !m_parser.tokens().empty();
 }
 
-void Document::backspace(size_t column, size_t row)
+void Document::backspace()
 {
-    assert(row < m_lines.size());
-    assert(column <= m_lines[row].text.length());
-    assert(column > 0 || row > 0);
-    if (column > 0) {
-        m_lines[row].text.erase(column - 1, 1);
-    } else {
-        join_lines(row-1);
+    if (m_point_line > 0 || m_point_line > 0) {
+        if (m_point_column > 0) {
+            m_lines[m_point_line].text.erase(m_point_column - 1, 1);
+            m_point_column--;
+            assign_to_parser();
+        } else {
+            join_lines();
+        }
     }
-    assign_to_parser();
 }
 
-void Document::split_line(size_t column, size_t row)
+void Document::split_line()
 {
-    if (row >= m_lines.size()) {
+    if (m_point_line >= m_lines.size()) {
         m_lines.emplace_back();
-        invalidate();
-        return;
+    } else {
+        auto right = m_lines[m_point_line].text.substr(m_point_column);
+        m_lines[m_point_line].text.erase(m_point_column);
+        auto iter = m_lines.begin();
+        for (auto ix = 0u; ix <= m_point_line; ++ix, ++iter)
+            ;
+        m_lines.insert(iter, { right, {} });
     }
-    auto right = m_lines[row].text.substr(column);
-    m_lines[row].text.erase(column);
-    auto iter = m_lines.begin();
-    for (auto ix = 0u; ix <= row; ++ix, ++iter);
-    m_lines.insert(iter, { right, {} });
+    m_point_line++;
+    m_point_column = 0;
     assign_to_parser();
 }
 
-void Document::join_lines(size_t row)
+void Document::join_lines()
 {
-    assert(row < m_lines.size()-1);
-    m_lines[row].text += m_lines[row+1].text;
-    auto iter = m_lines.begin();
-    for (auto ix = 0u; ix < row+1; ++ix, ++iter);
-    m_lines.erase(iter);
-    invalidate();
+    if (m_point_line > 0 && m_point_line < m_lines.size()) {
+        m_lines[m_point_line - 1].text += m_lines[m_point_line].text;
+        auto iter = m_lines.begin();
+        for (auto ix = 0u; ix <= m_point_line; ++ix, ++iter)
+            ;
+        m_lines.erase(iter);
+        m_point_line--;
+        m_point_column = line_length(m_point_line);
+        assign_to_parser();
+    }
 }
 
-void Document::insert(size_t column, size_t row, char ch)
+void Document::insert(std::string const& str)
 {
-    assert(row < m_lines.size());
-    assert(column <= m_lines[row].text.length());
-    m_lines[row].text.insert(column, 1, ch);
-    assign_to_parser();
+    if (str.empty())
+        return;
+    if (m_point_line < m_lines.size()) {
+        if (m_point_column <= m_lines[m_point_line].text.length()) {
+            m_lines[m_point_line].text.insert(m_point_column, str);
+            m_point_column += str.length();
+            assign_to_parser();
+        }
+    } else if (m_point_line == m_lines.size() && (m_point_column == 0)) {
+        m_lines.emplace_back(str);
+        m_point_column = str.length();
+        assign_to_parser();
+    }
 }
 
 void Document::clear()
 {
     m_lines.clear();
     m_parser.assign("\n");
+    m_point_line = m_point_column = 0;
     invalidate();
 }
 
@@ -154,6 +169,7 @@ std::string Document::load(std::string file_name)
     m_filename = std::move(file_name);
     if (auto error_maybe = m_parser.read_file(m_filename); error_maybe.is_error())
         return error_maybe.error().message();
+    m_point_line = m_point_column = 0;
     return "";
 }
 
@@ -163,7 +179,7 @@ std::string Document::save()
     if (!s.is_open())
         return format("Error opening '{}'", filename());
     for (auto const& l : m_lines) {
-        s << l.text + "\n";
+        s << l.text << "\n";
     }
     if (s.fail() || s.bad())
         return format("Error saving '{}'", filename());
@@ -181,7 +197,7 @@ std::string const& Document::filename() const
     return m_filename;
 }
 
-void Document::render(Editor *editor)
+void Document::render(Editor* editor)
 {
     if (!parsed()) {
         m_lines.clear();
@@ -206,7 +222,8 @@ void Document::render(Editor *editor)
     }
 
     auto start_render = std::chrono::steady_clock::now();
-    for (auto ix = m_screen_top; ix < m_lines.size() && ix < m_screen_top + m_editor->rows() - 2; ++ix) {
+    editor->mark_current_line(m_point_line - m_screen_top);
+    for (auto ix = m_screen_top; ix < m_lines.size() && ix < m_screen_top + m_editor->rows(); ++ix) {
         auto const& line = m_lines[ix];
         auto len = 0u;
         for (auto const& token : line.tokens) {
@@ -224,29 +241,25 @@ void Document::render(Editor *editor)
                 editor->append(DisplayToken { t, PaletteIndex::Comment });
                 break;
             case TokenCode::Identifier:
-                editor->append(DisplayToken{ t, PaletteIndex::Identifier });
+                editor->append(DisplayToken { t, PaletteIndex::Identifier });
                 break;
             case TokenCode::DoubleQuotedString:
-                editor->append(DisplayToken{ t, PaletteIndex::CharLiteral });
+                editor->append(DisplayToken { t, PaletteIndex::CharLiteral });
                 break;
             case TokenCode::SingleQuotedString:
-                editor->append(DisplayToken{ t, PaletteIndex::String });
+                editor->append(DisplayToken { t, PaletteIndex::String });
                 break;
-            case KeywordConst:
-            case KeywordIf:
-            case KeywordElse:
-            case KeywordNamespace:
-            case KeywordNullptr:
-            case KeywordWhile:
-            case KeywordClass:
-            case KeywordStruct:
-                editor->append(DisplayToken{ t, PaletteIndex::Keyword });
+            case TokenKeyword:
+                editor->append(DisplayToken { t, PaletteIndex::Keyword });
+                break;
+            case TokenConstant:
+                editor->append(DisplayToken { t, PaletteIndex::Keyword });
                 break;
             case TokenDirective:
-                editor->append(DisplayToken{ t, PaletteIndex::Preprocessor });
+                editor->append(DisplayToken { t, PaletteIndex::Preprocessor });
                 break;
             default:
-                editor->append(DisplayToken{ t });
+                editor->append(DisplayToken { t });
                 break;
             }
             len += token.value().length();
@@ -255,16 +268,18 @@ void Document::render(Editor *editor)
         }
         editor->newline();
     }
+
+    editor->text_cursor(m_point_line - m_screen_top, m_point_column - m_screen_left);
+
     auto end_render = std::chrono::steady_clock::now();
     auto elapsed_render = (long)std::chrono::duration_cast<std::chrono::milliseconds>(end_render - start_render).count();
     debug(scratch, "Rendering done in {}ms", elapsed_render);
 }
 
-#if 0
-bool Document::handle(KeyCode key)
+bool Document::dispatch(Editor* editor, SDL_Keysym sym)
 {
-    switch (key) {
-    case KEY_UP:
+    switch (sym.sym) {
+    case SDLK_UP:
         if (m_point_line > 0) {
             m_point_line--;
             if (m_point_column > line_length(m_point_line))
@@ -274,17 +289,31 @@ bool Document::handle(KeyCode key)
             debug(scratch, "KEY_UP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
         }
         break;
-    case KEY_DOWN:
+    case SDLK_PAGEUP:
+        if (m_point_line > 0) {
+            if (m_point_line < editor->rows()) {
+                m_point_line = 0;
+                m_screen_top = 0;
+            } else {
+                m_point_line = clamp((int)m_point_line - editor->rows(), 0, (int)m_point_line - editor->rows());
+                m_screen_top - clamp((int)m_screen_top - editor->rows(), 0, (int)m_point_line);
+            }
+            if (m_point_column > line_length(m_point_line))
+                m_point_column = line_length(m_point_line);
+            debug(scratch, "KEY_PGUP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
+        }
+        break;
+    case SDLK_DOWN:
         if (m_point_line < (line_count() - 1)) {
             m_point_line++;
             if (m_point_column > line_length(m_point_line))
                 m_point_column = line_length(m_point_line);
-            if (m_point_line - m_screen_top > App::instance().rows() - 4)
+            if (m_point_line - m_screen_top > editor->rows())
                 ++m_screen_top;
             debug(scratch, "KEY_DOWN: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
         }
         break;
-    case KEY_LEFT:
+    case SDLK_LEFT:
         if (m_point_column > 0) {
             --m_point_column;
             if (m_screen_left > m_point_column - 1)
@@ -298,47 +327,36 @@ bool Document::handle(KeyCode key)
         }
         debug(scratch, "KEY_LEFT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
         break;
-    case KEY_RIGHT:
+    case SDLK_RIGHT:
         if (m_point_column < line_length(m_point_line)) {
             ++m_point_column;
-            if (m_point_column - m_screen_left > App::instance().columns() - 2)
+            if (m_point_column - m_screen_left > editor->columns())
                 ++m_screen_left;
         } else if (m_point_line < line_count()) {
             ++m_point_line;
             m_point_column = 0;
-            if (m_point_line - m_screen_top > App::instance().rows() - 4)
+            if (m_point_line - m_screen_top > editor->rows())
                 ++m_screen_top;
         }
         debug(scratch, "KEY_RIGHT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
         break;
-    case KEY_BACKSPACE:
-    case 127:
-    case '\b':
-        backspace(m_point_column, m_point_line);
-        if (m_point_column > 0) {
-            m_point_column--;
-        } else if (m_point_line > 0) {
-            m_point_line--;
-            m_point_column = line_length(m_point_line);
-        }
+    case SDLK_BACKSPACE:
+        backspace();
         break;
-    case 13:
-        split_line(m_point_column, m_point_line);
-        ++m_point_line;
-        m_point_column = 0;
+    case SDLK_RETURN:
+    case SDLK_KP_ENTER:
+        split_line();
         break;
     default:
-        if (isprint(key)) {
-            insert(m_point_column, m_point_line, static_cast<char>(key));
-            m_point_column++;
-        } else {
-            return false;
-        }
-        break;
+        return false;
     }
     return true;
 }
-#endif
+
+void Document::handle_text_input()
+{
+    insert(App::instance().input_buffer());
+}
 
 Token Document::lex()
 {
@@ -382,6 +400,30 @@ Token Document::lex()
         case KeywordEndif:
         case KeywordHashElse:
             m_pending.emplace_back(TokenDirective, token.value());
+            break;
+
+        case KeywordConst:
+        case KeywordIf:
+        case KeywordElse:
+        case KeywordNamespace:
+        case KeywordWhile:
+        case KeywordClass:
+        case KeywordStruct:
+        case KeywordEnum:
+        case KeywordFor:
+        case KeywordSwitch:
+        case KeywordCase:
+        case KeywordBreak:
+        case KeywordContinue:
+        case KeywordDefault:
+        case KeywordStatic:
+            m_pending.emplace_back(TokenKeyword, token.value());
+            break;
+
+        case KeywordNullptr:
+        case KeywordTrue:
+        case KeywordFalse:
+            m_pending.emplace_back(TokenConstant, token.value());
             break;
 
         default:

@@ -56,28 +56,6 @@ static std::map<KeyCode, std::string> s_key_bindings = {
 };
  */
 
-struct Clipper {
-public:
-    Clipper(SDL_Renderer* rnd, const SDL_Rect& rect)
-        : m_renderer(rnd)
-    {
-        SDL_RenderGetClipRect(m_renderer, &m_clip);
-        SDL_RenderSetClipRect(m_renderer, &rect);
-    }
-
-    ~Clipper()
-    {
-        if (m_clip.w == 0 || m_clip.h == 0)
-            SDL_RenderSetClipRect(m_renderer, nullptr);
-        else
-            SDL_RenderSetClipRect(m_renderer, &m_clip);
-    }
-
-private:
-    SDL_Renderer* m_renderer = nullptr;
-    SDL_Rect m_clip;
-};
-
 App* App::s_app { nullptr };
 
 App& App::instance()
@@ -168,6 +146,15 @@ void App::add_component(Widget *widget)
     m_components.emplace_back(widget);
 }
 
+std::vector<Widget*> App::components()
+{
+    std::vector<Widget*> ret;
+    for (auto const& c : m_components) {
+        ret.push_back(c.get());
+    }
+    return ret;
+}
+
 Editor* App::editor()
 {
     return get_component<Editor>();
@@ -208,14 +195,18 @@ void App::active(intptr_t val)
     m_active = val;
 }
 
+/*
+ * Equivalent to:
+ *    uint8_t a = (c >> 24) & 0xff;
+ *    uint8_t b = (c >> 16) & 0xff;
+ *    uint8_t g = (c >> 8) & 0xff;
+ *    uint8_t r = c & 0xff;
+ *    return { r, g, b, a };
+ */
 SDL_Color App::color(PaletteIndex color)
 {
-    auto c = m_palette[(size_t) color];
-    uint8_t r = (c >> 24) & 0xff;
-    uint8_t g = (c >> 16) & 0xff;
-    uint8_t b = (c >> 8) & 0xff;
-    uint8_t a = c & 0xff;
-    return { r, g, b, a };
+    uint32_t c = m_palette[(size_t) color];
+    return *((SDL_Color *) &c);
 }
 
 void App::event_loop()
@@ -232,27 +223,14 @@ void App::event_loop()
             default:
                 break;
             }
-            onEvent(&e);
+            on_event(&e);
         }
 
         // Renders.
         SDL_SetRenderDrawColor(renderer(), 0x2e, 0x32, 0x38, 0xff);
         SDL_RenderClear(renderer());
 
-        boxColor(
-            renderer(),
-            WIDGET_BORDER_X, WIDGET_BORDER_Y,
-            // Reserves space for scroll bars.
-            width() - WIDGET_BORDER_X - 2 - SCROLL_BAR_SIZE, height() - WIDGET_BORDER_Y - 2 - SCROLL_BAR_SIZE,
-            0xff2c2c2c);
-
         render(); // Renders the widget and processes events.
-
-        stringColor(renderer(), WIDGET_BORDER_X, (WIDGET_BORDER_Y - 8) / 2, "Syntax highlighting code edit widget", 0xffffffff);
-        Coordinates cp = cursor_position();
-        std::stringstream ss;
-        ss << "Ln " << cp.line + 1 << ", Col " << cp.column + 1;
-        stringColor(renderer(), WIDGET_BORDER_X, height() - WIDGET_BORDER_Y + (WIDGET_BORDER_Y - 8) / 2, ss.str().c_str(), 0xffffffff);
 
         const Uint64 now = SDL_GetPerformanceCounter();
         if (timestamp == 0)
@@ -268,7 +246,7 @@ void App::event_loop()
     }
 }
 
-void App::onEvent(SDL_Event* evt)
+void App::on_event(SDL_Event* evt)
 {
     switch (evt->type) {
     case SDL_WINDOWEVENT: {
@@ -282,11 +260,23 @@ void App::onEvent(SDL_Event* evt)
         } break;
         }
     } break;
+    case SDL_KEYDOWN: {
+        if (!dispatch(evt->key.keysym)) {
+            for (auto& c : components()) {
+                if (c->dispatch(evt->key.keysym))
+                    break;
+            }
+        }
+    } break;
     case SDL_TEXTINPUT: {
         CodePoint wchars[17];
         strFromUtf8(wchars, countof(wchars), evt->text.text, nullptr);
         for (int i = 0; i < countof(wchars) && wchars[i] != 0; i++)
-            m_inputCharacters.push_back(wchars[i]);
+            m_input_characters.push_back(wchars[i]);
+        handle_text_input();
+        for (auto& c : components()) {
+            c->handle_text_input();
+        }
     } break;
     case SDL_MOUSEBUTTONUP: {
         m_mouse_clicked_count = evt->button.clicks;
@@ -303,6 +293,32 @@ void App::onEvent(SDL_Event* evt)
     default:
         break;
     }
+}
+
+bool App::dispatch(SDL_Keysym sym)
+{
+    switch (sym.sym) {
+    case SDLK_q:
+        if (sym.mod & KMOD_CTRL) {
+            quit();
+            return true;
+        }
+        break;
+    default:
+        break;
+    }
+    return false;
+}
+
+std::string App::input_buffer()
+{
+    std::string ret;
+    for (auto const code_point : m_input_characters) {
+        oassert(code_point < 256, "Unicode not supported yet");
+        ret += (char) code_point;
+    }
+    m_input_characters.clear();
+    return ret;
 }
 
 }

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <SDL.h>
+
 #include <Forward.h>
 #include <Geometry.h>
 
@@ -16,6 +18,9 @@ public:
     virtual ~Widget() = default;
 
     virtual void render();
+    virtual bool dispatch(SDL_Keysym) { return false; }
+    virtual void handle_text_input() { }
+    virtual std::vector<std::string> status() { return {}; }
 
     //[[nodiscard]] virtual bool handle(KeyCode);
 
@@ -44,7 +49,12 @@ public:
     [[nodiscard]] int content_width() const;
     [[nodiscard]] int content_height() const;
 
-    void render_text(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 });
+    SDL_Rect render_fixed(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
+    SDL_Rect render_fixed_right_aligned(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
+
+    SDL_Rect normalize(SDL_Rect const&);
+    void box(SDL_Rect const&, SDL_Color);
+    void rectangle(SDL_Rect const&, SDL_Color);
 
 protected:
     WindowedWidget(int, int, int, int);
@@ -57,8 +67,8 @@ private:
     int m_height;
 
     int m_left_margin { 0 };
-    int m_right_margin { 0 };
     int m_top_margin { 0 };
+    int m_right_margin { 0 };
     int m_bottom_margin { 0 };
 
 };

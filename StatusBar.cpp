@@ -4,32 +4,35 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <StatusBar.h>
 #include <Editor.h>
+#include <SDLContext.h>
+#include <StatusBar.h>
+
+using namespace Obelix;
 
 namespace Scratch {
 
 StatusBar::StatusBar()
-    : WindowedWidget(App::instance().rows() - 2, 0, 1, App::instance().columns())
+    : WindowedWidget(
+        0, -(2*App::instance().context()->character_height() + 6),
+        0, App::instance().context()->character_height() + 3)
 {
 }
 
 void StatusBar::render()
 {
-    debug(scratch, "StatusBar::render");
-    auto editor = App::instance().get_component<Editor>();
-    std::string status;
-    if (editor != nullptr)
-        status = editor->status();
-    if (status.length() > display()->columns() - 2)
-        status = status.substr(0, display()->columns() - 2);
-
-    char buffer[display()->columns() + 1];
-    memset(buffer, ' ', display()->columns());
-    buffer[display()->columns()] = '\0';
-    memcpy(buffer + display()->columns()-status.length()-2, status.c_str(), status.length());
-    display()->append({ std::string(buffer), DisplayStyle::Reverse });
-    display()->newline();
+    std::vector<std::string> status = App::instance().status();
+    for (auto const& c : App::instance().components()) {
+        auto s = c->status();
+        for (auto const& msg : s) {
+            status.push_back(msg);
+        }
+    }
+    auto x = width() - 8;
+    for (auto const& msg : status) {
+        auto rect = render_fixed_right_aligned(x, 2, msg);
+        x = rect.x - 8;
+    }
 }
 
 }

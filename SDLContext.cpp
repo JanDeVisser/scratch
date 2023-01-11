@@ -90,10 +90,10 @@ SDLContext::SDLFont::SDLFont(SDLRenderer& renderer, std::string font_name, int p
 {
     if (font = TTF_OpenFont(name.c_str(), point_size); font == nullptr)
         fatal("Could not load font '{}'", name);
-    if (!TTF_FontFaceIsFixedWidth(font))
-        fatal("Font '{}' is proportional", name);
     if (TTF_SizeUTF8(font, "W", &character_width, &character_height) != 0)
-        fatal("Error rendering text: {}", TTF_GetError());
+        fatal("Error getting size of text: {}", TTF_GetError());
+    if (character_height = TTF_FontHeight(font); character_height < 0)
+        fatal("Error getting font height: {}", TTF_GetError());
     debug(scratch, "Opened font '{}' w/ character size {}x{}", name, character_width, character_height);
 }
 
@@ -120,6 +120,23 @@ SDL_Rect SDLContext::SDLFont::render_text(int x, int y, std::string const& text,
     return rect;
 }
 
+SDL_Rect SDLContext::SDLFont::render_text_right_aligned(int x, int y, std::string const& text, SDL_Color color) const
+{
+    SDL_Rect rect { x, y, 0, 0 };
+    if (text.empty())
+        return rect;
+
+    SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
+    if (!surface)
+        fatal("Error rendering text: {}", TTF_GetError());
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+    SDL_QueryTexture(texture, nullptr, nullptr, &rect.w, &rect.h);
+    rect.x -= rect.w;
+    SDL_RenderCopy(renderer, texture, nullptr, &rect);
+    return rect;
+}
+
 SDLContext::SDLCursor::SDLCursor(SDL_SystemCursor cursor_id)
     : id(cursor_id)
 {
@@ -140,6 +157,8 @@ SDLContext::SDLContext(int width, int height)
     , m_height(height)
 {
 //    m_window.initialize(width, height);
+    if (!TTF_FontFaceIsFixedWidth(m_fixed.font))
+        fatal("Font '{}' is proportional", m_fixed.name);
     SDL_ShowCursor(1);
 }
 

@@ -55,7 +55,7 @@ add_executable(
         Main.cpp
 #        Menu.cpp
 #        MessageBar.cpp
-#        StatusBar.cpp
+        StatusBar.cpp
         Widget.cpp
         SDLContext.cpp
 #        Scrollbar.cpp

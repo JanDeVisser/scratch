@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <SDL2_gfxPrimitives.h>
+
 #include <App.h>
 #include <SDLContext.h>
 #include <Widget.h>
@@ -30,6 +32,10 @@ WindowedWidget::WindowedWidget(int left, int top, int width, int height)
     , m_width(width)
     , m_height(height)
 {
+    if (m_left < 0)
+        m_left = App::instance().width() + m_left;
+    if (m_top < 0)
+        m_top = App::instance().height() + m_top;
     if (m_width <= 0)
         m_width = App::instance().width() - left - m_width;
     if (m_height <= 0)
@@ -43,10 +49,14 @@ WindowedWidget::WindowedWidget(Vector<int,4> const& outline, Vector<int,4> const
     , m_width(outline[2])
     , m_height(outline[3])
     , m_left_margin(margins[0])
-    , m_right_margin(margins[1])
-    , m_top_margin(margins[2])
+    , m_top_margin(margins[1])
+    , m_right_margin(margins[2])
     , m_bottom_margin(margins[3])
 {
+    if (m_left < 0)
+        m_left = App::instance().width() + m_left;
+    if (m_top < 0)
+        m_top = App::instance().height() + m_top;
     if (m_width <= 0)
         m_width = App::instance().width() - m_left + m_width;
     if (m_height <= 0)
@@ -129,10 +139,65 @@ int WindowedWidget::content_height() const
     return height() - top_margin() - bottom_margin();
 }
 
-void WindowedWidget::render_text(int x, int y, std::string const& text, SDL_Color const& color)
+SDL_Rect WindowedWidget::render_fixed(int x, int y, std::string const& text, SDL_Color const& color) const
 {
-    App::instance().context()->render_text(left() + left_margin() + x, top() + top_margin() + y,
+    auto ret = App::instance().context()->render_fixed(left() + left_margin() + x, top() + top_margin() + y,
         text, color);
+    ret.x -= left() - left_margin();
+    ret.y -= top() - top_margin();
+    return ret;
+}
+
+SDL_Rect WindowedWidget::render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color const& color) const
+{
+    auto ret = App::instance().context()->render_fixed_right_aligned(
+        left() + left_margin() + x, top() + top_margin() + y,
+        text, color);
+    ret.x -= left() - left_margin();
+    ret.y -= top() - top_margin();
+    return ret;
+}
+
+SDL_Rect WindowedWidget::normalize(SDL_Rect const& rect)
+{
+    SDL_Rect r = rect;
+    if (r.x < 0)
+        r.x = content_width() + r.x;
+    if (r.y < 0)
+        r.y = content_height() + r.y;
+    if (r.w <= 0)
+        r.w = content_width() - r.x + r.w;
+    if (r.h <= 0)
+        r.h = content_height() - r.y + r.h;
+    r.x = clamp(r.x, 0, content_width());
+    r.y = clamp(r.y, 0, content_height());
+    r.w = clamp(r.w, 0, content_width() - r.x);
+    r.h = clamp(r.h, 0, content_height() - r.y);
+    return r;
+}
+
+void WindowedWidget::box(SDL_Rect const& rect, SDL_Color color)
+{
+    auto r = normalize(rect);
+    boxColor(
+        App::instance().renderer(),
+        left() + left_margin() + r.x,
+        top() + top_margin() + r.y,
+        left() + left_margin() + r.x + r.w,
+        top() + top_margin() + r.y + r.h,
+        *((uint32_t*) &color));
+}
+
+void WindowedWidget::rectangle(SDL_Rect const& rect, SDL_Color color)
+{
+    auto r = normalize(rect);
+    rectangleColor(
+        App::instance().renderer(),
+        left() + left_margin() + r.x,
+        top() + top_margin() + r.y,
+        left() + left_margin() + r.x + r.w,
+        top() + top_margin() + r.y + r.h,
+        *((uint32_t*) &color));
 }
 
 }

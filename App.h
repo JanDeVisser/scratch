@@ -18,11 +18,11 @@
 #include <Widget.h>
 
 #ifndef WINDOW_WIDTH
-#define WINDOW_WIDTH 640
+#define WINDOW_WIDTH 800
 #endif
 
 #ifndef WINDOW_HEIGHT
-#define WINDOW_HEIGHT 480
+#define WINDOW_HEIGHT 600
 #endif
 
 #ifndef WIDGET_BORDER_X
@@ -110,24 +110,25 @@ public:
 
     void event_loop();
     void render() override;
-//    void dispatch();
-    void onEvent(SDL_Event*);
+    bool dispatch(SDL_Keysym) override;
+    std::string input_buffer();
 
     void add_component(Widget*);
-    [[nodiscard]] virtual std::vector<std::unique_ptr<Widget>> const& components() { return m_components; }
+    [[nodiscard]] virtual std::vector<Widget*> components();
 
     template <class ComponentClass>
     requires std::derived_from<ComponentClass, Widget>
     ComponentClass* get_component()
     {
         for (auto& c : components()) {
-            if (auto casted = dynamic_cast<ComponentClass*>(c.get()); casted != nullptr)
+            if (auto casted = dynamic_cast<ComponentClass*>(c); casted != nullptr)
                 return casted;
         }
         return nullptr;
     }
 
 private:
+    void on_event(SDL_Event*);
 
     static App* s_app;
 
@@ -139,15 +140,15 @@ private:
     int m_mouse_clicked_count { 0 };
 
     Palette m_palette;
-    InputBuffer m_inputCharacters;
+    InputBuffer m_input_characters;
 
     Vec2 m_widgetPos;
     Vec2 m_widgetSize;
-    bool m_widgetFocused = true;
-    bool m_widgetHoverable = true;
+//    bool m_widgetFocused = true;
+//    bool m_widgetHoverable = true;
 
     Vec2 m_contentSize;
-    float m_scrollX = 0.0f;
+//    float m_scrollX = 0.0f;
     float m_scrollY = 0.0f;
 
     unsigned m_frameCount = 0;

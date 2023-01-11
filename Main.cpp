@@ -14,7 +14,7 @@
 //#include <MessageBar.h>
 //#include <Scrollbar.h>
 #include <SDLContext.h>
-//#include <StatusBar.h>
+#include <StatusBar.h>
 //#include <Widget.h>
 
 using namespace Obelix;
@@ -115,7 +115,7 @@ void run_app(int argc, char const** argv)
     app.add_component(editor);
     if (!config.filename.empty())
         editor->open_file(config.filename);
-//    app.add_component(new StatusBar());
+    app.add_component(new StatusBar());
 //    app.add_component(new MessageBar());
 //    app.add_component(new ScrollBar(editor, ScrollDirection::Horizontal));
 //    app.add_component(new ScrollBar(editor, ScrollDirection::Vertical));

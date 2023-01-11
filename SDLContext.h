@@ -30,11 +30,23 @@ public:
     SDL_Renderer* renderer() { return m_renderer; }
     SDL_Cursor* arrow() { return m_arrow; }
     SDL_Cursor* input() { return m_arrow; }
-    [[nodiscard]] int character_width() const { return m_font.character_width; }
-    [[nodiscard]] int character_height() const { return m_font.character_height; }
-    SDL_Rect render_text(int x, int y, std::string const& text, SDL_Color color)
+    [[nodiscard]] int character_width() const { return m_fixed.character_width; }
+    [[nodiscard]] int character_height() const { return m_fixed.character_height; }
+    SDL_Rect render_fixed(int x, int y, std::string const& text, SDL_Color color)
     {
-        return m_font.render_text(x, y, text, color);
+        return m_fixed.render_text(x, y, text, color);
+    }
+    SDL_Rect render_proportional(int x, int y, std::string const& text, SDL_Color color)
+    {
+        return m_proportional.render_text(x, y, text, color);
+    }
+    SDL_Rect render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color color)
+    {
+        return m_fixed.render_text_right_aligned(x, y, text, color);
+    }
+    SDL_Rect render_proportional_right_aligned(int x, int y, std::string const& text, SDL_Color color)
+    {
+        return m_proportional.render_text_right_aligned(x, y, text, color);
     }
 
 private:
@@ -72,6 +84,7 @@ private:
         [[nodiscard]] std::string to_string() const { return name; }
         operator TTF_Font*() const { return font; }
         SDL_Rect render_text(int, int, std::string const& text, SDL_Color color) const;
+        SDL_Rect render_text_right_aligned(int, int, std::string const& text, SDL_Color color) const;
 
         SDLRenderer& renderer;
         TTF_Font* font;
@@ -96,7 +109,8 @@ private:
     SDLTTF m_ttf {};
     SDLWindow m_window { m_width, m_height };
     SDLRenderer m_renderer { m_window };
-    SDLFont m_font { m_renderer, "JetBrainsMono.ttf", 15 };
+    SDLFont m_fixed { m_renderer, "JetBrainsMono.ttf", 15 };
+    SDLFont m_proportional { m_renderer, "Swansea-q3pd.ttf", 15 };
     SDLCursor m_arrow { SDL_SYSTEM_CURSOR_ARROW };
     SDLCursor m_input { SDL_SYSTEM_CURSOR_IBEAM };
 };

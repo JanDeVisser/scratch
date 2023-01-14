@@ -12,18 +12,12 @@
 
 namespace Scratch {
 
-Widget::Widget()
-{
-}
+int Widget::char_height { 0 };
+int Widget::char_width { 0 };
 
 void Widget::render()
 {
 }
-
-//bool Widget::handle(KeyCode key)
-//{
-//    return false;
-//}
 
 WindowedWidget::WindowedWidget(int left, int top, int width, int height)
     : Widget()
@@ -42,7 +36,7 @@ WindowedWidget::WindowedWidget(int left, int top, int width, int height)
         m_height = App::instance().height() - top - m_height;
 }
 
-WindowedWidget::WindowedWidget(Vector<int,4> const& outline, Vector<int,4> const& margins)
+WindowedWidget::WindowedWidget(Vector<int, 4> const& outline, Vector<int, 4> const& margins)
     : Widget()
     , m_left(outline[0])
     , m_top(outline[1])
@@ -63,14 +57,14 @@ WindowedWidget::WindowedWidget(Vector<int,4> const& outline, Vector<int,4> const
         m_height = App::instance().height() - m_top + m_height;
 }
 
-Vector<int,2>  WindowedWidget::position() const
+Vector<int, 2> WindowedWidget::position() const
 {
-    return Vector<int,2> { m_left, m_top };
+    return Vector<int, 2> { m_left, m_top };
 }
 
-Vector<int,2>  WindowedWidget::size() const
+Vector<int, 2> WindowedWidget::size() const
 {
-    return Vector<int,2>  { m_width, m_height };
+    return Vector<int, 2> { m_width, m_height };
 }
 
 int WindowedWidget::top() const
@@ -93,20 +87,20 @@ int WindowedWidget::width() const
     return m_width;
 }
 
-Vector<int,4> WindowedWidget::outline() const
+Vector<int, 4> WindowedWidget::outline() const
 {
-    return Vector<int,4> { left(), top(), width(), height() };
+    return Vector<int, 4> { left(), top(), width(), height() };
 }
 
-Vector<int,4> WindowedWidget::content_rect() const
+Vector<int, 4> WindowedWidget::content_rect() const
 {
-    return Vector<int,4> { left() + m_left_margin, top() + m_top_margin,
+    return Vector<int, 4> { left() + m_left_margin, top() + m_top_margin,
         width() - m_left_margin - m_right_margin, height() - m_top_margin - m_bottom_margin };
 }
 
-Vector<int,4> WindowedWidget::margins() const
+Vector<int, 4> WindowedWidget::margins() const
 {
-    return Vector<int,4> { left_margin(), right_margin(), top_margin(), bottom_margin() };
+    return Vector<int, 4> { left_margin(), right_margin(), top_margin(), bottom_margin() };
 }
 
 int WindowedWidget::left_margin() const
@@ -137,6 +131,40 @@ int WindowedWidget::content_width() const
 int WindowedWidget::content_height() const
 {
     return height() - top_margin() - bottom_margin();
+}
+
+void WindowedWidget::set_render(std::function<void()> r)
+{
+    m_render = std::move(r);
+}
+
+void WindowedWidget::set_dispatch(std::function<bool(SDL_Keysym)> d)
+{
+    m_dispatch = std::move(d);
+}
+
+void WindowedWidget::set_text_input(std::function<void()> t)
+{
+    m_text_input = std::move(t);
+}
+
+void WindowedWidget::render()
+{
+    if (m_render != nullptr)
+        m_render();
+}
+
+bool WindowedWidget::dispatch(SDL_Keysym sym)
+{
+    if (m_dispatch != nullptr)
+        return m_dispatch(sym);
+    return false;
+}
+
+void WindowedWidget::handle_text_input()
+{
+    if (m_text_input != nullptr)
+        m_text_input();
 }
 
 SDL_Rect WindowedWidget::render_fixed(int x, int y, std::string const& text, SDL_Color const& color) const
@@ -185,7 +213,7 @@ void WindowedWidget::box(SDL_Rect const& rect, SDL_Color color)
         top() + top_margin() + r.y,
         left() + left_margin() + r.x + r.w,
         top() + top_margin() + r.y + r.h,
-        *((uint32_t*) &color));
+        *((uint32_t*)&color));
 }
 
 void WindowedWidget::rectangle(SDL_Rect const& rect, SDL_Color color)
@@ -197,7 +225,24 @@ void WindowedWidget::rectangle(SDL_Rect const& rect, SDL_Color color)
         top() + top_margin() + r.y,
         left() + left_margin() + r.x + r.w,
         top() + top_margin() + r.y + r.h,
-        *((uint32_t*) &color));
+        *((uint32_t*)&color));
+}
+
+ModalWidget::ModalWidget(int x, int y, int w, int h)
+    : WindowedWidget(x, y, w, h)
+{
+}
+
+ModalWidget::ModalWidget(Vector<int, 4> const& outline, Vector<int, 4> const& margins)
+    : WindowedWidget(outline, margins)
+{
+
+}
+
+void ModalWidget::dismiss()
+{
+    if (App::instance().modal() == this)
+        App::instance().dismiss_modal();
 }
 
 }

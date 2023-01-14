@@ -6,15 +6,19 @@
 
 #pragma once
 
+#include <filesystem>
+#include <sstream>
 #include <string>
 
 #include <SDL.h>
 
 #include <core/Logging.h>
 
+#include <Command.h>
 #include <EditorState.h>
 //#include <Scrollbar.h>
 #include <Geometry.h>
+#include <Key.h>
 #include <Widget.h>
 
 #ifndef WINDOW_WIDTH
@@ -98,6 +102,7 @@ public:
 
 //    [[nodiscard]] bool handle(KeyCode) override;
 //    void vmessage(char const*, va_list) override;
+    std::vector<std::string> status() override;
 
 
     int width() const;
@@ -112,6 +117,7 @@ public:
     void render() override;
     bool dispatch(SDL_Keysym) override;
     std::string input_buffer();
+    void schedule(Command const* cmd);
 
     void add_component(Widget*);
     [[nodiscard]] virtual std::vector<Widget*> components();
@@ -126,6 +132,10 @@ public:
         }
         return nullptr;
     }
+
+    void add_modal(Widget*);
+    Widget* modal();
+    void dismiss_modal();
 
 private:
     void on_event(SDL_Event*);
@@ -154,7 +164,10 @@ private:
     unsigned m_frameCount = 0;
 
     std::vector<std::unique_ptr<Widget>> m_components;
+    std::vector<std::unique_ptr<Widget>> m_modals;
     std::unique_ptr<SDLContext> m_context;
+    std::deque<Command const*> m_pending_commands;
+    SDLKey m_last_key { SDLK_UNKNOWN, KMOD_NONE };
 };
 
 }

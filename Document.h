@@ -59,7 +59,7 @@ constexpr static TokenCode TokenConstant = TokenCode::Keyword36;
 
 struct Line {
     Line() = default;
-    Line(std::string t)
+    explicit Line(std::string t)
         : text(std::move(t))
     {
     }
@@ -70,7 +70,7 @@ struct Line {
 
 class Document {
 public:
-    Document(Editor *);
+    explicit Document(Editor *);
 
     [[nodiscard]] std::string const& line(size_t) const;
     [[nodiscard]] size_t line_length(size_t) const;

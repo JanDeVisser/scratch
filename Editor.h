@@ -63,7 +63,7 @@ public:
     void newline();
 
 private:
-    std::vector<Document> m_documents { { this } };
+    std::vector<Document> m_documents { Document { this } };
     Document& m_current_document { m_documents.front() };
     int m_line;
     int m_column;

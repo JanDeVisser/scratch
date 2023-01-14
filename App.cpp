@@ -20,42 +20,6 @@
 
 namespace Scratch {
 
-enum class CommandParameterType {
-    String,
-    Integer,
-    Filename,
-    ExistingFilename,
-    Directory,
-    ExistingDirectory,
-};
-
-struct CommandParameter {
-    std::string prompt;
-    CommandParameterType type;
-};
-
-struct Command {
-    std::string synopsis;
-    std::vector<CommandParameter> parameters;
-    std::function<void(strings const&)> function;
-};
-
-/*
-static std::map<std::string, Command> s_commands = {
-    { "scratch-quit", { "Quits the editor", {}, [](strings const&) -> void { App::instance().quit(); } } },
-    { "open-file", { "Open file", { { "File to open", CommandParameterType::ExistingFilename } }, [](strings const& args) -> void {
-                        App::instance().get_component<Editor>()->open_file(args[0]);
-                    } } },
-    { "save-file", { "Save current file", {}, [](strings const&) -> void { App::instance().get_component<Editor>()->save_file(); } } },
-};
-
-static std::map<KeyCode, std::string> s_key_bindings = {
-    { CTRL_Q, "scratch-quit" },
-    { KEY_F2, "open-file" },
-    { KEY_F3, "save-file" },
-};
- */
-
 App* App::s_app { nullptr };
 
 App& App::instance()
@@ -64,84 +28,18 @@ App& App::instance()
     return *s_app;
 }
 
-App::App(std::string name, SDLContext *ctx)
+App::App(std::string name, SDLContext* ctx)
     : m_name(std::move(name))
     , m_palette(DarkPalette())
     , m_context(ctx)
 {
     oassert(s_app == nullptr, "App is a singleton");
     s_app = this;
+    Widget::char_width = m_context->character_width();
+    Widget::char_height = m_context->character_height();
 }
 
-#ifdef SCRATCH_CONSOLE
-
-void App::event_loop()
-{
-    while (!m_quit) {
-        render_app();
-        auto key_maybe = Display::getkey();
-        if (key_maybe.is_error()) {
-            if (key_maybe.error() == EINTR) {
-                auto resize_maybe = resize();
-                if (resize_maybe.is_error()) {
-                    fprintf(stderr, "ERROR: %s\n", resize_maybe.error().c_str());
-                    break;
-                }
-                continue;
-            }
-            fprintf(stderr, "ERROR: something went wrong during reading of the user input: %s\n", strerror(errno));
-            break;
-        }
-        dispatch(key_maybe.value());
-    }
-    printf("\033[2J\033[H");
-}
-
-void App::render_app()
-{
-    display()->clear();
-    for (auto const& c : components()) {
-        c->pre_render();
-    }
-    for (auto const& c : components()) {
-        c->render();
-    }
-    for (auto iter = components().rbegin(); iter != components().rend(); ++iter) {
-        (*iter)->post_render();
-    }
-    display()->render();
-}
-
-void App::dispatch(KeyCode key)
-{
-    if (!handle(key)) {
-        for (auto const& c : components()) {
-            if (c->handle(key))
-                break;
-        }
-    }
-}
-
-bool App::handle(KeyCode key)
-{
-    if (s_key_bindings.contains(key)) {
-        auto cmd = s_key_bindings.at(key);
-        assert(s_commands.contains(cmd));
-        auto cmd_descr = s_commands.at(cmd);
-        cmd_descr.function(strings {});
-        return true;
-    }
-    return false;
-}
-
-ErrorOr<void, std::string> App::resize()
-{
-    return {};
-}
-
-#endif
-
-void App::add_component(Widget *widget)
+void App::add_component(Widget* widget)
 {
     m_components.emplace_back(widget);
 }
@@ -155,12 +53,31 @@ std::vector<Widget*> App::components()
     return ret;
 }
 
+void App::add_modal(Widget* widget)
+{
+    m_modals.emplace_back(widget);
+}
+
+Widget* App::modal()
+{
+    if (m_modals.empty())
+        return nullptr;
+    return m_modals.back().get();
+}
+
+void App::dismiss_modal()
+{
+    if (!m_modals.empty()) {
+        m_modals.pop_back();
+    }
+}
+
 Editor* App::editor()
 {
     return get_component<Editor>();
 };
 
-SDL_Renderer * App::renderer()
+SDL_Renderer* App::renderer()
 {
     return m_context->renderer();
 }
@@ -173,6 +90,22 @@ void App::render()
     for (auto const& c : components()) {
         c->render();
     }
+    if (m_modals.empty()) {
+        if (!m_pending_commands.empty()) {
+            auto cmd = m_pending_commands.front();
+            add_modal(new CommandHandler(*cmd));
+            m_pending_commands.pop_front();
+        }
+    } else {
+        for (auto const& m : m_modals) {
+            m->render();
+        }
+    }
+}
+
+void App::schedule(Command const* cmd)
+{
+    m_pending_commands.push_back(cmd);
 }
 
 int App::width() const
@@ -205,8 +138,8 @@ void App::active(intptr_t val)
  */
 SDL_Color App::color(PaletteIndex color)
 {
-    uint32_t c = m_palette[(size_t) color];
-    return *((SDL_Color *) &c);
+    uint32_t c = m_palette[(size_t)color];
+    return *((SDL_Color*)&c);
 }
 
 void App::event_loop()
@@ -230,7 +163,7 @@ void App::event_loop()
         SDL_SetRenderDrawColor(renderer(), 0x2e, 0x32, 0x38, 0xff);
         SDL_RenderClear(renderer());
 
-        render(); // Renders the widget and processes events.
+        render();
 
         const Uint64 now = SDL_GetPerformanceCounter();
         if (timestamp == 0)
@@ -256,12 +189,14 @@ void App::on_event(SDL_Event* evt)
             m_widgetPos = Vec2(WIDGET_BORDER_X, WIDGET_BORDER_Y);
             SDL_GetRendererOutputSize(renderer(), &m_width, &m_height);
             m_widgetSize = Vec2((float)m_width - WIDGET_BORDER_X * 2 - 2 - SCROLL_BAR_SIZE,
-                    (float)m_height - WIDGET_BORDER_Y * 2 - 2 - SCROLL_BAR_SIZE);
+                (float)m_height - WIDGET_BORDER_Y * 2 - 2 - SCROLL_BAR_SIZE);
         } break;
         }
     } break;
     case SDL_KEYDOWN: {
-        if (!dispatch(evt->key.keysym)) {
+        if (auto m = modal(); m != nullptr) {
+            m->dispatch(evt->key.keysym);
+        } else if (!dispatch(evt->key.keysym)) {
             for (auto& c : components()) {
                 if (c->dispatch(evt->key.keysym))
                     break;
@@ -273,9 +208,13 @@ void App::on_event(SDL_Event* evt)
         strFromUtf8(wchars, countof(wchars), evt->text.text, nullptr);
         for (int i = 0; i < countof(wchars) && wchars[i] != 0; i++)
             m_input_characters.push_back(wchars[i]);
-        handle_text_input();
-        for (auto& c : components()) {
-            c->handle_text_input();
+        if (auto m = modal(); m != nullptr) {
+            m->handle_text_input();
+        } else {
+            handle_text_input();
+            for (auto& c : components()) {
+                c->handle_text_input();
+            }
         }
     } break;
     case SDL_MOUSEBUTTONUP: {
@@ -297,17 +236,17 @@ void App::on_event(SDL_Event* evt)
 
 bool App::dispatch(SDL_Keysym sym)
 {
-    switch (sym.sym) {
-    case SDLK_q:
-        if (sym.mod & KMOD_CTRL) {
-            quit();
-            return true;
-        }
-        break;
-    default:
-        break;
+    m_last_key = sym;
+    if (auto* cmd = Command::command_for_key(m_last_key); cmd != nullptr) {
+        schedule(cmd);
+        return true;
     }
     return false;
+}
+
+std::vector<std::string> App::status()
+{
+    return { m_last_key.to_string() };
 }
 
 std::string App::input_buffer()
@@ -315,7 +254,7 @@ std::string App::input_buffer()
     std::string ret;
     for (auto const code_point : m_input_characters) {
         oassert(code_point < 256, "Unicode not supported yet");
-        ret += (char) code_point;
+        ret += (char)code_point;
     }
     m_input_characters.clear();
     return ret;

@@ -97,7 +97,7 @@ size_t Document::parsed() const
 
 void Document::backspace()
 {
-    if (m_point_line > 0 || m_point_line > 0) {
+    if (m_point_line > 0 || m_point_column > 0) {
         if (m_point_column > 0) {
             m_lines[m_point_line].text.erase(m_point_column - 1, 1);
             m_point_column--;
@@ -118,7 +118,7 @@ void Document::split_line()
         auto iter = m_lines.begin();
         for (auto ix = 0u; ix <= m_point_line; ++ix, ++iter)
             ;
-        m_lines.insert(iter, { right, {} });
+        m_lines.insert(iter, Line { right });
     }
     m_point_line++;
     m_point_column = 0;

@@ -24,14 +24,18 @@ public:
 
     //[[nodiscard]] virtual bool handle(KeyCode);
 
+    static int char_height;
+    static int char_width;
 protected:
-    Widget();
+    Widget() = default;
 
 private:
 };
 
 class WindowedWidget : public Widget {
 public:
+    WindowedWidget(int, int, int, int);
+    WindowedWidget(Vector<int,4> const&, Vector<int,4> const&);
     [[nodiscard]] int top() const;
     [[nodiscard]] int left() const;
     [[nodiscard]] int height() const;
@@ -48,6 +52,12 @@ public:
     [[nodiscard]] int bottom_margin() const;
     [[nodiscard]] int content_width() const;
     [[nodiscard]] int content_height() const;
+    void set_render(std::function<void()>);
+    void set_dispatch(std::function<bool(SDL_Keysym)>);
+    void set_text_input(std::function<void()>);
+    void render() override;
+    bool dispatch(SDL_Keysym) override;
+    void handle_text_input() override;
 
     SDL_Rect render_fixed(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
     SDL_Rect render_fixed_right_aligned(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
@@ -55,10 +65,6 @@ public:
     SDL_Rect normalize(SDL_Rect const&);
     void box(SDL_Rect const&, SDL_Color);
     void rectangle(SDL_Rect const&, SDL_Color);
-
-protected:
-    WindowedWidget(int, int, int, int);
-    WindowedWidget(Vector<int,4> const&, Vector<int,4> const&);
 
 private:
     int m_left;
@@ -71,6 +77,17 @@ private:
     int m_right_margin { 0 };
     int m_bottom_margin { 0 };
 
+    std::function<void()> m_render { nullptr };
+    std::function<bool(SDL_Keysym)> m_dispatch { nullptr };
+    std::function<void()> m_text_input { nullptr };
+};
+
+class ModalWidget : public WindowedWidget {
+public:
+    ModalWidget(int, int, int, int);
+    ModalWidget(Vector<int,4> const&, Vector<int,4> const&);
+    void dismiss();
+private:
 };
 
 }

@@ -107,8 +107,9 @@ SDLContext::SDLFont::~SDLFont()
 SDL_Rect SDLContext::SDLFont::render_text(int x, int y, std::string const& text, SDL_Color color) const
 {
     SDL_Rect rect { x, y, 0, 0 };
-    if (text.empty())
+    if (text.empty()) {
         return rect;
+    }
 
     SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
     if (!surface)
@@ -117,14 +118,16 @@ SDL_Rect SDLContext::SDLFont::render_text(int x, int y, std::string const& text,
     SDL_FreeSurface(surface);
     SDL_QueryTexture(texture, nullptr, nullptr, &rect.w, &rect.h);
     SDL_RenderCopy(renderer, texture, nullptr, &rect);
+    SDL_DestroyTexture(texture);
     return rect;
 }
 
 SDL_Rect SDLContext::SDLFont::render_text_right_aligned(int x, int y, std::string const& text, SDL_Color color) const
 {
     SDL_Rect rect { x, y, 0, 0 };
-    if (text.empty())
+    if (text.empty()) {
         return rect;
+    }
 
     SDL_Surface* surface = TTF_RenderUTF8_Blended(font, text.c_str(), color);
     if (!surface)
@@ -134,6 +137,7 @@ SDL_Rect SDLContext::SDLFont::render_text_right_aligned(int x, int y, std::strin
     SDL_QueryTexture(texture, nullptr, nullptr, &rect.w, &rect.h);
     rect.x -= rect.w;
     SDL_RenderCopy(renderer, texture, nullptr, &rect);
+    SDL_DestroyTexture(texture);
     return rect;
 }
 

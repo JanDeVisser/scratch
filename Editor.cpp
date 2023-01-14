@@ -5,6 +5,7 @@
  */
 
 #include <cctype>
+#include <filesystem>
 #include <sstream>
 
 #include <SDL2_gfxPrimitives.h>
@@ -16,6 +17,8 @@
 namespace Scratch {
 
 extern_logging_category(scratch);
+
+namespace fs=std::filesystem;
 
 Editor::Editor()
     : WindowedWidget(
@@ -90,6 +93,8 @@ void Editor::mark_current_line(int line)
 
 void Editor::text_cursor(int line, int column)
 {
+    if (App::instance().modal() != nullptr)
+        return;
     static auto time_start = std::chrono::system_clock::now();
     auto time_end = std::chrono::system_clock::now();
     const long long elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
@@ -154,7 +159,7 @@ std::vector<std::string> Editor::status()
     std::stringstream ss;
     ss << document().point_line() + 1 << ":" << document().point_column() + 1;
     ret.push_back(ss.str());
-    ret.push_back(document().filename());
+    ret.push_back(fs::relative(document().filename()).string());
     return ret;
 }
 

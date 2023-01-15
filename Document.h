@@ -7,12 +7,15 @@
 #pragma once
 
 #include <deque>
+#include <filesystem>
 
 #include <lexer/BasicParser.h>
 
 #include <Forward.h>
 
 namespace Scratch {
+
+namespace fs=std::filesystem;
 
 using TokenCode=Obelix::TokenCode;
 using Token=Obelix::Token;
@@ -75,8 +78,9 @@ public:
     [[nodiscard]] std::string const& line(size_t) const;
     [[nodiscard]] size_t line_length(size_t) const;
     [[nodiscard]] size_t line_count() const;
+    [[nodiscard]] bool empty() const;
     [[nodiscard]] size_t parsed() const;
-    [[nodiscard]] std::string const& filename() const;
+    [[nodiscard]] fs::path const& path() const;
 
     [[nodiscard]] int screen_top() const { return m_screen_top; }
     [[nodiscard]] int screen_left() const { return m_screen_left; }
@@ -90,9 +94,9 @@ public:
     void join_lines();
 
     void clear();
-    std::string load(std::string);
+    std::string load(std::string const&);
     std::string save();
-    std::string save_as(std::string);
+    std::string save_as(std::string const&);
     [[nodiscard]] bool dirty() const { return m_dirty; }
 
     void render(Editor *editor);
@@ -115,7 +119,7 @@ private:
     void assign_to_parser();
 
     Editor* m_editor;
-    std::string m_filename;
+    fs::path m_path {};
     bool m_dirty { false };
     bool m_cleared { true };
     Obelix::BasicParser m_parser;

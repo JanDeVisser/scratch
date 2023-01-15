@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <cctype>
 #include <filesystem>
 #include <sstream>
 
@@ -25,10 +24,10 @@ Editor::Editor()
         Vector<int, 4> { 0, 0, 0, -(2 * App::instance().context()->character_height() + 6) },
         Vector<int, 4> { 8, 8, 18, 0 })
 {
+    m_documents.emplace_back(new Document(this));
+    m_current_document = m_documents.front().get();
     m_rows = content_height() / (int)(App::instance().context()->character_height() * 1.2);
-    debug(scratch, "--- content height: {} character height: {} rows: {}", content_height(), App::instance().context()->character_height(), m_rows);
     m_columns = content_width() / App::instance().context()->character_width();
-    debug(scratch, "--- content width: {} character width: {} rows: {}", content_width(), App::instance().context()->character_width(), m_columns);
 }
 
 int Editor::rows() const
@@ -61,12 +60,12 @@ int Editor::column_right(int column) const
     return column_width() * (column + 1);
 }
 
-int Editor::line_height() const
+int Editor::line_height()
 {
     return App::instance().context()->character_height();
 }
 
-int Editor::column_width() const
+int Editor::column_width()
 {
     return App::instance().context()->character_width();
 }
@@ -76,7 +75,7 @@ void Editor::render()
     box(SDL_Rect { 0, 0, 0, 0 }, SDL_Color { 0x2c, 0x2c, 0x2c, 0xff });
     m_line = 0;
     m_column = 0;
-    document().render(this);
+    document()->render(this);
 }
 
 void Editor::mark_current_line(int line)
@@ -127,40 +126,92 @@ void Editor::newline()
     m_column = 0;
 }
 
- bool Editor::dispatch(SDL_Keysym sym)
+bool Editor::dispatch(SDL_Keysym sym)
 {
-     return document().dispatch(this, sym);
- }
+    return document()->dispatch(this, sym);
+}
 
- void Editor::handle_text_input()
- {
-     document().handle_text_input();
- }
-
-std::string Editor::open_file(std::string const& file_name)
+void Editor::handle_text_input()
 {
-    //    if (!document().filename().empty() || (document().line_count() > 0)) {
-    //        m_documents.emplace_back();
-    //        m_current_document = m_documents.back();
-    //    }
-    return document().load(file_name);
+    document()->handle_text_input();
+}
+
+void Editor::new_buffer()
+{
+    m_documents.emplace_back(new Document(this));
+    m_current_document = m_documents.back().get();
+}
+
+std::string Editor::open_file(fs::path const& path)
+{
+    if (!document()->path().empty() || !document()->empty()) {
+        new_buffer();
+    }
+    return document()->load(path);
 }
 
 std::string Editor::save_file()
 {
-    if (!document().filename().empty() || (document().line_count() > 0))
-        return document().save();
+    if (!document()->path().empty() || (document()->line_count() > 0))
+        return document()->save();
     return "";
+}
+
+std::string Editor::save_file_as(fs::path const& new_file_name)
+{
+    if (!document()->path().empty() || (document()->line_count() > 0))
+        return document()->save_as(new_file_name);
+    return "";
+}
+
+std::string Editor::save_all()
+{
+    for (auto* doc : documents()) {
+        if (doc->path().empty())
+            /* App::instance().schedule("query-filename-and-save") */;
+        else
+            doc->save();
+    }
+}
+
+void Editor::switch_to(std::string const& buffer_name)
+{
+    auto* buffer = document(buffer_name);
+    if (buffer != nullptr) {
+        m_current_document = buffer;
+    }
 }
 
 std::vector<std::string> Editor::status()
 {
     std::vector<std::string> ret;
     std::stringstream ss;
-    ss << document().point_line() + 1 << ":" << document().point_column() + 1;
+    ss << document()->point_line() + 1 << ":" << document()->point_column() + 1;
     ret.push_back(ss.str());
-    ret.push_back(fs::relative(document().filename()).string());
+    ret.push_back(fs::relative(document()->path()).string());
     return ret;
+}
+
+std::vector<Document*> Editor::documents() const
+{
+    std::vector<Document*> ret;
+    for (auto& doc : m_documents)
+        ret.push_back(doc.get());
+    std::sort(ret.begin(), ret.end(),
+        [](auto const* d1, auto const* d2) {
+            return d1->path() < d2->path();
+        });
+    return ret;
+}
+
+Document* Editor::document(fs::path const& path) const
+{
+    fs::path abs = fs::absolute(path);
+    for (auto const& doc : m_documents) {
+        if (abs == doc->path())
+            return doc.get();
+    }
+    return nullptr;
 }
 
 }

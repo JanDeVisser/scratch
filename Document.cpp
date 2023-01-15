@@ -22,6 +22,7 @@ namespace Scratch {
 Document::Document(Editor* editor)
     : m_editor(editor)
 {
+    m_path.clear();
     m_lines.emplace_back();
     m_parser.lexer().add_scanner<Obelix::QStringScanner>("\"'", true);
     m_parser.lexer().add_scanner<Obelix::IdentifierScanner>();
@@ -88,6 +89,11 @@ size_t Document::line_length(size_t line_no) const
 size_t Document::line_count() const
 {
     return m_lines.size();
+}
+
+bool Document::empty() const
+{
+    return m_lines.empty() || (m_lines.size() == 1 && m_lines[0].tokens.empty());
 }
 
 size_t Document::parsed() const
@@ -158,43 +164,49 @@ void Document::insert(std::string const& str)
 
 void Document::clear()
 {
+    if (empty())
+        return;
     m_lines.clear();
     m_parser.assign("\n");
     m_point_line = m_point_column = 0;
     invalidate();
 }
 
-std::string Document::load(std::string file_name)
+std::string Document::load(std::string const& file_name)
 {
-    m_filename = std::move(file_name);
-    if (auto error_maybe = m_parser.read_file(m_filename); error_maybe.is_error())
+    m_path = fs::absolute(file_name);
+    if (auto error_maybe = m_parser.read_file(m_path.string()); error_maybe.is_error())
         return error_maybe.error().message();
     m_point_line = m_point_column = 0;
+    m_dirty = false;
     return "";
 }
 
 std::string Document::save()
 {
-    std::fstream s(filename(), std::fstream::out);
+    if (!m_dirty)
+        return "";
+    std::fstream s(m_path.string(), std::fstream::out);
     if (!s.is_open())
-        return format("Error opening '{}'", filename());
+        return format("Error opening '{}'", m_path.string());
     for (auto const& l : m_lines) {
         s << l.text << "\n";
     }
     if (s.fail() || s.bad())
-        return format("Error saving '{}'", filename());
+        return format("Error saving '{}'", m_path.string());
+    m_dirty = false;
     return "";
 }
 
-std::string Document::save_as(std::string new_file_name)
+std::string Document::save_as(std::string const& new_file_name)
 {
-    m_filename = std::move(new_file_name);
+    m_path = new_file_name;
     return save();
 }
 
-std::string const& Document::filename() const
+fs::path const& Document::path() const
 {
-    return m_filename;
+    return m_path;
 }
 
 void Document::render(Editor* editor)
@@ -296,7 +308,7 @@ bool Document::dispatch(Editor* editor, SDL_Keysym sym)
                 m_screen_top = 0;
             } else {
                 m_point_line = clamp((int)m_point_line - editor->rows(), 0, (int)m_point_line - editor->rows());
-                m_screen_top - clamp((int)m_screen_top - editor->rows(), 0, (int)m_point_line);
+                m_screen_top = clamp((int)m_screen_top - editor->rows(), 0, (int)m_point_line);
             }
             if (m_point_column > line_length(m_point_line))
                 m_point_column = line_length(m_point_line);
@@ -587,6 +599,7 @@ void Document::invalidate()
     m_lines.emplace_back();
     m_parser.invalidate();
     m_cleared = true;
+    m_dirty = true;
 }
 
 }

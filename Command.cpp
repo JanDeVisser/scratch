@@ -18,16 +18,45 @@ std::map<std::string, Command> Command::s_commands = {
         { "scratch-quit", "Quits the editor",
             {},
             [](strings const&) -> void { App::instance().quit(); } } },
+    { "new-buffer",
+        { "new-buffer", "New buffer",
+            { },
+            [](strings const&) -> void {
+                App::instance().get_component<Editor>()->new_buffer();
+            }
+        } },
     { "open-file",
         { "open-file", "Open file",
             { { "File to open", CommandParameterType::ExistingFilename } },
             [](strings const& args) -> void {
                 App::instance().get_component<Editor>()->open_file(args[0]);
             } } },
+    { "save-current-as",
+        { "save-current-as", "Save current file as",
+            { { "New file name", CommandParameterType::String } },
+            [](strings const& args) -> void { App::instance().get_component<Editor>()->save_file_as(args[0]); } } },
+    { "save-all-files",
+        { "save-all-files", "Save call files",
+            {},
+            [](strings const&) -> void { App::instance().get_component<Editor>()->save_all(); } } },
     { "save-file",
         { "save-file", "Save current file",
             {},
-            [](strings const&) -> void { App::instance().get_component<Editor>()->save_file(); } } },
+            [](strings const&) -> void {
+                auto editor = App::instance().get_component<Editor>();
+                assert(editor != nullptr);
+                if (editor->document()->path().empty()) {
+                    App::instance().schedule(Command::get("save-current-as"));
+                } else {
+                    editor->save_file();
+                }
+            } } },
+    { "switch-buffer",
+        { "switch-buffer", "Switch buffer",
+            { { "Buffer", CommandParameterType::Buffer } },
+            [](strings const& args) -> void {
+                App::instance().get_component<Editor>()->switch_to(args[0]);
+            } } },
     { "invoke",
         { "invoke", "Invoke command",
             { { "Command", CommandParameterType::Command } },
@@ -40,8 +69,12 @@ std::map<std::string, Command> Command::s_commands = {
 
 std::map<SDLKey, std::string> Command::s_key_bindings = {
     { { SDLK_q, KMOD_CTRL }, "scratch-quit" },
-    { { SDLK_F2, KMOD_NONE }, "open-file" },
-    { { SDLK_F3, KMOD_NONE }, "save-file" },
+    { { SDLK_n, KMOD_CTRL }, "new-buffer" },
+    { { SDLK_o, KMOD_CTRL }, "open-file" },
+    { { SDLK_s, KMOD_CTRL }, "save-file" },
+    { { SDLK_s, KMOD_CTRL | KMOD_GUI }, "save-current-as" },
+    { { SDLK_l, KMOD_CTRL }, "save-all-files" },
+    { { SDLK_b, KMOD_CTRL }, "switch-buffer" },
     { { SDLK_x, KMOD_GUI }, "invoke" },
 };
 
@@ -88,6 +121,67 @@ Command* Command::get(std::string const& cmd_name)
         return nullptr;
     return &s_commands.at(cmd_name);
 }
+
+class AbstractArgumentHandler : public ModalWidget {
+protected:
+    AbstractArgumentHandler(CommandHandler*, CommandParameter const&, int);
+    void submit(std::string const&);
+
+    CommandHandler* m_handler;
+    CommandParameter const& m_parameter;
+};
+
+class DefaultArgumentHandler : public AbstractArgumentHandler {
+public:
+    DefaultArgumentHandler(CommandHandler*, CommandParameter const&);
+    void render() override;
+    bool dispatch(SDL_Keysym) override;
+    void handle_text_input() override;
+private:
+    std::string m_value;
+    int m_pos { 0 };
+};
+
+class FileArgumentHandler : public AbstractArgumentHandler {
+public:
+    FileArgumentHandler(CommandHandler*, CommandParameter const&);
+    void render() override;
+    bool dispatch(SDL_Keysym) override;
+private:
+    void initialize_dir();
+
+    bool m_directory;
+    bool m_only_existing;
+    int m_lines;
+    fs::path m_path { "." };
+    int m_top { 0 };
+    int m_current { 0 };
+    std::vector<fs::directory_entry> m_entries;
+};
+
+class CommandArgumentHandler : public AbstractArgumentHandler {
+public:
+    CommandArgumentHandler(CommandHandler*, CommandParameter const&);
+    void render() override;
+    bool dispatch(SDL_Keysym) override;
+private:
+    int m_lines;
+    int m_top { 0 };
+    int m_current { 0 };
+    std::string m_current_command;
+};
+
+class BufferArgumentHandler : public AbstractArgumentHandler {
+public:
+    BufferArgumentHandler(CommandHandler*, CommandParameter const&);
+    void render() override;
+    bool dispatch(SDL_Keysym) override;
+private:
+    int m_lines;
+    int m_top { 0 };
+    int m_current { 0 };
+    fs::path m_current_buffer;
+};
 
 AbstractArgumentHandler::AbstractArgumentHandler(CommandHandler* handler, CommandParameter const& parameter, int height)
     : ModalWidget(App::instance().width() / 6, (App::instance().height() - height)/2, App::instance().width() * 0.66, height)
@@ -347,6 +441,68 @@ bool CommandArgumentHandler::dispatch(SDL_Keysym sym)
     }
 }
 
+BufferArgumentHandler::BufferArgumentHandler(CommandHandler* handler, CommandParameter const& parameter)
+    : AbstractArgumentHandler(handler, parameter, App::instance().height() * 0.66)
+    , m_lines((height() - char_height - 10) / (char_height + 2))
+{
+}
+
+void BufferArgumentHandler::render()
+{
+    box(SDL_Rect { 0, 0, 0, 0 }, SDL_Color { 0x2c, 0x2c, 0x2c, 0xff });
+    rectangle(SDL_Rect { 2, 2, width() - 4, height() - 4 }, { 0xff, 0xff, 0xff, 0xff });
+    render_fixed(8, 8, m_parameter.prompt);
+    auto y = char_height + 10;
+    auto count = 0;
+    for (auto const& buffer : App::instance().editor()->documents()) {
+        if (count < m_top) {
+            count++;
+            continue;
+        }
+        if (count >= m_top + m_lines) {
+            break;
+        }
+        if (count == m_current) {
+            SDL_Rect r {
+                4,
+                y - 1,
+                -4,
+                char_height + 1
+            };
+            box(r, App::instance().color(PaletteIndex::CurrentLineFill));
+            rectangle(r, App::instance().color(PaletteIndex::CurrentLineEdge));
+            m_current_buffer = buffer->path();
+        }
+        render_fixed(10, y, fs::relative(buffer->path()).string());
+        y += char_height + 2;
+        if (y > height() - char_height - 2)
+            break;
+        count++;
+    }
+}
+
+bool BufferArgumentHandler::dispatch(SDL_Keysym sym)
+{
+    switch (sym.sym) {
+    case SDLK_RETURN: {
+        submit(m_current_buffer.string());
+        return true;
+    };
+    case SDLK_UP: {
+        if (m_current > 0)
+            m_current--;
+        return true;
+    };
+    case SDLK_DOWN: {
+        if (m_current < App::instance().editor()->documents().size() - 1 && m_current < m_top + m_lines - 1)
+            m_current++;
+        return true;
+    };
+    default:
+        return false;
+    }
+}
+
 CommandHandler::CommandHandler(Command const& command)
     : ModalWidget(App::instance().width() / 4, App::instance().height() / 4, App::instance().width() / 2, App::instance().height() / 2)
     , m_command(command)
@@ -371,6 +527,9 @@ void CommandHandler::render()
             break;
         case CommandParameterType::Command:
             m_current_handler = new CommandArgumentHandler(this, parameter);
+            break;
+        case CommandParameterType::Buffer:
+            m_current_handler = new BufferArgumentHandler(this, parameter);
             break;
         default:
             m_current_handler = new DefaultArgumentHandler(this, parameter);

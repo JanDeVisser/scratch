@@ -40,9 +40,13 @@ class Editor : public WindowedWidget {
 public:
     Editor();
 
-    [[nodiscard]] Document& document() { return m_current_document; }
-    std::string open_file(std::string const& file_name);
+    [[nodiscard]] Document* document() { return m_current_document; }
+    void new_buffer();
+    std::string open_file(fs::path const&);
     std::string save_file();
+    std::string save_file_as(fs::path const&);
+    std::string save_all();
+    void switch_to(std::string const&);
     std::vector<std::string> status() override;
 
     [[nodiscard]] int rows() const;
@@ -51,8 +55,8 @@ public:
     [[nodiscard]] int line_bottom(int line) const;
     [[nodiscard]] int column_left(int column) const;
     [[nodiscard]] int column_right(int column) const;
-    [[nodiscard]] int line_height() const;
-    [[nodiscard]] int column_width() const;
+    [[nodiscard]] static int line_height();
+    [[nodiscard]] static int column_width();
 
     void render() override;
     void text_cursor(int line, int column);
@@ -62,11 +66,14 @@ public:
     void append(DisplayToken const&);
     void newline();
 
+    [[nodiscard]] std::vector<Document*> documents() const;
+    [[nodiscard]] Document* document(fs::path const&) const;
+
 private:
-    std::vector<Document> m_documents { Document { this } };
-    Document& m_current_document { m_documents.front() };
-    int m_line;
-    int m_column;
+    std::vector<std::unique_ptr<Document>> m_documents {};
+    Document* m_current_document { nullptr };
+    int m_line { 0 };
+    int m_column { 0 };
     int m_rows { -1 };
     int m_columns { -1 };
 };

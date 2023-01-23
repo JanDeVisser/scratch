@@ -135,9 +135,7 @@ void Document::join_lines()
 {
     if (m_point_line > 0 && m_point_line < m_lines.size()) {
         m_lines[m_point_line - 1].text += m_lines[m_point_line].text;
-        auto iter = m_lines.begin();
-        for (auto ix = 0u; ix <= m_point_line; ++ix, ++iter)
-            ;
+        auto iter = m_lines.begin() + m_point_line;
         m_lines.erase(iter);
         m_point_line--;
         m_point_column = line_length(m_point_line);
@@ -160,6 +158,17 @@ void Document::insert(std::string const& str)
         m_point_column = str.length();
         assign_to_parser();
     }
+}
+
+void Document::move_to(int line, int column)
+{
+    if ((line >= 0) && (line < m_lines.size())) {
+        m_point_line = line;
+        if (m_point_column >= line_length(line))
+            m_point_column = line_length(line);
+    }
+    if ((column >= 0) && (column < line_length(m_point_line)))
+        m_point_column = column;
 }
 
 void Document::clear()
@@ -535,6 +544,7 @@ void Document::parse_define()
                 return;
             def_string = "";
             escape = false;
+            m_pending.emplace_back(TokenCode::NewLine, "\n");
             break;
         default:
             escape = false;
@@ -578,6 +588,7 @@ void Document::parse_hashif()
                 return;
             expr = "";
             escape = false;
+            m_pending.emplace_back(TokenCode::NewLine, "\n");
             break;
         default:
             escape = false;

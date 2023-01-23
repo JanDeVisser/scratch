@@ -62,6 +62,7 @@ public:
     explicit CommandHandler(Command const& command);
     void render() override;
     void argument_done(std::string);
+    void abort();
 private:
     Command const& m_command;
     ModalWidget* m_current_handler { nullptr };

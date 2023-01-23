@@ -92,6 +92,7 @@ public:
     void split_line();
     void insert(std::string const&);
     void join_lines();
+    void move_to(int line, int column);
 
     void clear();
     std::string load(std::string const&);

@@ -174,6 +174,11 @@ std::string Editor::save_all()
     }
 }
 
+void Editor::move_to(int line, int column)
+{
+    document()->move_to(line, column);
+}
+
 void Editor::switch_to(std::string const& buffer_name)
 {
     auto* buffer = document(buffer_name);

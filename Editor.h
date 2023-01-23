@@ -46,6 +46,7 @@ public:
     std::string save_file();
     std::string save_file_as(fs::path const&);
     std::string save_all();
+    void move_to(int line, int column);
     void switch_to(std::string const&);
     std::vector<std::string> status() override;
 

@@ -48,10 +48,12 @@ endif(READLINE_FOUND)
 add_executable(
         scratch
         App.cpp
+        Command.cpp
         Display.cpp
         Document.cpp
         Editor.cpp
         EditorState.cpp
+        Key.cpp
         Main.cpp
 #        Menu.cpp
 #        MessageBar.cpp

@@ -20,45 +20,47 @@ namespace fs=std::filesystem;
 using TokenCode=Obelix::TokenCode;
 using Token=Obelix::Token;
 
-constexpr static TokenCode KeywordIf = TokenCode::Keyword0;
-constexpr static TokenCode KeywordElse = TokenCode::Keyword1;
-constexpr static TokenCode KeywordWhile = TokenCode::Keyword2;
-constexpr static TokenCode KeywordTrue = TokenCode::Keyword3;
-constexpr static TokenCode KeywordFalse = TokenCode::Keyword4;
-constexpr static TokenCode KeywordReturn = TokenCode::Keyword5;
-constexpr static TokenCode KeywordBreak = TokenCode::Keyword6;
-constexpr static TokenCode KeywordContinue = TokenCode::Keyword7;
-constexpr static TokenCode KeywordSwitch = TokenCode::Keyword8;
-constexpr static TokenCode KeywordCase = TokenCode::Keyword9;
-constexpr static TokenCode KeywordDefault = TokenCode::Keyword10;
-constexpr static TokenCode KeywordFor = TokenCode::Keyword11;
-constexpr static TokenCode KeywordConst = TokenCode::Keyword12;
-constexpr static TokenCode KeywordStruct = TokenCode::Keyword13;
-constexpr static TokenCode KeywordStatic = TokenCode::Keyword14;
-constexpr static TokenCode KeywordEnum = TokenCode::Keyword15;
-constexpr static TokenCode KeywordNamespace = TokenCode::Keyword16;
-constexpr static TokenCode KeywordNullptr = TokenCode::Keyword17;
-constexpr static TokenCode KeywordClass = TokenCode::Keyword18;
+constexpr static TokenCode KeywordAuto = TokenCode::Keyword0;
+constexpr static TokenCode KeywordBreak = TokenCode::Keyword1;
+constexpr static TokenCode KeywordCase = TokenCode::Keyword2;
+constexpr static TokenCode KeywordClass = TokenCode::Keyword3;
+constexpr static TokenCode KeywordConst = TokenCode::Keyword4;
+constexpr static TokenCode KeywordContinue = TokenCode::Keyword5;
+constexpr static TokenCode KeywordDefault = TokenCode::Keyword6;
+constexpr static TokenCode KeywordElse = TokenCode::Keyword7;
+constexpr static TokenCode KeywordEnum = TokenCode::Keyword8;
+constexpr static TokenCode KeywordFalse = TokenCode::Keyword9;
+constexpr static TokenCode KeywordFor = TokenCode::Keyword10;
+constexpr static TokenCode KeywordIf = TokenCode::Keyword11;
+constexpr static TokenCode KeywordNamespace = TokenCode::Keyword12;
+constexpr static TokenCode KeywordNullptr = TokenCode::Keyword13;
+constexpr static TokenCode KeywordReturn = TokenCode::Keyword14;
+constexpr static TokenCode KeywordStatic = TokenCode::Keyword15;
+constexpr static TokenCode KeywordStruct = TokenCode::Keyword16;
+constexpr static TokenCode KeywordSwitch = TokenCode::Keyword17;
+constexpr static TokenCode KeywordTrue = TokenCode::Keyword18;
+constexpr static TokenCode KeywordUsing = TokenCode::Keyword19;
+constexpr static TokenCode KeywordWhile = TokenCode::Keyword20;
 
-constexpr static TokenCode KeywordInclude = TokenCode::Keyword19;
-constexpr static TokenCode KeywordDefine = TokenCode::Keyword20;
-constexpr static TokenCode KeywordIfdef = TokenCode::Keyword21;
-constexpr static TokenCode KeywordEndif = TokenCode::Keyword22;
-constexpr static TokenCode KeywordElif = TokenCode::Keyword23;
-constexpr static TokenCode KeywordElifdef = TokenCode::Keyword24;
-constexpr static TokenCode KeywordPragma = TokenCode::Keyword25;
-constexpr static TokenCode KeywordHashIf = TokenCode::Keyword26;
-constexpr static TokenCode KeywordHashElse = TokenCode::Keyword27;
+constexpr static TokenCode KeywordInclude = TokenCode::Keyword21;
+constexpr static TokenCode KeywordDefine = TokenCode::Keyword22;
+constexpr static TokenCode KeywordIfdef = TokenCode::Keyword23;
+constexpr static TokenCode KeywordEndif = TokenCode::Keyword24;
+constexpr static TokenCode KeywordElif = TokenCode::Keyword25;
+constexpr static TokenCode KeywordElifdef = TokenCode::Keyword26;
+constexpr static TokenCode KeywordPragma = TokenCode::Keyword27;
+constexpr static TokenCode KeywordHashIf = TokenCode::Keyword28;
+constexpr static TokenCode KeywordHashElse = TokenCode::Keyword29;
 
-constexpr static TokenCode TokenKeyword = TokenCode::Keyword28;
-constexpr static TokenCode TokenMacroName = TokenCode::Keyword29;
-constexpr static TokenCode TokenMacroParam = TokenCode::Keyword30;
-constexpr static TokenCode TokenMacroExpansion = TokenCode::Keyword31;
-constexpr static TokenCode TokenDirective = TokenCode::Keyword32;
-constexpr static TokenCode TokenDirectiveParam = TokenCode::Keyword33;
-constexpr static TokenCode TokenType = TokenCode::Keyword34;
-constexpr static TokenCode TokenOperator = TokenCode::Keyword35;
-constexpr static TokenCode TokenConstant = TokenCode::Keyword36;
+constexpr static TokenCode TokenKeyword = TokenCode::Keyword30;
+constexpr static TokenCode TokenMacroName = TokenCode::Keyword31;
+constexpr static TokenCode TokenMacroParam = TokenCode::Keyword32;
+constexpr static TokenCode TokenMacroExpansion = TokenCode::Keyword33;
+constexpr static TokenCode TokenDirective = TokenCode::Keyword34;
+constexpr static TokenCode TokenDirectiveParam = TokenCode::Keyword35;
+constexpr static TokenCode TokenType = TokenCode::Keyword36;
+constexpr static TokenCode TokenOperator = TokenCode::Keyword37;
+constexpr static TokenCode TokenConstant = TokenCode::Keyword38;
 
 struct Line {
     Line() = default;
@@ -69,6 +71,17 @@ struct Line {
 
     std::string text;
     std::vector<Token> tokens {};
+};
+
+struct DocumentPosition {
+    int line { 0 };
+    int column { 0 };
+
+    void clear()
+    {
+        line = column = 0;
+    }
+    auto operator<=>(DocumentPosition const& other) const = default;
 };
 
 class Document {
@@ -84,14 +97,27 @@ public:
 
     [[nodiscard]] int screen_top() const { return m_screen_top; }
     [[nodiscard]] int screen_left() const { return m_screen_left; }
-    [[nodiscard]] int point_line() const { return m_point_line; }
-    [[nodiscard]] int point_column() const { return m_point_column; }
+    [[nodiscard]] DocumentPosition const& point() const { return m_point; }
+    [[nodiscard]] DocumentPosition const& mark() const { return m_mark; }
+    [[nodiscard]] int point_line() const { return m_point.line; }
+    [[nodiscard]] int point_column() const { return m_point.column; }
     [[nodiscard]] int virtual_point_column() const { return m_virtual_point_column; }
 
-    void backspace();
+    enum class EraseDirection {
+        EraseLeft,
+        EraseRight,
+    };
+    void erase_char(EraseDirection = EraseDirection::EraseLeft);
     void split_line();
     void insert(std::string const&);
     void join_lines();
+
+    std::string selected_text();
+    void erase_selection();
+    void copy_to_clipboard();
+    void cut_to_clipboard();
+    void paste_from_clipboard();
+
     void move_to(int line, int column);
 
     void clear();
@@ -130,8 +156,8 @@ private:
 
     size_t m_screen_top {0};
     size_t m_screen_left {0};
-    size_t m_point_line {0};
-    size_t m_point_column {0};
+    DocumentPosition m_point;
+    DocumentPosition m_mark;
     size_t m_virtual_point_column {0};
 
 };

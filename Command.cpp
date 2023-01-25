@@ -17,6 +17,22 @@ using namespace Obelix;
 namespace Scratch {
 
 std::map<std::string, Command> Command::s_commands = {
+    { "copy-to-clipboard",
+        { "copy-to-clipboard", "Copy selection to clipboard", {},
+        [](strings const&) -> void {
+                auto doc = App::instance().get_component<Editor>()->document();
+                doc->copy_to_clipboard();
+            }
+        }
+    },
+    { "cut-to-clipboard",
+        { "cut-to-clipboard", "Cut selection to clipboard", {},
+        [](strings const&) -> void {
+                auto doc = App::instance().get_component<Editor>()->document();
+                doc->cut_to_clipboard();
+            }
+        }
+    },
     { "goto-line-column",
         { "goto-line-column", "Goto line:column",
             { { "Line:Column to go to", CommandParameterType::String } },
@@ -32,7 +48,17 @@ std::map<std::string, Command> Command::s_commands = {
                     }
                     App::instance().get_component<Editor>()->move_to(line_maybe.value() - 1, col - 1);
                 }
-            } } },
+            }
+        }
+    },
+    { "paste-from-clipboard",
+        { "paste-from-clipboard", "Paste text from clipboard", {},
+        [](strings const&) -> void {
+                auto doc = App::instance().get_component<Editor>()->document();
+                doc->paste_from_clipboard();
+            }
+        }
+    },
     { "scratch-quit",
         { "scratch-quit", "Quits the editor",
             {},
@@ -86,14 +112,17 @@ std::map<std::string, Command> Command::s_commands = {
 };
 
 std::map<SDLKey, std::string> Command::s_key_bindings = {
+    { { SDLK_b, KMOD_CTRL }, "switch-buffer" },
+    { { SDLK_c, KMOD_CTRL }, "copy-to-clipboard" },
     { { SDLK_g, KMOD_CTRL }, "goto-line-column" },
+    { { SDLK_l, KMOD_CTRL }, "save-all-files" },
     { { SDLK_n, KMOD_CTRL }, "new-buffer" },
     { { SDLK_o, KMOD_CTRL }, "open-file" },
     { { SDLK_q, KMOD_CTRL }, "scratch-quit" },
     { { SDLK_s, KMOD_CTRL }, "save-file" },
     { { SDLK_s, KMOD_CTRL | KMOD_GUI }, "save-current-as" },
-    { { SDLK_l, KMOD_CTRL }, "save-all-files" },
-    { { SDLK_b, KMOD_CTRL }, "switch-buffer" },
+    { { SDLK_v, KMOD_CTRL }, "paste-from-clipboard" },
+    { { SDLK_x, KMOD_CTRL }, "cut-to-clipboard" },
     { { SDLK_x, KMOD_GUI }, "invoke" },
 };
 

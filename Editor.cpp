@@ -62,7 +62,7 @@ int Editor::column_right(int column) const
 
 int Editor::line_height()
 {
-    return App::instance().context()->character_height();
+    return App::instance().context()->character_height() * 1.2;
 }
 
 int Editor::column_width()
@@ -172,6 +172,7 @@ std::string Editor::save_all()
         else
             doc->save();
     }
+    return "";
 }
 
 void Editor::move_to(int line, int column)

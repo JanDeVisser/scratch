@@ -4,10 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <fcntl.h>
 #include <filesystem>
 #include <fstream>
-#include <unistd.h>
 
 #import <core/Format.h>
 
@@ -32,33 +30,37 @@ Document::Document(Editor* editor)
         Obelix::CommentScanner::CommentMarker { false, false, "/*", "*/" },
         Obelix::CommentScanner::CommentMarker { false, true, "//", "" });
     m_parser.lexer().add_scanner<Obelix::KeywordScanner>(
-        Token(KeywordIf, "if"),
+        Token(KeywordAuto, "auto"),
+        Token(KeywordBreak, "break"),
+        Token(KeywordCase, "case"),
+        Token(KeywordClass, "class"),
+        Token(KeywordConst, "const"),
+        Token(KeywordContinue, "continue"),
+        Token(KeywordDefault, "default"),
         Token(KeywordElse, "else"),
+        Token(KeywordEnum, "enum"),
+        Token(KeywordFor, "for"),
+        Token(KeywordIf, "if"),
+        Token(KeywordNamespace, "namespace"),
+        Token(KeywordReturn, "return"),
+        Token(KeywordStatic, "static"),
+        Token(KeywordStruct, "struct"),
+        Token(KeywordSwitch, "switch"),
+        Token(KeywordUsing, "using"),
         Token(KeywordWhile, "while"),
+
         Token(KeywordTrue, "true"),
         Token(KeywordFalse, "false"),
-        Token(KeywordReturn, "return"),
-        Token(KeywordBreak, "break"),
-        Token(KeywordContinue, "continue"),
-        Token(KeywordSwitch, "switch"),
-        Token(KeywordCase, "case"),
-        Token(KeywordDefault, "default"),
-        Token(KeywordFor, "for"),
-        Token(KeywordConst, "const"),
-        Token(KeywordStruct, "struct"),
-        Token(KeywordClass, "class"),
-        Token(KeywordStatic, "static"),
-        Token(KeywordEnum, "enum"),
-        Token(KeywordNamespace, "namespace"),
         Token(KeywordNullptr, "nullptr"),
-        Token(KeywordInclude, "#include"),
+
         Token(KeywordDefine, "#define"),
-        Token(KeywordIfdef, "#ifdef"),
-        Token(KeywordHashIf, "#if"),
-        Token(KeywordHashElse, "#else"),
         Token(KeywordElif, "#elif"),
         Token(KeywordElifdef, "#elifdef"),
+        Token(KeywordHashElse, "#else"),
         Token(KeywordEndif, "#endif"),
+        Token(KeywordHashIf, "#if"),
+        Token(KeywordIfdef, "#ifdef"),
+        Token(KeywordInclude, "#include"),
         Token(KeywordPragma, "#pragma"));
 }
 
@@ -101,44 +103,47 @@ size_t Document::parsed() const
     return !m_parser.tokens().empty();
 }
 
-void Document::backspace()
+void Document::erase_char(EraseDirection direction)
 {
-    if (m_point_line > 0 || m_point_column > 0) {
-        if (m_point_column > 0) {
-            m_lines[m_point_line].text.erase(m_point_column - 1, 1);
-            m_point_column--;
-            assign_to_parser();
-        } else {
-            join_lines();
-        }
+    m_mark = m_point;
+    switch (direction) {
+    case EraseDirection::EraseLeft:
+        if (m_point.column > 0)
+            m_mark.column = m_point.column - 1;
+        break;
+    case EraseDirection::EraseRight:
+        if (m_point.column < line_length(m_point.line) - 1)
+            m_mark.column = m_point.column + 1;
+        break;
     }
+    erase_selection();
 }
 
 void Document::split_line()
 {
-    if (m_point_line >= m_lines.size()) {
+    if (m_point.line >= m_lines.size()) {
         m_lines.emplace_back();
     } else {
-        auto right = m_lines[m_point_line].text.substr(m_point_column);
-        m_lines[m_point_line].text.erase(m_point_column);
+        auto right = m_lines[m_point.line].text.substr(m_point.column);
+        m_lines[m_point.line].text.erase(m_point.column);
         auto iter = m_lines.begin();
-        for (auto ix = 0u; ix <= m_point_line; ++ix, ++iter)
+        for (auto ix = 0u; ix <= m_point.line; ++ix, ++iter)
             ;
         m_lines.insert(iter, Line { right });
     }
-    m_point_line++;
-    m_point_column = 0;
+    m_point.line++;
+    m_point.column = 0;
     assign_to_parser();
 }
 
 void Document::join_lines()
 {
-    if (m_point_line > 0 && m_point_line < m_lines.size()) {
-        m_lines[m_point_line - 1].text += m_lines[m_point_line].text;
-        auto iter = m_lines.begin() + m_point_line;
+    if (m_point.line > 0 && m_point.line < m_lines.size()) {
+        m_lines[m_point.line - 1].text += m_lines[m_point.line].text;
+        auto iter = m_lines.begin() + m_point.line;
         m_lines.erase(iter);
-        m_point_line--;
-        m_point_column = line_length(m_point_line);
+        m_point.line--;
+        m_point.column = line_length(m_point.line);
         assign_to_parser();
     }
 }
@@ -147,28 +152,105 @@ void Document::insert(std::string const& str)
 {
     if (str.empty())
         return;
-    if (m_point_line < m_lines.size()) {
-        if (m_point_column <= m_lines[m_point_line].text.length()) {
-            m_lines[m_point_line].text.insert(m_point_column, str);
-            m_point_column += str.length();
+    erase_selection();
+    if (m_point.line < m_lines.size()) {
+        if (m_point.column <= m_lines[m_point.line].text.length()) {
+            m_lines[m_point.line].text.insert(m_point.column, str);
+            m_point.column += str.length();
             assign_to_parser();
         }
-    } else if (m_point_line == m_lines.size() && (m_point_column == 0)) {
+    } else if (m_point.line == m_lines.size() && (m_point.column == 0)) {
         m_lines.emplace_back(str);
-        m_point_column = str.length();
+        m_point.column = str.length();
         assign_to_parser();
     }
+}
+
+std::string Document::selected_text()
+{
+    if (m_point == m_mark)
+        return "";
+    DocumentPosition start_selection = std::min(m_point, m_mark);
+    DocumentPosition end_selection = std::max(m_point, m_mark);
+    std::string ret;
+    for (auto ix = start_selection.line; ix <= end_selection.line; ++ix) {
+        if (ix > start_selection.line)
+            ret += '\n';
+        auto& line = m_lines[ix];
+        int start_block = 0;
+        if (ix == start_selection.line)
+            start_block = start_selection.column;
+        int end_block = line.text.length();
+        if (ix == end_selection.line)
+            end_block = end_selection.column - start_block;
+        if (start_block == 0 && end_block == line.text.length()) {
+            ret += line.text;
+        } else {
+            ret += line.text.substr(start_block, end_block-start_block);
+        }
+    }
+    return ret;
+}
+
+void Document::erase_selection()
+{
+    if (m_point == m_mark)
+        return;
+    DocumentPosition start_selection = std::min(m_point, m_mark);
+    DocumentPosition end_selection = std::max(m_point, m_mark);
+
+    if (start_selection.line == end_selection.line) {
+        m_lines[start_selection.line].text.erase(start_selection.column, end_selection.column - start_selection.column);
+        m_point = start_selection;
+        assign_to_parser();
+        return;
+    }
+
+    m_lines[start_selection.line].text.erase(start_selection.column);
+    m_lines[start_selection.line].text += m_lines[end_selection.line].text.substr(end_selection.column);
+    m_lines.erase(m_lines.begin() + start_selection.line + 1, m_lines.begin() + end_selection.line + 1);
+    m_point = start_selection;
+    assign_to_parser();
+}
+
+void Document::copy_to_clipboard()
+{
+    auto selection = selected_text();
+    if (selection.empty())
+        return;
+    if (auto err = SDL_SetClipboardText(selection.c_str()); err != 0) {
+        fatal("Error copying selection to clipboard: {}", SDL_GetError());
+    }
+}
+
+void Document::cut_to_clipboard()
+{
+    if (m_point == m_mark)
+        return;
+    copy_to_clipboard();
+    erase_selection();
+}
+
+void Document::paste_from_clipboard()
+{
+    if (SDL_HasClipboardText() == SDL_FALSE)
+        return;
+    auto clipboard = SDL_GetClipboardText();
+    if ((clipboard == nullptr) || !clipboard[0])
+        fatal("Error retrieving clipboard text: {}", SDL_GetError());
+    insert(clipboard);
 }
 
 void Document::move_to(int line, int column)
 {
     if ((line >= 0) && (line < m_lines.size())) {
-        m_point_line = line;
-        if (m_point_column >= line_length(line))
-            m_point_column = line_length(line);
+        m_point.line = line;
+        if (m_point.column >= line_length(line))
+            m_point.column = line_length(line);
     }
-    if ((column >= 0) && (column < line_length(m_point_line)))
-        m_point_column = column;
+    if ((column >= 0) && (column < line_length(m_point.line)))
+        m_point.column = column;
+    m_mark = m_point;
 }
 
 void Document::clear()
@@ -177,7 +259,8 @@ void Document::clear()
         return;
     m_lines.clear();
     m_parser.assign("\n");
-    m_point_line = m_point_column = 0;
+    m_point.clear();
+    m_mark.clear();
     invalidate();
 }
 
@@ -186,7 +269,8 @@ std::string Document::load(std::string const& file_name)
     m_path = fs::absolute(file_name);
     if (auto error_maybe = m_parser.read_file(m_path.string()); error_maybe.is_error())
         return error_maybe.error().message();
-    m_point_line = m_point_column = 0;
+    m_point.clear();
+    m_mark.clear();
     m_dirty = false;
     return "";
 }
@@ -243,9 +327,30 @@ void Document::render(Editor* editor)
     }
 
     auto start_render = std::chrono::steady_clock::now();
-    editor->mark_current_line(m_point_line - m_screen_top);
+    editor->mark_current_line(m_point.line - m_screen_top);
+    bool has_selection = m_point != m_mark;
+    DocumentPosition start_selection = std::min(m_point, m_mark);
+    DocumentPosition end_selection = std::max(m_point, m_mark);
     for (auto ix = m_screen_top; ix < m_lines.size() && ix < m_screen_top + m_editor->rows(); ++ix) {
         auto const& line = m_lines[ix];
+        if (has_selection && (ix >= start_selection.line) && (ix <= end_selection.line)) {
+            int start_block = 0;
+            if (ix == start_selection.line)
+                start_block = start_selection.column;
+            int block_width = editor->columns() - start_block;
+            if (ix == end_selection.line)
+                block_width = end_selection.column - start_block;
+            if (block_width > 0) {
+                SDL_Rect r {
+                    start_block * Editor::char_width,
+                    editor->line_top(ix - m_screen_top),
+                    block_width * Editor::char_width,
+                    Editor::line_height()
+                };
+                editor->box(r, App::instance().color(PaletteIndex::Selection));
+            }
+        }
+
         auto len = 0u;
         for (auto const& token : line.tokens) {
             auto t = token.value();
@@ -290,7 +395,7 @@ void Document::render(Editor* editor)
         editor->newline();
     }
 
-    editor->text_cursor(m_point_line - m_screen_top, m_point_column - m_screen_left);
+    editor->text_cursor(m_point.line - m_screen_top, m_point.column - m_screen_left);
 
     auto end_render = std::chrono::steady_clock::now();
     auto elapsed_render = (long)std::chrono::duration_cast<std::chrono::milliseconds>(end_render - start_render).count();
@@ -300,69 +405,86 @@ void Document::render(Editor* editor)
 bool Document::dispatch(Editor* editor, SDL_Keysym sym)
 {
     switch (sym.sym) {
+    case SDLK_ESCAPE:
+        m_mark = m_point;
+        break;
     case SDLK_UP:
-        if (m_point_line > 0) {
-            m_point_line--;
-            if (m_point_column > line_length(m_point_line))
-                m_point_column = line_length(m_point_line);
-            if (m_screen_top > m_point_line - 1)
+        if (m_point.line > 0) {
+            m_point.line--;
+            if (m_point.column > line_length(m_point.line))
+                m_point.column = line_length(m_point.line);
+            if (m_screen_top > m_point.line - 1)
                 --m_screen_top;
-            debug(scratch, "KEY_UP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
+            debug(scratch, "KEY_UP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
         }
+        if (!(sym.mod & KMOD_SHIFT))
+            m_mark = m_point;
         break;
     case SDLK_PAGEUP:
-        if (m_point_line > 0) {
-            if (m_point_line < editor->rows()) {
-                m_point_line = 0;
+        if (m_point.line > 0) {
+            if (m_point.line < editor->rows()) {
+                m_point.line = 0;
                 m_screen_top = 0;
             } else {
-                m_point_line = clamp((int)m_point_line - editor->rows(), 0, (int)m_point_line - editor->rows());
-                m_screen_top = clamp((int)m_screen_top - editor->rows(), 0, (int)m_point_line);
+                m_point.line = clamp((int)m_point.line - editor->rows(), 0, (int)m_point.line - editor->rows());
+                m_screen_top = clamp((int)m_screen_top - editor->rows(), 0, (int)m_point.line);
             }
-            if (m_point_column > line_length(m_point_line))
-                m_point_column = line_length(m_point_line);
-            debug(scratch, "KEY_PGUP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
+            if (m_point.column > line_length(m_point.line))
+                m_point.column = line_length(m_point.line);
+            debug(scratch, "KEY_PGUP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
         }
+        if (!(sym.mod & KMOD_SHIFT))
+            m_mark = m_point;
         break;
     case SDLK_DOWN:
-        if (m_point_line < (line_count() - 1)) {
-            m_point_line++;
-            if (m_point_column > line_length(m_point_line))
-                m_point_column = line_length(m_point_line);
-            if (m_point_line - m_screen_top > editor->rows())
+        if (m_point.line < (line_count() - 1)) {
+            m_point.line++;
+            if (m_point.column > line_length(m_point.line))
+                m_point.column = line_length(m_point.line);
+            if (m_point.line - m_screen_top > editor->rows())
                 ++m_screen_top;
-            debug(scratch, "KEY_DOWN: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
+            debug(scratch, "KEY_DOWN: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
         }
+        if (!(sym.mod & KMOD_SHIFT))
+            m_mark = m_point;
         break;
     case SDLK_LEFT:
-        if (m_point_column > 0) {
-            --m_point_column;
-            if (m_screen_left > m_point_column - 1)
+        if (m_point.column > 0) {
+            --m_point.column;
+            if (m_screen_left > m_point.column - 1)
                 --m_screen_left;
-        } else if (m_point_line > 0) {
-            --m_point_line;
-            m_point_column = line_length(m_point_line);
+        } else if (m_point.line > 0) {
+            --m_point.line;
+            m_point.column = line_length(m_point.line);
             m_screen_left = 0;
-            if (m_screen_top > m_point_line - 1)
+            if (m_screen_top > m_point.line - 1)
                 --m_screen_top;
         }
-        debug(scratch, "KEY_LEFT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
+        debug(scratch, "KEY_LEFT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
+        if (!(sym.mod & KMOD_SHIFT))
+            m_mark = m_point;
         break;
     case SDLK_RIGHT:
-        if (m_point_column < line_length(m_point_line)) {
-            ++m_point_column;
-            if (m_point_column - m_screen_left > editor->columns())
+        if (m_point.column < line_length(m_point.line)) {
+            ++m_point.column;
+            if (m_point.column - m_screen_left > editor->columns())
                 ++m_screen_left;
-        } else if (m_point_line < line_count()) {
-            ++m_point_line;
-            m_point_column = 0;
-            if (m_point_line - m_screen_top > editor->rows())
+        } else if (m_point.line < line_count()) {
+            ++m_point.line;
+            m_point.column = 0;
+            if (m_point.line - m_screen_top > editor->rows())
                 ++m_screen_top;
         }
-        debug(scratch, "KEY_RIGHT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point_line, m_point_column);
+        debug(scratch, "KEY_RIGHT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
+        if (!(sym.mod & KMOD_SHIFT))
+            m_mark = m_point;
         break;
     case SDLK_BACKSPACE:
-        backspace();
+    case SDLK_DELETE:
+        if (m_point != m_mark)
+            erase_selection();
+        else
+            erase_char((sym.sym == SDLK_BACKSPACE) ? EraseDirection::EraseLeft : EraseDirection::EraseRight);
         break;
     case SDLK_RETURN:
     case SDLK_KP_ENTER:
@@ -423,6 +545,7 @@ Token Document::lex()
             m_pending.emplace_back(TokenDirective, token.value());
             break;
 
+        case KeywordAuto:
         case KeywordConst:
         case KeywordIf:
         case KeywordElse:
@@ -438,6 +561,7 @@ Token Document::lex()
         case KeywordContinue:
         case KeywordDefault:
         case KeywordStatic:
+        case KeywordUsing:
             m_pending.emplace_back(TokenKeyword, token.value());
             break;
 
@@ -611,6 +735,7 @@ void Document::invalidate()
     m_parser.invalidate();
     m_cleared = true;
     m_dirty = true;
+    m_mark = m_point;
 }
 
 }

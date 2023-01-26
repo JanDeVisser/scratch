@@ -103,15 +103,12 @@ public:
     [[nodiscard]] int point_column() const { return m_point.column; }
     [[nodiscard]] int virtual_point_column() const { return m_virtual_point_column; }
 
-    enum class EraseDirection {
-        EraseLeft,
-        EraseRight,
-    };
-    void erase_char(EraseDirection = EraseDirection::EraseLeft);
     void split_line();
     void insert(std::string const&);
     void join_lines();
 
+    void reset_selection();
+    void extend_selection(int);
     std::string selected_text();
     void erase_selection();
     void copy_to_clipboard();

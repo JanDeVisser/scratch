@@ -29,7 +29,8 @@ App& App::instance()
 }
 
 App::App(std::string name, SDLContext* ctx)
-    : m_name(std::move(name))
+    : Layout(ContainerOrientation::Vertical)
+    , m_name(std::move(name))
     , m_palette(DarkPalette())
     , m_context(ctx)
 {
@@ -37,20 +38,6 @@ App::App(std::string name, SDLContext* ctx)
     s_app = this;
     Widget::char_width = m_context->character_width();
     Widget::char_height = m_context->character_height();
-}
-
-void App::add_component(Widget* widget)
-{
-    m_components.emplace_back(widget);
-}
-
-std::vector<Widget*> App::components()
-{
-    std::vector<Widget*> ret;
-    for (auto const& c : m_components) {
-        ret.push_back(c.get());
-    }
-    return ret;
 }
 
 void App::add_modal(Widget* widget)
@@ -72,10 +59,16 @@ void App::dismiss_modal()
     }
 }
 
-Editor* App::editor()
+Widget* App::focus()
 {
-    return get_component<Editor>();
-};
+    return m_focus;
+}
+
+void App::focus(Widget *widget)
+{
+    // Call event handlers for loss and gain of focus
+    m_focus = widget;
+}
 
 SDL_Renderer* App::renderer()
 {
@@ -179,6 +172,19 @@ void App::event_loop()
     }
 }
 
+bool dispatch_to(Widget* w, SDL_Keysym sym)
+{
+    if (w->dispatch(sym))
+        return true;
+    if (auto container = dynamic_cast<WidgetContainer*>(w); container != nullptr) {
+        for (auto& c : container->components()) {
+            if (dispatch_to(c, sym))
+                break;
+        }
+    }
+    return false;
+};
+
 void App::on_event(SDL_Event* evt)
 {
     switch (evt->type) {
@@ -186,22 +192,17 @@ void App::on_event(SDL_Event* evt)
         switch (evt->window.event) {
         case SDL_WINDOWEVENT_SHOWN:
         case SDL_WINDOWEVENT_RESIZED: {
-            m_widgetPos = Vec2(WIDGET_BORDER_X, WIDGET_BORDER_Y);
             SDL_GetRendererOutputSize(renderer(), &m_width, &m_height);
-            m_widgetSize = Vec2((float)m_width - WIDGET_BORDER_X * 2 - 2 - SCROLL_BAR_SIZE,
-                (float)m_height - WIDGET_BORDER_Y * 2 - 2 - SCROLL_BAR_SIZE);
+            container().resize({ 0, 0, m_width, m_height });
         } break;
         }
     } break;
     case SDL_KEYDOWN: {
+        Widget *target = this;
         if (auto m = modal(); m != nullptr) {
-            m->dispatch(evt->key.keysym);
-        } else if (!dispatch(evt->key.keysym)) {
-            for (auto& c : components()) {
-                if (c->dispatch(evt->key.keysym))
-                    break;
-            }
+            target = m;
         }
+        target->dispatch(evt->key.keysym);
     } break;
     case SDL_TEXTINPUT: {
         CodePoint wchars[17];
@@ -210,11 +211,8 @@ void App::on_event(SDL_Event* evt)
             m_input_characters.push_back(wchars[i]);
         if (auto m = modal(); m != nullptr) {
             m->handle_text_input();
-        } else {
-            handle_text_input();
-            for (auto& c : components()) {
-                c->handle_text_input();
-            }
+        } else if (auto w = focus(); w != nullptr) {
+            w->handle_text_input();
         }
     } break;
     case SDL_MOUSEBUTTONUP: {
@@ -241,7 +239,7 @@ bool App::dispatch(SDL_Keysym sym)
         schedule(cmd);
         return true;
     }
-    return false;
+    return Layout::dispatch(sym);
 }
 
 std::vector<std::string> App::status()

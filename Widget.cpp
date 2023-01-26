@@ -19,118 +19,142 @@ void Widget::render()
 {
 }
 
-WindowedWidget::WindowedWidget(int left, int top, int width, int height)
+void Widget::resize(Box const&)
+{
+}
+
+int Widget::top() const
+{
+    return 0;
+}
+
+int Widget::left() const
+{
+    return 0;
+}
+
+bool Widget::empty() const
+{
+    return width() == 0 && height() == 0;
+}
+
+SDL_Rect Widget::render_fixed(int x, int y, std::string const& text, SDL_Color const& color) const
+{
+    auto ret = App::instance().context()->render_fixed(left() + x, top() + y,
+        text, color);
+    ret.x -= left();
+    ret.y -= top();
+    return ret;
+}
+
+SDL_Rect Widget::render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color const& color) const
+{
+    auto ret = App::instance().context()->render_fixed_right_aligned(left() + x, top() + y,
+        text, color);
+    ret.x -= left();
+    ret.y -= top();
+    return ret;
+}
+
+SDL_Rect Widget::normalize(SDL_Rect const& rect) const
+{
+    SDL_Rect r = rect;
+    if (r.x < 0)
+        r.x = width() + r.x;
+    if (r.y < 0)
+        r.y = height() + r.y;
+    if (r.w <= 0)
+        r.w = width() - r.x + r.w;
+    if (r.h <= 0)
+        r.h = height() - r.y + r.h;
+    r.x = clamp(r.x, 0, width());
+    r.y = clamp(r.y, 0, height());
+    r.w = clamp(r.w, 0, width() - r.x);
+    r.h = clamp(r.h, 0, height() - r.y);
+    return r;
+}
+
+void Widget::box(SDL_Rect const& rect, SDL_Color color) const
+{
+    auto r = normalize(rect);
+    boxColor(
+        App::instance().renderer(),
+        left() + r.x,
+        top() + r.y,
+        left() + r.x + r.w,
+        top() + r.y + r.h,
+        *((uint32_t*)&color));
+}
+
+void Widget::rectangle(SDL_Rect const& rect, SDL_Color color) const
+{
+    auto r = normalize(rect);
+    rectangleColor(
+        App::instance().renderer(),
+        left() + r.x,
+        top() + r.y,
+        left() + r.x + r.w,
+        top() + r.y + r.h,
+        *((uint32_t*)&color));
+}
+
+/* ----------------------------------------------------------------------- */
+
+WindowedWidget::WindowedWidget(SizePolicy policy, int size)
     : Widget()
-    , m_left(left)
-    , m_top(top)
-    , m_width(width)
-    , m_height(height)
+    , m_policy(policy)
+    , m_size(size)
 {
-    if (m_left < 0)
-        m_left = App::instance().width() + m_left;
-    if (m_top < 0)
-        m_top = App::instance().height() + m_top;
-    if (m_width <= 0)
-        m_width = App::instance().width() - left - m_width;
-    if (m_height <= 0)
-        m_height = App::instance().height() - top - m_height;
 }
 
-WindowedWidget::WindowedWidget(Vector<int, 4> const& outline, Vector<int, 4> const& margins)
-    : Widget()
-    , m_left(outline[0])
-    , m_top(outline[1])
-    , m_width(outline[2])
-    , m_height(outline[3])
-    , m_left_margin(margins[0])
-    , m_top_margin(margins[1])
-    , m_right_margin(margins[2])
-    , m_bottom_margin(margins[3])
+SizePolicy WindowedWidget::policy() const
 {
-    if (m_left < 0)
-        m_left = App::instance().width() + m_left;
-    if (m_top < 0)
-        m_top = App::instance().height() + m_top;
-    if (m_width <= 0)
-        m_width = App::instance().width() - m_left + m_width;
-    if (m_height <= 0)
-        m_height = App::instance().height() - m_top + m_height;
+    return m_policy;
 }
 
-Vector<int, 2> WindowedWidget::position() const
+int WindowedWidget::policy_size() const
 {
-    return Vector<int, 2> { m_left, m_top };
+    return m_size;
 }
 
-Vector<int, 2> WindowedWidget::size() const
+WidgetContainer const* WindowedWidget::parent() const
 {
-    return Vector<int, 2> { m_width, m_height };
+    return m_parent;
+}
+
+Position WindowedWidget::position() const
+{
+    return m_outline.position;
+}
+
+Size WindowedWidget::size() const
+{
+    return m_outline.size;
 }
 
 int WindowedWidget::top() const
 {
-    return m_top;
+    return position().top();
 }
 
 int WindowedWidget::left() const
 {
-    return m_left;
+    return position().left();
 }
 
 int WindowedWidget::height() const
 {
-    return m_height;
+    return size().height();
 }
 
 int WindowedWidget::width() const
 {
-    return m_width;
+    return size().width();
 }
 
-Vector<int, 4> WindowedWidget::outline() const
+Box const& WindowedWidget::outline() const
 {
-    return Vector<int, 4> { left(), top(), width(), height() };
-}
-
-Vector<int, 4> WindowedWidget::content_rect() const
-{
-    return Vector<int, 4> { left() + m_left_margin, top() + m_top_margin,
-        width() - m_left_margin - m_right_margin, height() - m_top_margin - m_bottom_margin };
-}
-
-Vector<int, 4> WindowedWidget::margins() const
-{
-    return Vector<int, 4> { left_margin(), right_margin(), top_margin(), bottom_margin() };
-}
-
-int WindowedWidget::left_margin() const
-{
-    return m_left_margin;
-}
-
-int WindowedWidget::right_margin() const
-{
-    return m_right_margin;
-}
-
-int WindowedWidget::top_margin() const
-{
-    return m_top_margin;
-}
-
-int WindowedWidget::bottom_margin() const
-{
-    return m_bottom_margin;
-}
-
-int WindowedWidget::content_width() const
-{
-    return width() - left_margin() - right_margin();
-}
-
-int WindowedWidget::content_height() const
-{
-    return height() - top_margin() - bottom_margin();
+    return m_outline;
 }
 
 void WindowedWidget::set_render(std::function<void()> r)
@@ -167,76 +191,165 @@ void WindowedWidget::handle_text_input()
         m_text_input();
 }
 
-SDL_Rect WindowedWidget::render_fixed(int x, int y, std::string const& text, SDL_Color const& color) const
+void WindowedWidget::resize(Box const& outline)
 {
-    auto ret = App::instance().context()->render_fixed(left() + left_margin() + x, top() + top_margin() + y,
-        text, color);
-    ret.x -= left() - left_margin();
-    ret.y -= top() - top_margin();
+    m_outline = outline;
+}
+
+/* ----------------------------------------------------------------------- */
+
+WidgetContainer::WidgetContainer(ContainerOrientation orientation)
+    : m_orientation(orientation)
+{
+}
+
+void WidgetContainer::add_component(WindowedWidget* widget)
+{
+    widget->set_parent(this);
+    m_components.emplace_back(widget);
+}
+
+std::vector<Widget*> WidgetContainer::components()
+{
+    std::vector<Widget*> ret;
+    ret.reserve(m_components.size());
+    for (auto const& c : m_components) {
+        ret.push_back(c.get());
+    }
     return ret;
 }
 
-SDL_Rect WindowedWidget::render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color const& color) const
+void WidgetContainer::resize(Box const& outline)
 {
-    auto ret = App::instance().context()->render_fixed_right_aligned(
-        left() + left_margin() + x, top() + top_margin() + y,
-        text, color);
-    ret.x -= left() - left_margin();
-    ret.y -= top() - top_margin();
-    return ret;
+    debug(scratch, "Resizing container within outline '{}'", outline);
+    m_outlines.clear();
+    for (auto ix = 0; ix < m_components.size(); ++ix)
+        m_outlines.emplace_back();
+    auto allocated = 0;
+    auto stretch_count = 0;
+    auto total = (m_orientation == ContainerOrientation::Vertical) ? outline.height() : outline.width();
+    auto fixed_size = (m_orientation == ContainerOrientation::Vertical) ? outline.width() : outline.height();
+    auto fixed_size_coord = (m_orientation == ContainerOrientation::Vertical) ? 0 : 1;
+    auto var_size_coord = (m_orientation == ContainerOrientation::Vertical) ? 1 : 0;
+    auto fixed_pos = (m_orientation == ContainerOrientation::Vertical) ? outline.left() : outline.top();
+    auto fixed_pos_coord = (m_orientation == ContainerOrientation::Vertical) ? 0 : 1;
+    auto var_pos_coord = (m_orientation == ContainerOrientation::Vertical) ? 1 : 0;
+
+    for (auto ix = 0; ix < m_components.size(); ++ix) {
+        auto const& c  = m_components[ix];
+        m_outlines[ix].size[fixed_size_coord] = fixed_size;
+        m_outlines[ix].position[fixed_pos_coord] = fixed_pos;
+        switch (c->policy()) {
+        case SizePolicy::Absolute:
+            m_outlines[ix].size[var_size_coord] = c->policy_size();
+            allocated += c->policy_size();
+            break;
+        case SizePolicy::Relative: {
+            auto sz = (int)((float)(total * c->policy_size()) / 100.0f);
+            m_outlines[ix].size[var_size_coord] = sz;
+            allocated += sz;
+        } break;
+        case SizePolicy::Stretch:
+            m_outlines[ix].size[var_size_coord] = -1;
+            stretch_count++;
+            break;
+        }
+    }
+
+    if (stretch_count) {
+        auto stretch = (int)((float)(total - allocated) / (float)stretch_count);
+        for (auto& o : m_outlines) {
+            if (o.size[var_size_coord] == -1)
+                o.size[var_size_coord] = stretch;
+        }
+    }
+
+    auto offset = 0;
+    for (auto ix = 0; ix < m_components.size(); ++ix) {
+        auto& o  = m_outlines[ix];
+        o.position[var_pos_coord] = offset;
+        offset += o.size[var_size_coord];
+        m_components[ix]->resize(o);
+        debug(scratch, "Component {}: '{}'", ix, o);
+    }
 }
 
-SDL_Rect WindowedWidget::normalize(SDL_Rect const& rect)
-{
-    SDL_Rect r = rect;
-    if (r.x < 0)
-        r.x = content_width() + r.x;
-    if (r.y < 0)
-        r.y = content_height() + r.y;
-    if (r.w <= 0)
-        r.w = content_width() - r.x + r.w;
-    if (r.h <= 0)
-        r.h = content_height() - r.y + r.h;
-    r.x = clamp(r.x, 0, content_width());
-    r.y = clamp(r.y, 0, content_height());
-    r.w = clamp(r.w, 0, content_width() - r.x);
-    r.h = clamp(r.h, 0, content_height() - r.y);
-    return r;
-}
+/* ----------------------------------------------------------------------- */
 
-void WindowedWidget::box(SDL_Rect const& rect, SDL_Color color)
-{
-    auto r = normalize(rect);
-    boxColor(
-        App::instance().renderer(),
-        left() + left_margin() + r.x,
-        top() + top_margin() + r.y,
-        left() + left_margin() + r.x + r.w,
-        top() + top_margin() + r.y + r.h,
-        *((uint32_t*)&color));
-}
-
-void WindowedWidget::rectangle(SDL_Rect const& rect, SDL_Color color)
-{
-    auto r = normalize(rect);
-    rectangleColor(
-        App::instance().renderer(),
-        left() + left_margin() + r.x,
-        top() + top_margin() + r.y,
-        left() + left_margin() + r.x + r.w,
-        top() + top_margin() + r.y + r.h,
-        *((uint32_t*)&color));
-}
-
-ModalWidget::ModalWidget(int x, int y, int w, int h)
-    : WindowedWidget(x, y, w, h)
+Layout::Layout(ContainerOrientation orientation, SizePolicy policy, int size)
+    : WindowedWidget(policy, size)
+    , m_container(orientation)
 {
 }
 
-ModalWidget::ModalWidget(Vector<int, 4> const& outline, Vector<int, 4> const& margins)
-    : WindowedWidget(outline, margins)
+void Layout::render()
 {
+    for (auto* c : m_container.components()) {
+        c->render();
+    }
+}
 
+bool Layout::dispatch(SDL_Keysym sym)
+{
+    for (auto* c : m_container.components()) {
+        if (c->dispatch(sym))
+            return true;
+    }
+    return false;
+}
+
+void Layout::resize(Box const& outline)
+{
+    WindowedWidget::resize(outline);
+    m_container.resize(outline);
+}
+
+std::vector<Widget*> Layout::components()
+{
+    return m_container.components();
+}
+
+void Layout::add_component(WindowedWidget* widget)
+{
+    m_container.add_component(widget);
+}
+
+WidgetContainer const& Layout::container() const
+{
+    return m_container;
+}
+
+WidgetContainer& Layout::container()
+{
+    return m_container;
+}
+
+/* ----------------------------------------------------------------------- */
+
+ModalWidget::ModalWidget(int w, int h)
+    : m_width(w)
+    , m_height(h)
+{
+}
+
+int ModalWidget::width() const
+{
+    return m_width;
+}
+
+int ModalWidget::height() const
+{
+    return m_height;
+}
+
+int ModalWidget::top() const
+{
+    return (App::instance().height() - height()) / 2;
+}
+
+int ModalWidget::left() const
+{
+    return (App::instance().width() - width()) / 2;
 }
 
 void ModalWidget::dismiss()

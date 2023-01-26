@@ -86,7 +86,7 @@ public:
 
 class SDLContext;
 
-class App : public Widget /*, public Messenger */ {
+class App : public Layout /*, public Messenger */ {
 public:
     App(std::string, SDLContext*);
     static App& instance();
@@ -105,8 +105,8 @@ public:
     std::vector<std::string> status() override;
 
 
-    int width() const;
-    int height() const;
+    int width() const override;
+    int height() const override;
     intptr_t active() const;
     void active(intptr_t);
     SDL_Color color(PaletteIndex color);
@@ -119,23 +119,12 @@ public:
     std::string input_buffer();
     void schedule(Command const* cmd);
 
-    void add_component(Widget*);
-    [[nodiscard]] virtual std::vector<Widget*> components();
-
-    template <class ComponentClass>
-    requires std::derived_from<ComponentClass, Widget>
-    ComponentClass* get_component()
-    {
-        for (auto& c : components()) {
-            if (auto casted = dynamic_cast<ComponentClass*>(c); casted != nullptr)
-                return casted;
-        }
-        return nullptr;
-    }
-
     void add_modal(Widget*);
     Widget* modal();
     void dismiss_modal();
+
+    [[nodiscard]] Widget* focus();
+    void focus(Widget*);
 
 private:
     void on_event(SDL_Event*);
@@ -163,7 +152,7 @@ private:
 
     unsigned m_frameCount = 0;
 
-    std::vector<std::unique_ptr<Widget>> m_components;
+    Widget* m_focus { nullptr };
     std::vector<std::unique_ptr<Widget>> m_modals;
     std::unique_ptr<SDLContext> m_context;
     std::deque<Command const*> m_pending_commands;

@@ -21,6 +21,13 @@ constexpr bool CheckParameterPackSize()
     return sizeof...(Args) == Dim;
 }
 
+
+template <typename T, typename A1, typename ...Args>
+constexpr bool CheckParameterType()
+{
+    return (std::is_convertible<A1,T>());
+}
+
 template <typename T, size_t Dim=2>
 struct Vector {
     std::valarray<T> coordinates { Dim };
@@ -33,8 +40,8 @@ struct Vector {
 
     template <typename ...Args>
     explicit Vector(Args... values)
-    requires (CheckParameterPackSize<Dim, Args...>())
-        : coordinates { { values... } }
+    requires (CheckParameterPackSize<Dim, Args...>() && CheckParameterType<T, Args...>())
+        : coordinates { { std::forward<Args>(values)... } }
     {
     }
 
@@ -44,13 +51,91 @@ struct Vector {
         return coordinates[idx];
     }
 
-    float& operator[](size_t idx)
+    T& operator[](size_t idx)
     {
         assert(idx < Dim);
         return coordinates[idx];
     }
 
 private:
+};
+
+struct Tuple {
+    int coordinates[2] = { 0, 0 };
+    Tuple(int x, int y)
+    {
+        coordinates[0] = x;
+        coordinates[1] = y;
+    }
+    Tuple() = default;
+
+    const int& operator[](size_t idx) const
+    {
+        assert(idx < 2);
+        return coordinates[idx];
+    }
+
+    int& operator[](size_t idx)
+    {
+        assert(idx < 2);
+        return coordinates[idx];
+    }
+
+    [[nodiscard]] std::string to_string() const
+    {
+        return Obelix::format("{}x{}", coordinates[0], coordinates[1]);
+    }
+};
+
+struct Position : public Tuple {
+    Position(int t, int l)
+        : Tuple(t, l)
+    {
+    }
+    Position() = default;
+
+    [[nodiscard]] int left() const { return coordinates[0]; }
+    [[nodiscard]] int top() const { return coordinates[1]; }
+};
+
+struct Size : public Tuple {
+    Size(int w, int h)
+        : Tuple(w, h)
+    {
+    }
+    Size() = default;
+
+    [[nodiscard]] int width() const { return coordinates[0]; }
+    [[nodiscard]] int height() const { return coordinates[1]; }
+    [[nodiscard]] bool empty() const { return (coordinates[0] + coordinates[1]) == 0; }
+};
+
+struct Box {
+    Box(int t, int l, int w, int h)
+        : position(t, l)
+        , size(w, h)
+    {
+    }
+    Box(Position p, Size s)
+        : position(std::move(p))
+        , size(std::move(s))
+    {
+    }
+    Box() = default;
+
+    Position position;
+    Size size;
+
+    [[nodiscard]] int top() const { return position.top(); }
+    [[nodiscard]] int left() const { return position.left(); }
+    [[nodiscard]] int width() const { return size.width(); }
+    [[nodiscard]] int height() const { return size.height(); }
+    [[nodiscard]] bool empty() const { return size.empty(); }
+
+    [[nodiscard]] std::string to_string() const
+    {
+        return Obelix::format("{}+{}", position, size);
+    }
 };
 
 struct Vec2 : public Vector<float,2> {

@@ -59,6 +59,7 @@ public:
     [[nodiscard]] static int line_height();
     [[nodiscard]] static int column_width();
 
+    void resize(Box const&) override;
     void render() override;
     void text_cursor(int line, int column);
     void mark_current_line(int line);

@@ -16,13 +16,24 @@ namespace Scratch {
 class Widget : public std::enable_shared_from_this<Widget> {
 public:
     virtual ~Widget() = default;
+    [[nodiscard]] virtual int height() const = 0;
+    [[nodiscard]] virtual int width() const = 0;
+    [[nodiscard]] virtual int top() const = 0;
+    [[nodiscard]] virtual int left() const = 0;
+    [[nodiscard]] bool empty() const;
 
     virtual void render();
     virtual bool dispatch(SDL_Keysym) { return false; }
     virtual void handle_text_input() { }
+    virtual void resize(Box const&);
     virtual std::vector<std::string> status() { return {}; }
 
-    //[[nodiscard]] virtual bool handle(KeyCode);
+    SDL_Rect render_fixed(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
+    SDL_Rect render_fixed_right_aligned(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
+
+    SDL_Rect normalize(SDL_Rect const&) const;
+    void box(SDL_Rect const&, SDL_Color) const;
+    void rectangle(SDL_Rect const&, SDL_Color) const;
 
     static int char_height;
     static int char_width;
@@ -32,62 +43,118 @@ protected:
 private:
 };
 
+enum class SizePolicy {
+    Absolute = 0,
+    Relative,
+    Stretch,
+};
+
+class WidgetContainer;
+
 class WindowedWidget : public Widget {
 public:
-    WindowedWidget(int, int, int, int);
-    WindowedWidget(Vector<int,4> const&, Vector<int,4> const&);
-    [[nodiscard]] int top() const;
-    [[nodiscard]] int left() const;
-    [[nodiscard]] int height() const;
-    [[nodiscard]] int width() const;
+    WindowedWidget(SizePolicy = SizePolicy::Stretch, int = 0);
 
-    [[nodiscard]] Vector<int,2>  position() const;
-    [[nodiscard]] Vector<int,2>  size() const;
-    [[nodiscard]] Vector<int,4> outline() const;
-    [[nodiscard]] Vector<int,4> content_rect() const;
-    [[nodiscard]] Vector<int,4> margins() const;
-    [[nodiscard]] int left_margin() const;
-    [[nodiscard]] int right_margin() const;
-    [[nodiscard]] int top_margin() const;
-    [[nodiscard]] int bottom_margin() const;
-    [[nodiscard]] int content_width() const;
-    [[nodiscard]] int content_height() const;
+    [[nodiscard]] int height() const override;
+    [[nodiscard]] int width() const override;
+    [[nodiscard]] int top() const override;
+    [[nodiscard]] int left() const override;
+    [[nodiscard]] SizePolicy policy() const;
+    [[nodiscard]] int policy_size() const;
+    [[nodiscard]] WidgetContainer const* parent() const;
+
+    [[nodiscard]] Position position() const;
+    [[nodiscard]] Size size() const;
+    [[nodiscard]] Box const& outline() const;
     void set_render(std::function<void()>);
     void set_dispatch(std::function<bool(SDL_Keysym)>);
     void set_text_input(std::function<void()>);
     void render() override;
     bool dispatch(SDL_Keysym) override;
     void handle_text_input() override;
+    void resize(Box const&) override;
 
-    SDL_Rect render_fixed(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
-    SDL_Rect render_fixed_right_aligned(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
-
-    SDL_Rect normalize(SDL_Rect const&);
-    void box(SDL_Rect const&, SDL_Color);
-    void rectangle(SDL_Rect const&, SDL_Color);
-
+protected:
 private:
-    int m_left;
-    int m_top;
-    int m_width;
-    int m_height;
+    friend class WidgetContainer;
+    void set_parent(WidgetContainer *parent) { m_parent = parent; }
 
-    int m_left_margin { 0 };
-    int m_top_margin { 0 };
-    int m_right_margin { 0 };
-    int m_bottom_margin { 0 };
+    SizePolicy m_policy { SizePolicy::Absolute };
+    int m_size;
+    Box m_outline;
+    WidgetContainer* m_parent { nullptr };
 
     std::function<void()> m_render { nullptr };
     std::function<bool(SDL_Keysym)> m_dispatch { nullptr };
     std::function<void()> m_text_input { nullptr };
 };
 
-class ModalWidget : public WindowedWidget {
+enum class ContainerOrientation {
+    Vertical = 0,
+    Horizontal,
+};
+
+class WidgetContainer {
 public:
-    ModalWidget(int, int, int, int);
-    ModalWidget(Vector<int,4> const&, Vector<int,4> const&);
-    void dismiss();
+    explicit WidgetContainer(ContainerOrientation);
+    void add_component(WindowedWidget*);
+    [[nodiscard]] std::vector<Widget*> components();
+    void resize(Box const&);
+
+    template <class ComponentClass>
+    requires std::derived_from<ComponentClass, WindowedWidget>
+    ComponentClass* get_component()
+    {
+        for (auto& c : components()) {
+            if (auto casted = dynamic_cast<ComponentClass*>(c); casted != nullptr)
+                return casted;
+        }
+        return nullptr;
+    }
+
 private:
+    ContainerOrientation m_orientation { ContainerOrientation::Vertical };
+    std::vector<std::unique_ptr<WindowedWidget>> m_components;
+    std::vector<Box> m_outlines;
+};
+
+class Layout : public WindowedWidget {
+public:
+    Layout(ContainerOrientation, SizePolicy = SizePolicy::Stretch, int = 0);
+    void render() override;
+    bool dispatch(SDL_Keysym) override;
+    void resize(Box const&) override;
+    std::vector<Widget*> components();
+    void add_component(WindowedWidget*);
+    WidgetContainer const& container() const;
+
+    template <class ComponentClass>
+    requires std::derived_from<ComponentClass, WindowedWidget>
+    ComponentClass* get_component()
+    {
+        return m_container.get_component<ComponentClass>();
+    }
+
+protected:
+    WidgetContainer& container();
+
+private:
+    WidgetContainer m_container;
+};
+
+class ModalWidget : public Widget {
+public:
+    ModalWidget(int, int);
+    void dismiss();
+
+    [[nodiscard]] int width() const override;
+    [[nodiscard]] int height() const override;
+    [[nodiscard]] int top() const override;
+    [[nodiscard]] int left() const override;
+
+private:
+    int m_width;
+    int m_height;
 };
 
 }

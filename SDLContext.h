@@ -32,19 +32,19 @@ public:
     SDL_Cursor* input() { return m_arrow; }
     [[nodiscard]] int character_width() const { return m_fixed.character_width; }
     [[nodiscard]] int character_height() const { return m_fixed.character_height; }
-    SDL_Rect render_fixed(int x, int y, std::string const& text, SDL_Color color)
+    SDL_Rect render_fixed(int x, int y, std::string const& text, SDL_Color const& color)
     {
         return m_fixed.render_text(x, y, text, color);
     }
-    SDL_Rect render_proportional(int x, int y, std::string const& text, SDL_Color color)
+    SDL_Rect render_proportional(int x, int y, std::string const& text, SDL_Color const& color)
     {
         return m_proportional.render_text(x, y, text, color);
     }
-    SDL_Rect render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color color)
+    SDL_Rect render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color const& color)
     {
         return m_fixed.render_text_right_aligned(x, y, text, color);
     }
-    SDL_Rect render_proportional_right_aligned(int x, int y, std::string const& text, SDL_Color color)
+    SDL_Rect render_proportional_right_aligned(int x, int y, std::string const& text, SDL_Color const& color)
     {
         return m_proportional.render_text_right_aligned(x, y, text, color);
     }

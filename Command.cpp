@@ -495,7 +495,7 @@ private:
 };
 
 AbstractArgumentHandler::AbstractArgumentHandler(CommandHandler* handler, CommandParameter const& parameter, int height)
-    : ModalWidget(App::instance().width() / 6, (App::instance().height() - height) / 2, App::instance().width() * 0.66, height)
+    : ModalWidget(App::instance().width() * 0.66, height)
     , m_handler(handler)
     , m_parameter(parameter)
 {
@@ -614,7 +614,7 @@ bool handle(ListArgumentHandler<fs::directory_entry, fs::path>* handler, fs::dir
 }
 
 CommandHandler::CommandHandler(Command const& command)
-    : ModalWidget(App::instance().width() / 4, App::instance().height() / 4, App::instance().width() / 2, App::instance().height() / 2)
+    : ModalWidget(App::instance().width() / 2, App::instance().height() / 2)
     , m_command(command)
 {
 }

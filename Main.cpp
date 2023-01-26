@@ -73,32 +73,6 @@ Config::Config(int argc, char const** argv)
         Obelix::Logger::get_logger().enable("scratch");
 }
 
-#ifdef SCRATCH_CONSOLE
-
-void run_app(int argc, char const** argv)
-{
-    Config config(argc, argv);
-    debug(scratch, "The logger works!");
-    auto display_maybe = Display::create();
-    if (display_maybe.is_error()) {
-        fprintf(stderr, "ERROR: %s\n", display_maybe.error().c_str());
-        exit(-1);
-    }
-    App app("Scratch", display_maybe.value());
-
-//    auto menu = new MenuBar(MenuDescriptions {
-//        { "File", { { "Quit", [&app]() { app.quit(); } } } }
-//    });
-//    app.add_component(menu);
-    auto editor = new Editor();
-    app.add_component(editor);
-    app.add_component(new StatusBar());
-    app.add_component(new MessageBar());
-    app.event_loop();
-}
-
-#endif
-
 void run_app(int argc, char const** argv)
 {
     Config config(argc, argv);
@@ -120,6 +94,7 @@ void run_app(int argc, char const** argv)
 //    app.add_component(new ScrollBar(editor, ScrollDirection::Horizontal));
 //    app.add_component(new ScrollBar(editor, ScrollDirection::Vertical));
 
+    app.focus(editor);
     app.event_loop();
 }
 

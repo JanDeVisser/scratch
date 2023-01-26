@@ -103,22 +103,6 @@ size_t Document::parsed() const
     return !m_parser.tokens().empty();
 }
 
-void Document::erase_char(EraseDirection direction)
-{
-    m_mark = m_point;
-    switch (direction) {
-    case EraseDirection::EraseLeft:
-        if (m_point.column > 0)
-            m_mark.column = m_point.column - 1;
-        break;
-    case EraseDirection::EraseRight:
-        if (m_point.column < line_length(m_point.line) - 1)
-            m_mark.column = m_point.column + 1;
-        break;
-    }
-    erase_selection();
-}
-
 void Document::split_line()
 {
     if (m_point.line >= m_lines.size()) {
@@ -163,6 +147,43 @@ void Document::insert(std::string const& str)
         m_lines.emplace_back(str);
         m_point.column = str.length();
         assign_to_parser();
+    }
+}
+
+void Document::reset_selection()
+{
+    m_mark = m_point;
+}
+
+void Document::extend_selection(int num)
+{
+    DocumentPosition& left = (m_mark <= m_point) ? m_mark : m_point;
+    DocumentPosition& right = (m_mark <= m_point) ? m_point : m_mark;
+
+    if (num < 0) {
+        num = -num;
+        for (; num > 0; --num) {
+            if (left.column > 0) {
+                --left.column;
+            } else if (left.line == 0) {
+                return;
+            } else {
+                --left.line;
+                left.column = line_length(left.line);
+            }
+        }
+        return;
+    }
+
+    for (;num > 0; --num) {
+        if (right.column < line_length(right.line)) {
+            ++left.column;
+        } else if (left.line == line_count() - 1) {
+            return;
+        } else {
+            ++left.line;
+            left.column = 0;
+        }
     }
 }
 
@@ -399,7 +420,7 @@ void Document::render(Editor* editor)
 
     auto end_render = std::chrono::steady_clock::now();
     auto elapsed_render = (long)std::chrono::duration_cast<std::chrono::milliseconds>(end_render - start_render).count();
-    debug(scratch, "Rendering done in {}ms", elapsed_render);
+    // debug(scratch, "Rendering done in {}ms", elapsed_render);
 }
 
 bool Document::dispatch(Editor* editor, SDL_Keysym sym)
@@ -481,10 +502,9 @@ bool Document::dispatch(Editor* editor, SDL_Keysym sym)
         break;
     case SDLK_BACKSPACE:
     case SDLK_DELETE:
-        if (m_point != m_mark)
-            erase_selection();
-        else
-            erase_char((sym.sym == SDLK_BACKSPACE) ? EraseDirection::EraseLeft : EraseDirection::EraseRight);
+        if (m_point == m_mark)
+            extend_selection((sym.sym == SDLK_BACKSPACE) ? -1 : 1);
+        erase_selection();
         break;
     case SDLK_RETURN:
     case SDLK_KP_ENTER:

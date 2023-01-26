@@ -13,9 +13,7 @@ using namespace Obelix;
 namespace Scratch {
 
 StatusBar::StatusBar()
-    : WindowedWidget(
-        0, -(2*App::instance().context()->character_height() + 6),
-        0, App::instance().context()->character_height() + 3)
+    : WindowedWidget(SizePolicy::Absolute, App::instance().context()->character_height() + 3)
 {
 }
 

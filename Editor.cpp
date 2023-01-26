@@ -20,14 +20,10 @@ extern_logging_category(scratch);
 namespace fs=std::filesystem;
 
 Editor::Editor()
-    : WindowedWidget(
-        Vector<int, 4> { 0, 0, 0, -(2 * App::instance().context()->character_height() + 6) },
-        Vector<int, 4> { 8, 8, 18, 0 })
+    : WindowedWidget()
 {
     m_documents.emplace_back(new Document(this));
     m_current_document = m_documents.front().get();
-    m_rows = content_height() / (int)(App::instance().context()->character_height() * 1.2);
-    m_columns = content_width() / App::instance().context()->character_width();
 }
 
 int Editor::rows() const
@@ -68,6 +64,13 @@ int Editor::line_height()
 int Editor::column_width()
 {
     return App::instance().context()->character_width();
+}
+
+void Editor::resize(const Box& outline)
+{
+    WindowedWidget::resize(outline);
+    m_rows = height() / (int)(App::instance().context()->character_height() * 1.2);
+    m_columns = width() / App::instance().context()->character_width();
 }
 
 void Editor::render()

@@ -136,6 +136,11 @@ struct Box {
     {
         return Obelix::format("{}+{}", position, size);
     }
+
+    operator SDL_Rect()
+    {
+        return { left(), top(), width(), height() };
+    }
 };
 
 struct Vec2 : public Vector<float,2> {

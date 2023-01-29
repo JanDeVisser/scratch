@@ -53,17 +53,15 @@ add_executable(
         Document.cpp
         Editor.cpp
         EditorState.cpp
+        Frame.cpp
+        Geometry.h
+        Gutter.cpp
         Key.cpp
         Main.cpp
-#        Menu.cpp
-#        MessageBar.cpp
-        StatusBar.cpp
-        Widget.cpp
         SDLContext.cpp
-#        Scrollbar.cpp
-        Geometry.h
+        StatusBar.cpp
         Text.cpp
-#        EditorState.cpp
+        Widget.cpp
 )
 
 target_link_libraries(

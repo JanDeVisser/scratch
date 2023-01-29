@@ -40,6 +40,22 @@ enum class PaletteIndex : uint8_t {
     LineEdited,
     LineEditedSaved,
     LineEditedReverted,
+    ANSIBlack,
+    ANSIRed,
+    ANSIGreen,
+    ANSIYellow,
+    ANSIBlue,
+    ANSIMagenta,
+    ANSICyan,
+    ANSIWhite,
+    ANSIBrightBlack,
+    ANSIBrightRed,
+    ANSIBrightGreen,
+    ANSIBrightYellow,
+    ANSIBrightBlue,
+    ANSIBrightMagenta,
+    ANSIBrightCyan,
+    ANSIBrightWhite,
     Max
 };
 

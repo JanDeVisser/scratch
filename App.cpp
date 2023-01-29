@@ -6,16 +6,12 @@
 
 #include <array>
 #include <cstdio>
-#include <sstream>
 
 #include <SDL2_gfxPrimitives.h>
 
 #include <App.h>
-#include <Editor.h>
 #include <Forward.h>
-#include <MessageBar.h>
 #include <SDLContext.h>
-#include <StatusBar.h>
 #include <Text.h>
 
 namespace Scratch {
@@ -96,6 +92,19 @@ void App::render()
     }
 }
 
+double App::last_render_time() const
+{
+    return m_last_render_time;
+}
+
+int App::fps() const
+{
+    if (m_last_render_time < 0.001)
+        return 0;
+    return (int) (1.0 / m_last_render_time);
+}
+
+
 void App::schedule(Command const* cmd)
 {
     m_pending_commands.push_back(cmd);
@@ -138,18 +147,59 @@ SDL_Color App::color(PaletteIndex color)
 void App::event_loop()
 {
     Uint64 timestamp = 0;
-    SDL_Event e;
+    SDL_Event evt;
+
+    auto start_render = std::chrono::steady_clock::now();
     while (!m_quit) {
+
         // Processes events.
-        while (SDL_PollEvent(&e)) {
-            switch (e.type) {
+        while (SDL_PollEvent(&evt)) {
+            switch (evt.type) {
             case SDL_QUIT: {
                 m_quit = true;
+            } break;
+            case SDL_WINDOWEVENT: {
+                switch (evt.window.event) {
+                case SDL_WINDOWEVENT_SHOWN:
+                case SDL_WINDOWEVENT_RESIZED: {
+                    SDL_GetRendererOutputSize(renderer(), &m_width, &m_height);
+                    container().resize({ 0, 0, m_width, m_height });
+                } break;
+                }
+            } break;
+            case SDL_KEYDOWN: {
+                Widget *target = this;
+                if (auto m = modal(); m != nullptr) {
+                    target = m;
+                }
+                target->dispatch(evt.key.keysym);
+            } break;
+            case SDL_TEXTINPUT: {
+                CodePoint wchars[17];
+                strFromUtf8(wchars, countof(wchars), evt.text.text, nullptr);
+                for (int i = 0; i < countof(wchars) && wchars[i] != 0; i++)
+                    m_input_characters.push_back(wchars[i]);
+                if (auto m = modal(); m != nullptr) {
+                    m->handle_text_input();
+                } else if (auto w = focus(); w != nullptr) {
+                    w->handle_text_input();
+                }
+            } break;
+            case SDL_MOUSEBUTTONUP: {
+                m_mouse_clicked_count = evt.button.clicks;
+            } break;
+            case SDL_MOUSEWHEEL: {
+                if (evt.wheel.y < 0)
+                    m_scrollY += 32.0f;
+                else if (evt.wheel.y > 0)
+                    m_scrollY -= 32.0f;
+                m_scrollY = clamp(m_scrollY,
+                    0.0f,
+                    m_contentSize.y() <= m_widgetSize.y() ? 0.0f : m_contentSize.y() - m_widgetSize.y());
             } break;
             default:
                 break;
             }
-            on_event(&e);
         }
 
         // Renders.
@@ -169,6 +219,10 @@ void App::event_loop()
             SDL_Delay((Uint32)(rest * 1000));
 
         SDL_RenderPresent(renderer());
+        auto end_render = std::chrono::steady_clock::now();
+        std::chrono::duration<double> render_time = end_render - start_render;
+        m_last_render_time = render_time.count();
+        start_render = end_render;
     }
 }
 
@@ -184,53 +238,6 @@ bool dispatch_to(Widget* w, SDL_Keysym sym)
     }
     return false;
 };
-
-void App::on_event(SDL_Event* evt)
-{
-    switch (evt->type) {
-    case SDL_WINDOWEVENT: {
-        switch (evt->window.event) {
-        case SDL_WINDOWEVENT_SHOWN:
-        case SDL_WINDOWEVENT_RESIZED: {
-            SDL_GetRendererOutputSize(renderer(), &m_width, &m_height);
-            container().resize({ 0, 0, m_width, m_height });
-        } break;
-        }
-    } break;
-    case SDL_KEYDOWN: {
-        Widget *target = this;
-        if (auto m = modal(); m != nullptr) {
-            target = m;
-        }
-        target->dispatch(evt->key.keysym);
-    } break;
-    case SDL_TEXTINPUT: {
-        CodePoint wchars[17];
-        strFromUtf8(wchars, countof(wchars), evt->text.text, nullptr);
-        for (int i = 0; i < countof(wchars) && wchars[i] != 0; i++)
-            m_input_characters.push_back(wchars[i]);
-        if (auto m = modal(); m != nullptr) {
-            m->handle_text_input();
-        } else if (auto w = focus(); w != nullptr) {
-            w->handle_text_input();
-        }
-    } break;
-    case SDL_MOUSEBUTTONUP: {
-        m_mouse_clicked_count = evt->button.clicks;
-    } break;
-    case SDL_MOUSEWHEEL: {
-        if (evt->wheel.y < 0)
-            m_scrollY += 32.0f;
-        else if (evt->wheel.y > 0)
-            m_scrollY -= 32.0f;
-        m_scrollY = clamp(m_scrollY,
-            0.0f,
-            m_contentSize.y() <= m_widgetSize.y() ? 0.0f : m_contentSize.y() - m_widgetSize.y());
-    } break;
-    default:
-        break;
-    }
-}
 
 bool App::dispatch(SDL_Keysym sym)
 {

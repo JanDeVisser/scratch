@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <functional>
+
 #include <SDL.h>
 
 #include <Forward.h>
@@ -34,6 +36,7 @@ public:
     SDL_Rect normalize(SDL_Rect const&) const;
     void box(SDL_Rect const&, SDL_Color) const;
     void rectangle(SDL_Rect const&, SDL_Color) const;
+    void roundedRectangle(SDL_Rect const&, int, SDL_Color) const;
 
     static int char_height;
     static int char_width;
@@ -49,7 +52,12 @@ enum class SizePolicy {
     Stretch,
 };
 
+class WindowedWidget;
 class WidgetContainer;
+
+using Renderer = std::function<void(WindowedWidget*)>;
+using KeyHandler = std::function<bool(WindowedWidget*, SDL_Keysym)>;
+using TextHandler = std::function<void(WindowedWidget*)>;
 
 class WindowedWidget : public Widget {
 public:
@@ -66,9 +74,9 @@ public:
     [[nodiscard]] Position position() const;
     [[nodiscard]] Size size() const;
     [[nodiscard]] Box const& outline() const;
-    void set_render(std::function<void()>);
-    void set_dispatch(std::function<bool(SDL_Keysym)>);
-    void set_text_input(std::function<void()>);
+    void set_renderer(Renderer);
+    void set_keyhandler(KeyHandler);
+    void set_texthandler(TextHandler);
     void render() override;
     bool dispatch(SDL_Keysym) override;
     void handle_text_input() override;
@@ -84,9 +92,9 @@ private:
     Box m_outline;
     WidgetContainer* m_parent { nullptr };
 
-    std::function<void()> m_render { nullptr };
-    std::function<bool(SDL_Keysym)> m_dispatch { nullptr };
-    std::function<void()> m_text_input { nullptr };
+    Renderer m_renderer { nullptr };
+    KeyHandler m_keyhandler { nullptr };
+    TextHandler m_texthandler { nullptr };
 };
 
 enum class ContainerOrientation {
@@ -140,6 +148,30 @@ protected:
 
 private:
     WidgetContainer m_container;
+};
+
+enum class FrameStyle {
+    None,
+    Rectangle,
+    Rounded,
+};
+
+class Frame : public WindowedWidget {
+public:
+    Frame(FrameStyle, int, WindowedWidget*, SizePolicy = SizePolicy::Stretch, int = 0);
+    void render() override;
+    bool dispatch(SDL_Keysym) override;
+    void resize(Box const&) override;
+    [[nodiscard]] WindowedWidget* contents();
+    [[nodiscard]] int margin() const;
+    [[nodiscard]] int clamped_margin() const;
+    [[nodiscard]] FrameStyle frame_style() const;
+
+private:
+    FrameStyle m_frame_style { FrameStyle::None };
+    int m_margin { 3 };
+    int m_clamped_margin { 3 };
+    std::unique_ptr<WindowedWidget> m_contents;
 };
 
 class ModalWidget : public Widget {

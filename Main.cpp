@@ -8,44 +8,22 @@
 
 #include <core/Logging.h>
 
-#include <App.h>
-#include <Editor.h>
-//#include <Menu.h>
-//#include <MessageBar.h>
-//#include <Scrollbar.h>
 #include <SDLContext.h>
-#include <StatusBar.h>
-//#include <Widget.h>
+#include <Scratch.h>
+
+#ifndef WINDOW_WIDTH
+#define WINDOW_WIDTH 800
+#endif
+
+#ifndef WINDOW_HEIGHT
+#define WINDOW_HEIGHT 600
+#endif
 
 using namespace Obelix;
 
 namespace Scratch {
 
 logging_category(scratch);
-
-struct Config {
-public:
-    Config() = default;
-    Config(int argc, char const** argv);
-
-    std::string filename;
-
-    template <typename T>
-    T cmdline_flag(std::string const& flag, T const& default_value = T()) const
-    {
-        if (m_cmdline_flags.contains(flag)) {
-            auto val = m_cmdline_flags.at(flag);
-            assert(std::holds_alternative<T>(val));
-            return get<T>(val);
-        }
-        return default_value;
-    }
-
-    bool help { false };
-
-private:
-    std::unordered_map<std::string, std::variant<std::string,bool>> m_cmdline_flags;
-};
 
 Config::Config(int argc, char const** argv)
 {
@@ -73,28 +51,50 @@ Config::Config(int argc, char const** argv)
         Obelix::Logger::get_logger().enable("scratch");
 }
 
-void run_app(int argc, char const** argv)
+Scratch::Scratch(Config& config, SDLContext *ctx)
+    : App("Scratch", ctx)
+    , m_config(config)
+{
+}
+
+Editor* Scratch::editor()
+{
+    return scratch().m_editor;
+}
+
+StatusBar* Scratch::status_bar()
+{
+    return scratch().m_status_bar;
+}
+
+void Scratch::add_status_bar_applet(int size, Renderer renderer)
+{
+    status_bar()->add_applet(size, std::move(renderer));
+}
+
+Scratch& Scratch::scratch()
+{
+    return dynamic_cast<Scratch&>(App::instance());
+}
+
+void Scratch::run_app(int argc, char const** argv)
 {
     Config config(argc, argv);
     debug(scratch, "The logger works!");
 
     auto ctx = new SDLContext(WINDOW_WIDTH, WINDOW_HEIGHT);
-    App app("Scratch", ctx);
-
-//    auto menu = new MenuBar(MenuDescriptions {
-//        { "File", { { "Quit", [&app]() { app.quit(); } } } }
-//    });
-//    app.add_component(menu);
-    auto editor = new Editor();
-    app.add_component(editor);
-    if (!config.filename.empty())
-        editor->open_file(config.filename);
-    app.add_component(new StatusBar());
-//    app.add_component(new MessageBar());
-//    app.add_component(new ScrollBar(editor, ScrollDirection::Horizontal));
-//    app.add_component(new ScrollBar(editor, ScrollDirection::Vertical));
-
-    app.focus(editor);
+    Scratch app(config, ctx);
+    auto main_area = new Layout(ContainerOrientation::Horizontal);
+    app.add_component(main_area);
+    app.add_component(app.m_status_bar = new StatusBar());
+    app.add_status_bar_applet(160, [&app](WindowedWidget* applet) -> void {
+        applet->render_fixed(10, 2, format("{>3} fps", app.fps()), SDL_Color { 0xff, 0xff, 0xff, 0xff });
+    });
+    main_area->add_component(app.m_gutter = new Gutter());
+    main_area->add_component(app.m_editor = new Editor());
+    if (!app.m_config.filename.empty())
+        app.m_editor->open_file(app.m_config.filename);
+    app.focus(app.m_editor);
     app.event_loop();
 }
 
@@ -102,6 +102,6 @@ void run_app(int argc, char const** argv)
 
 int main(int argc, char const** argv)
 {
-    Scratch::run_app(argc, argv);
+    Scratch::Scratch::run_app(argc, argv);
     return 0;
 }

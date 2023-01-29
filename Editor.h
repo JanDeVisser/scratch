@@ -48,7 +48,6 @@ public:
     std::string save_all();
     void move_to(int line, int column);
     void switch_to(std::string const&);
-    std::vector<std::string> status() override;
 
     [[nodiscard]] int rows() const;
     [[nodiscard]] int columns() const;
@@ -56,7 +55,7 @@ public:
     [[nodiscard]] int line_bottom(int line) const;
     [[nodiscard]] int column_left(int column) const;
     [[nodiscard]] int column_right(int column) const;
-    [[nodiscard]] static int line_height();
+    [[nodiscard]] int line_height() const;
     [[nodiscard]] static int column_width();
 
     void resize(Box const&) override;
@@ -78,6 +77,7 @@ private:
     int m_column { 0 };
     int m_rows { -1 };
     int m_columns { -1 };
+    int m_line_height { 0 };
 };
 
 }

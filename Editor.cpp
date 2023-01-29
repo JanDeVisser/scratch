@@ -11,6 +11,7 @@
 
 #include <App.h>
 #include <Editor.h>
+#include <Scratch.h>
 #include <SDLContext.h>
 
 namespace Scratch {
@@ -24,6 +25,16 @@ Editor::Editor()
 {
     m_documents.emplace_back(new Document(this));
     m_current_document = m_documents.front().get();
+
+    Scratch::status_bar()->add_applet(60, [this](WindowedWidget* applet) -> void {
+        std::vector<std::string> ret;
+        std::stringstream ss;
+        ss << document()->point_line() + 1 << ":" << document()->point_column() + 1;
+        applet->render_fixed(10, 2, ss.str(), SDL_Color { 0xff, 0xff, 0xff, 0xff });
+    });
+    Scratch::status_bar()->add_applet(160, [this](WindowedWidget* applet) -> void {
+        applet->render_fixed(10, 2, fs::relative(document()->path()).string(), SDL_Color { 0xff, 0xff, 0xff, 0xff });
+    });
 }
 
 int Editor::rows() const
@@ -38,12 +49,12 @@ int Editor::columns() const
 
 int Editor::line_top(int line) const
 {
-    return App::instance().context()->character_height() * line * 1.2;
+    return line * line_height();
 }
 
 int Editor::line_bottom(int line) const
 {
-    return App::instance().context()->character_height() * (line + 1) * 1.2;
+    return (line + 1) * line_height();
 }
 
 int Editor::column_left(int column) const
@@ -56,9 +67,9 @@ int Editor::column_right(int column) const
     return column_width() * (column + 1);
 }
 
-int Editor::line_height()
+int Editor::line_height() const
 {
-    return App::instance().context()->character_height() * 1.2;
+    return m_line_height;
 }
 
 int Editor::column_width()
@@ -71,6 +82,7 @@ void Editor::resize(const Box& outline)
     WindowedWidget::resize(outline);
     m_rows = height() / (int)(App::instance().context()->character_height() * 1.2);
     m_columns = width() / App::instance().context()->character_width();
+    m_line_height = height() / m_rows;
 }
 
 void Editor::render()
@@ -118,7 +130,7 @@ void Editor::text_cursor(int line, int column)
 void Editor::append(DisplayToken const& token)
 {
     auto x = m_column * App::instance().context()->character_width();
-    auto y = m_line * App::instance().context()->character_height() * 1.2;
+    auto y = m_line * line_height();
     render_fixed(x, (int)y, token.text, App::instance().color(token.color));
     m_column += (int)token.text.length();
 }
@@ -189,16 +201,6 @@ void Editor::switch_to(std::string const& buffer_name)
     if (buffer != nullptr) {
         m_current_document = buffer;
     }
-}
-
-std::vector<std::string> Editor::status()
-{
-    std::vector<std::string> ret;
-    std::stringstream ss;
-    ss << document()->point_line() + 1 << ":" << document()->point_column() + 1;
-    ret.push_back(ss.str());
-    ret.push_back(fs::relative(document()->path()).string());
-    return ret;
 }
 
 std::vector<Document*> Editor::documents() const

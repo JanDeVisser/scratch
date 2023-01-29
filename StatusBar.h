@@ -10,10 +10,10 @@
 
 namespace Scratch {
 
-class StatusBar : public WindowedWidget {
+class StatusBar : public Layout {
 public:
     explicit StatusBar();
-    void render() override;
+    void add_applet(int, Renderer);
 };
 
 }

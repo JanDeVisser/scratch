@@ -21,14 +21,6 @@
 #include <Key.h>
 #include <Widget.h>
 
-#ifndef WINDOW_WIDTH
-#define WINDOW_WIDTH 800
-#endif
-
-#ifndef WINDOW_HEIGHT
-#define WINDOW_HEIGHT 600
-#endif
-
 #ifndef WIDGET_BORDER_X
 #define WIDGET_BORDER_X 8
 #endif
@@ -93,7 +85,6 @@ public:
 
     ~App() override = default;
     void quit() { m_quit = true; }
-    Editor* editor();
 
     [[nodiscard]] bool is_running() const { return !m_quit; }
     [[nodiscard]] SDLContext* context() { return m_context.get(); }
@@ -118,6 +109,8 @@ public:
     bool dispatch(SDL_Keysym) override;
     std::string input_buffer();
     void schedule(Command const* cmd);
+    [[nodiscard]] double last_render_time() const;
+    [[nodiscard]] int fps() const;
 
     void add_modal(Widget*);
     Widget* modal();
@@ -127,8 +120,6 @@ public:
     void focus(Widget*);
 
 private:
-    void on_event(SDL_Event*);
-
     static App* s_app;
 
     std::string m_name;
@@ -157,6 +148,7 @@ private:
     std::unique_ptr<SDLContext> m_context;
     std::deque<Command const*> m_pending_commands;
     SDLKey m_last_key { SDLK_UNKNOWN, KMOD_NONE };
+    double m_last_render_time { 0.0 };
 };
 
 }

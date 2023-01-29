@@ -98,6 +98,19 @@ void Widget::rectangle(SDL_Rect const& rect, SDL_Color color) const
         *((uint32_t*)&color));
 }
 
+void Widget::roundedRectangle(SDL_Rect const& rect, int radius, SDL_Color color) const
+{
+    auto r = normalize(rect);
+    roundedRectangleColor(
+        App::instance().renderer(),
+        left() + r.x,
+        top() + r.y,
+        left() + r.x + r.w,
+        top() + r.y + r.h,
+        radius,
+        *((uint32_t*)&color));
+}
+
 /* ----------------------------------------------------------------------- */
 
 WindowedWidget::WindowedWidget(SizePolicy policy, int size)
@@ -157,38 +170,38 @@ Box const& WindowedWidget::outline() const
     return m_outline;
 }
 
-void WindowedWidget::set_render(std::function<void()> r)
+void WindowedWidget::set_renderer(Renderer renderer)
 {
-    m_render = std::move(r);
+    m_renderer = std::move(renderer);
 }
 
-void WindowedWidget::set_dispatch(std::function<bool(SDL_Keysym)> d)
+void WindowedWidget::set_keyhandler(KeyHandler handler)
 {
-    m_dispatch = std::move(d);
+    m_keyhandler = std::move(handler);
 }
 
-void WindowedWidget::set_text_input(std::function<void()> t)
+void WindowedWidget::set_texthandler(TextHandler handler)
 {
-    m_text_input = std::move(t);
+    m_texthandler = std::move(handler);
 }
 
 void WindowedWidget::render()
 {
-    if (m_render != nullptr)
-        m_render();
+    if (m_renderer != nullptr)
+        m_renderer(this);
 }
 
 bool WindowedWidget::dispatch(SDL_Keysym sym)
 {
-    if (m_dispatch != nullptr)
-        return m_dispatch(sym);
+    if (m_keyhandler != nullptr)
+        return m_keyhandler(this, sym);
     return false;
 }
 
 void WindowedWidget::handle_text_input()
 {
-    if (m_text_input != nullptr)
-        m_text_input();
+    if (m_texthandler != nullptr)
+        m_texthandler(this);
 }
 
 void WindowedWidget::resize(Box const& outline)

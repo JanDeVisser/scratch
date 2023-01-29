@@ -366,7 +366,7 @@ void Document::render(Editor* editor)
                     start_block * Editor::char_width,
                     editor->line_top(ix - m_screen_top),
                     block_width * Editor::char_width,
-                    Editor::line_height()
+                    editor->line_height()
                 };
                 editor->box(r, App::instance().color(PaletteIndex::Selection));
             }
@@ -462,7 +462,7 @@ bool Document::dispatch(Editor* editor, SDL_Keysym sym)
             m_point.line++;
             if (m_point.column > line_length(m_point.line))
                 m_point.column = line_length(m_point.line);
-            if (m_point.line - m_screen_top > editor->rows())
+            if (m_point.line - m_screen_top >= editor->rows())
                 ++m_screen_top;
             debug(scratch, "KEY_DOWN: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
         }

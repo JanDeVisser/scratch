@@ -7,10 +7,9 @@
 #include <core/Format.h>
 #include <core/StringUtil.h>
 
-#include <App.h>
 #include <Command.h>
-#include <Editor.h>
 #include <SDLContext.h>
+#include <Scratch.h>
 
 using namespace Obelix;
 
@@ -20,7 +19,7 @@ std::map<std::string, Command> Command::s_commands = {
     { "copy-to-clipboard",
         { "copy-to-clipboard", "Copy selection to clipboard", {},
         [](strings const&) -> void {
-                auto doc = App::instance().get_component<Editor>()->document();
+                auto doc = Scratch::editor()->document();
                 doc->copy_to_clipboard();
             }
         }
@@ -28,7 +27,7 @@ std::map<std::string, Command> Command::s_commands = {
     { "cut-to-clipboard",
         { "cut-to-clipboard", "Cut selection to clipboard", {},
         [](strings const&) -> void {
-                auto doc = App::instance().get_component<Editor>()->document();
+                auto doc = Scratch::editor()->document();
                 doc->cut_to_clipboard();
             }
         }
@@ -46,7 +45,7 @@ std::map<std::string, Command> Command::s_commands = {
                         if (auto col_maybe = to_long(line_col[1]); col_maybe.has_value())
                             col = col_maybe.value();
                     }
-                    App::instance().get_component<Editor>()->move_to(line_maybe.value() - 1, col - 1);
+                    Scratch::editor()->move_to(line_maybe.value() - 1, col - 1);
                 }
             }
         }
@@ -54,7 +53,7 @@ std::map<std::string, Command> Command::s_commands = {
     { "paste-from-clipboard",
         { "paste-from-clipboard", "Paste text from clipboard", {},
         [](strings const&) -> void {
-                auto doc = App::instance().get_component<Editor>()->document();
+                auto doc = Scratch::editor()->document();
                 doc->paste_from_clipboard();
             }
         }
@@ -67,27 +66,27 @@ std::map<std::string, Command> Command::s_commands = {
         { "new-buffer", "New buffer",
             {},
             [](strings const&) -> void {
-                App::instance().get_component<Editor>()->new_buffer();
+                Scratch::editor()->new_buffer();
             } } },
     { "open-file",
         { "open-file", "Open file",
             { { "File to open", CommandParameterType::ExistingFilename } },
             [](strings const& args) -> void {
-                App::instance().get_component<Editor>()->open_file(args[0]);
+                Scratch::editor()->open_file(args[0]);
             } } },
     { "save-current-as",
         { "save-current-as", "Save current file as",
             { { "New file name", CommandParameterType::String } },
-            [](strings const& args) -> void { App::instance().get_component<Editor>()->save_file_as(args[0]); } } },
+            [](strings const& args) -> void { Scratch::editor()->save_file_as(args[0]); } } },
     { "save-all-files",
         { "save-all-files", "Save call files",
             {},
-            [](strings const&) -> void { App::instance().get_component<Editor>()->save_all(); } } },
+            [](strings const&) -> void { Scratch::editor()->save_all(); } } },
     { "save-file",
         { "save-file", "Save current file",
             {},
             [](strings const&) -> void {
-                auto editor = App::instance().get_component<Editor>();
+                auto editor = Scratch::editor();
                 assert(editor != nullptr);
                 if (editor->document()->path().empty()) {
                     App::instance().schedule(Command::get("save-current-as"));
@@ -99,7 +98,7 @@ std::map<std::string, Command> Command::s_commands = {
         { "switch-buffer", "Switch buffer",
             { { "Buffer", CommandParameterType::Buffer } },
             [](strings const& args) -> void {
-                App::instance().get_component<Editor>()->switch_to(args[0]);
+                Scratch::editor()->switch_to(args[0]);
             } } },
     { "invoke",
         { "invoke", "Invoke command",
@@ -250,7 +249,7 @@ template<>
 std::vector<fs::path> get_entries(CommandParameter const& param, int const&)
 {
     std::vector<fs::path> entries;
-    for (auto const* doc : App::instance().get_component<Editor>()->documents()) {
+    for (auto const* doc : Scratch::editor()->documents()) {
         entries.push_back(doc->path());
     }
     std::sort(entries.begin(), entries.end(), [](auto const& e1, auto const& e2) -> bool {

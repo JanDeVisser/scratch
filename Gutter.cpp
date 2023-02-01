@@ -13,7 +13,7 @@
 namespace Scratch {
 
 Gutter::Gutter()
-    : WindowedWidget(SizePolicy::Absolute, 10 * Widget::char_width)
+    : WindowedWidget(SizePolicy::Characters, 10)
 {
     set_renderer([](WindowedWidget* gutter) -> void {
         auto screen_top = Scratch::editor()->document()->screen_top();

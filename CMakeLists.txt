@@ -62,6 +62,7 @@ add_executable(
         StatusBar.cpp
         Text.cpp
         Widget.cpp
+        Parser/CPlusPlus.cpp
 )
 
 target_link_libraries(

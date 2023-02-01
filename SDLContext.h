@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <array>
+#include <map>
 #include <memory>
 
 #include <SDL.h>
@@ -15,12 +17,20 @@
 
 #include <Geometry.h>
 
+using namespace Obelix;
+
 namespace Scratch {
 
 extern_logging_category(scratch);
 
 class SDLContext {
 public:
+    enum class SDLFontFamily {
+        Fixed,
+        Proportional,
+        Max
+    };
+
     SDLContext(int width, int height);
     ~SDLContext() = default;
 
@@ -30,24 +40,15 @@ public:
     SDL_Renderer* renderer() { return m_renderer; }
     SDL_Cursor* arrow() { return m_arrow; }
     SDL_Cursor* input() { return m_arrow; }
-    [[nodiscard]] int character_width() const { return m_fixed.character_width; }
-    [[nodiscard]] int character_height() const { return m_fixed.character_height; }
-    SDL_Rect render_fixed(int x, int y, std::string const& text, SDL_Color const& color)
-    {
-        return m_fixed.render_text(x, y, text, color);
-    }
-    SDL_Rect render_proportional(int x, int y, std::string const& text, SDL_Color const& color)
-    {
-        return m_proportional.render_text(x, y, text, color);
-    }
-    SDL_Rect render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color const& color)
-    {
-        return m_fixed.render_text_right_aligned(x, y, text, color);
-    }
-    SDL_Rect render_proportional_right_aligned(int x, int y, std::string const& text, SDL_Color const& color)
-    {
-        return m_proportional.render_text_right_aligned(x, y, text, color);
-    }
+    [[nodiscard]] int character_width() const;
+    [[nodiscard]] int character_height() const;
+    void enlarge_font(SDLFontFamily = SDLFontFamily::Fixed);
+    void shrink_font(SDLFontFamily = SDLFontFamily::Fixed);
+    void reset_font(SDLFontFamily = SDLFontFamily::Fixed);
+
+    SDL_Rect render_text(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily = SDLFontFamily::Fixed) const;
+    SDL_Rect render_text_right_aligned(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily = SDLFontFamily::Fixed) const;
+    SDL_Rect render_text_centered(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily = SDLFontFamily::Fixed) const;
 
 private:
     struct SDLInit {
@@ -81,14 +82,18 @@ private:
     struct SDLFont {
         SDLFont(SDLRenderer&, std::string font_name, int point_size);
         ~SDLFont();
+
+        void set_size(int);
         [[nodiscard]] std::string to_string() const { return name; }
         operator TTF_Font*() const { return font; }
-        SDL_Rect render_text(int, int, std::string const& text, SDL_Color color) const;
-        SDL_Rect render_text_right_aligned(int, int, std::string const& text, SDL_Color color) const;
+        SDL_Rect render(int, int, std::string const& text, SDL_Color color) const;
+        SDL_Rect render_right_aligned(int, int, std::string const& text, SDL_Color color) const;
+        SDL_Rect render_centered(int, int, std::string const& text, SDL_Color color) const;
 
         SDLRenderer& renderer;
-        TTF_Font* font;
+        TTF_Font *font;
         std::string name;
+        int initial_size;
         int size;
         int character_width;
         int character_height;
@@ -109,8 +114,10 @@ private:
     SDLTTF m_ttf {};
     SDLWindow m_window { m_width, m_height };
     SDLRenderer m_renderer { m_window };
-    SDLFont m_fixed { m_renderer, "JetBrainsMono.ttf", 15 };
-    SDLFont m_proportional { m_renderer, "Swansea-q3pd.ttf", 15 };
+    std::array<SDLFont, (size_t) SDLFontFamily::Max> m_fonts {
+        SDLFont { m_renderer, "JetBrainsMono.ttf", 15 },
+        SDLFont { m_renderer, "Swansea-q3pd.ttf", 15 }
+    };
     SDLCursor m_arrow { SDL_SYSTEM_CURSOR_ARROW };
     SDLCursor m_input { SDL_SYSTEM_CURSOR_IBEAM };
 };

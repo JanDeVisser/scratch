@@ -26,13 +26,12 @@ Editor::Editor()
     m_documents.emplace_back(new Document(this));
     m_current_document = m_documents.front().get();
 
-    Scratch::status_bar()->add_applet(60, [this](WindowedWidget* applet) -> void {
-        std::vector<std::string> ret;
+    Scratch::status_bar()->add_applet(9, [this](WindowedWidget* applet) -> void {
         std::stringstream ss;
         ss << document()->point_line() + 1 << ":" << document()->point_column() + 1;
-        applet->render_fixed(10, 2, ss.str(), SDL_Color { 0xff, 0xff, 0xff, 0xff });
+        applet->render_fixed_centered(2, ss.str(), SDL_Color { 0xff, 0xff, 0xff, 0xff });
     });
-    Scratch::status_bar()->add_applet(160, [this](WindowedWidget* applet) -> void {
+    Scratch::status_bar()->add_applet(20, [this](WindowedWidget* applet) -> void {
         applet->render_fixed(10, 2, fs::relative(document()->path()).string(), SDL_Color { 0xff, 0xff, 0xff, 0xff });
     });
 }

@@ -46,7 +46,7 @@ bool Frame::dispatch(SDL_Keysym sym)
 void Frame::resize(Box const& outline)
 {
     WindowedWidget::resize(outline);
-     m_clamped_margin = clamp(m_margin, 3, std::min(outline.width(), outline.height())/2);
+    m_clamped_margin = clamp(m_margin, 3, std::min(outline.width(), outline.height())/2);
     m_contents->resize( {
         outline.left() + m_clamped_margin, outline.top() + m_clamped_margin,
         outline.width() - 2 * m_clamped_margin, outline.height() - 2 * m_clamped_margin

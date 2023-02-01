@@ -32,6 +32,15 @@ std::map<std::string, Command> Command::s_commands = {
             }
         }
     },
+    {
+        "enlarge-font",
+        { "enlarge-font", "Enlarge editor font", {},
+            [](strings const&) -> void {
+                auto& app = App::instance();
+                app.enlarge_font();
+            }
+        }
+    },
     { "goto-line-column",
         { "goto-line-column", "Goto line:column",
             { { "Line:Column to go to", CommandParameterType::String } },
@@ -74,6 +83,15 @@ std::map<std::string, Command> Command::s_commands = {
             [](strings const& args) -> void {
                 Scratch::editor()->open_file(args[0]);
             } } },
+    {
+        "reset-font",
+        { "reset-font", "Reset editor font", {},
+            [](strings const&) -> void {
+                auto& app = App::instance();
+                app.reset_font();
+            }
+        }
+    },
     { "save-current-as",
         { "save-current-as", "Save current file as",
             { { "New file name", CommandParameterType::String } },
@@ -94,6 +112,15 @@ std::map<std::string, Command> Command::s_commands = {
                     editor->save_file();
                 }
             } } },
+    {
+        "shrink-font",
+        { "shrink-font", "Shrink editor font", {},
+            [](strings const&) -> void {
+                auto& app = App::instance();
+                app.shrink_font();
+            }
+        }
+    },
     { "switch-buffer",
         { "switch-buffer", "Switch buffer",
             { { "Buffer", CommandParameterType::Buffer } },
@@ -111,6 +138,9 @@ std::map<std::string, Command> Command::s_commands = {
 };
 
 std::map<SDLKey, std::string> Command::s_key_bindings = {
+    { { SDLK_EQUALS, KMOD_GUI }, "enlarge-font" },
+    { { SDLK_MINUS, KMOD_GUI }, "shrink-font" },
+    { { SDLK_0, KMOD_GUI }, "reset-font" },
     { { SDLK_b, KMOD_CTRL }, "switch-buffer" },
     { { SDLK_c, KMOD_CTRL }, "copy-to-clipboard" },
     { { SDLK_g, KMOD_CTRL }, "goto-line-column" },
@@ -335,7 +365,7 @@ class ListArgumentHandler : public AbstractArgumentHandler {
 public:
     ListArgumentHandler(CommandHandler* handler, CommandParameter const& parameter, ContextCls const& ctx)
         : AbstractArgumentHandler(handler, parameter, App::instance().height() * 0.66)
-        , m_lines((height() - char_height - 10) / (char_height + 2))
+        , m_lines((height() - App::instance().context()->character_height() - 10) / (App::instance().context()->character_height() + 2))
     {
         set_entries(m_current_context);
     }
@@ -357,7 +387,7 @@ public:
         box(SDL_Rect { 0, 0, 0, 0 }, SDL_Color { 0x2c, 0x2c, 0x2c, 0xff });
         rectangle(SDL_Rect { 2, 2, width() - 4, height() - 4 }, { 0xff, 0xff, 0xff, 0xff });
         render_fixed(8, 8, m_parameter.prompt);
-        auto y = char_height + 10;
+        auto y = App::instance().context()->character_height() + 10;
         auto count = 0;
         for (auto const& match : m_matches) {
             if (count < m_top) {
@@ -372,14 +402,14 @@ public:
                     4,
                     y - 1,
                     -4,
-                    char_height + 1
+                    App::instance().context()->character_height() + 1
                 };
                 box(r, App::instance().color(PaletteIndex::CurrentLineFill));
                 rectangle(r, App::instance().color(PaletteIndex::CurrentLineEdge));
             }
             render_fixed(10, y, match.text);
-            y += char_height + 2;
-            if (y > height() - char_height - 2)
+            y += App::instance().context()->character_height() + 2;
+            if (y > height() - App::instance().context()->character_height() - 2)
                 break;
             count++;
         }
@@ -501,7 +531,7 @@ AbstractArgumentHandler::AbstractArgumentHandler(CommandHandler* handler, Comman
 }
 
 DefaultArgumentHandler::DefaultArgumentHandler(CommandHandler* handler, CommandParameter const& parameter)
-    : AbstractArgumentHandler(handler, parameter, 2 * (char_height + 4) + 12)
+    : AbstractArgumentHandler(handler, parameter, 2 * (App::instance().context()->character_height() + 4) + 12)
 {
 }
 
@@ -510,17 +540,17 @@ void DefaultArgumentHandler::render()
     box(SDL_Rect { 0, 0, 0, 0 }, SDL_Color { 0x2c, 0x2c, 0x2c, 0xff });
     rectangle(SDL_Rect { 2, 2, width() - 4, height() - 4 }, { 0xff, 0xff, 0xff, 0xff });
     render_fixed(8, 4, m_parameter.prompt);
-    render_fixed(8, char_height + 12, m_value);
+    render_fixed(8, App::instance().context()->character_height() + 12, m_value);
 
     static auto time_start = std::chrono::system_clock::now();
     auto time_end = std::chrono::system_clock::now();
     const long long elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count();
     if (elapsed > 400) {
         SDL_Rect r {
-            8 + char_width * m_pos,
-            char_height + 12,
+            8 + App::instance().context()->character_width() * m_pos,
+            App::instance().context()->character_height() + 12,
             1,
-            char_height
+            App::instance().context()->character_height()
         };
         box(r, App::instance().color(PaletteIndex::Cursor));
         if (elapsed > 800)

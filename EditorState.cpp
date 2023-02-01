@@ -257,6 +257,9 @@ void UndoRecord::redo(App* app)
 
 #endif
 
+static unsigned s_ansicolors[16] = {
+};
+
 Palette const& DarkPalette()
 {
     static Palette p = {
@@ -284,22 +287,6 @@ Palette const& DarkPalette()
         0xff84f2ef, // Line edited.
         0xff307457, // Line edited saved.
         0xfffa955f, // Line edited reverted.
-        0x000000ff, // ANSIBlack,
-        0xcc0000ff, // ANSIRed,
-        0x4e9a06ff, // ANSIGreen,
-        0xc4a000ff, // ANSIYellow,
-        0x729fcfff, // ANSIBlue,
-        0x75507bff, // ANSIMagenta,
-        0x06989aff, // ANSICyan,
-        0xd3d7cfff, // ANSIWhite,
-        0x555753ff, // ANSIBrightBlack,
-        0xef2929ff, // ANSIBrightRed,
-        0x8ae234ff, // ANSIBrightGreen,
-        0xfce94fff, // ANSIBrightYellow,
-        0x32afffff, // ANSIBrightBlue,
-        0xad7fa8ff, // ANSIBrightMagenta,
-        0x34e2e2ff, // ANSIBrightCyan,
-        0xffffffff, // ANSIBrightWhite,
     };
     return p;
 }
@@ -331,22 +318,6 @@ Palette const& LightPalette()
         0xff84f2ef, // Line edited.
         0xff307457, // Line edited saved.
         0xfffa955f, // Line edited reverted.
-        0x000000ff, // ANSIBlack,
-        0xcc0000ff, // ANSIRed,
-        0x4e9a06ff, // ANSIGreen,
-        0xc4a000ff, // ANSIYellow,
-        0x729fcfff, // ANSIBlue,
-        0x75507bff, // ANSIMagenta,
-        0x06989aff, // ANSICyan,
-        0xd3d7cfff, // ANSIWhite,
-        0x555753ff, // ANSIBrightBlack,
-        0xef2929ff, // ANSIBrightRed,
-        0x8ae234ff, // ANSIBrightGreen,
-        0xfce94fff, // ANSIBrightYellow,
-        0x32afffff, // ANSIBrightBlue,
-        0xad7fa8ff, // ANSIBrightMagenta,
-        0x34e2e2ff, // ANSIBrightCyan,
-        0xffffffff, // ANSIBrightWhite,
     };
     return p;
 }
@@ -378,22 +349,6 @@ Palette const& RetroBluePalette()
         0xff84f2ef, // Line edited.
         0xff307457, // Line edited saved.
         0xfffa955f, // Line edited reverted.
-        0x000000ff, // ANSIBlack,
-        0xcc0000ff, // ANSIRed,
-        0x4e9a06ff, // ANSIGreen,
-        0xc4a000ff, // ANSIYellow,
-        0x729fcfff, // ANSIBlue,
-        0x75507bff, // ANSIMagenta,
-        0x06989aff, // ANSICyan,
-        0xd3d7cfff, // ANSIWhite,
-        0x555753ff, // ANSIBrightBlack,
-        0xef2929ff, // ANSIBrightRed,
-        0x8ae234ff, // ANSIBrightGreen,
-        0xfce94fff, // ANSIBrightYellow,
-        0x32afffff, // ANSIBrightBlue,
-        0xad7fa8ff, // ANSIBrightMagenta,
-        0x34e2e2ff, // ANSIBrightCyan,
-        0xffffffff, // ANSIBrightWhite,
     };
 
     return p;

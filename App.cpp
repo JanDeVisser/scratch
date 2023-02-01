@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdio>
+#include <thread>
 
 #include <SDL2_gfxPrimitives.h>
 
@@ -32,8 +33,6 @@ App::App(std::string name, SDLContext* ctx)
 {
     oassert(s_app == nullptr, "App is a singleton");
     s_app = this;
-    Widget::char_width = m_context->character_width();
-    Widget::char_height = m_context->character_height();
 }
 
 void App::add_modal(Widget* widget)
@@ -71,6 +70,24 @@ SDL_Renderer* App::renderer()
     return m_context->renderer();
 }
 
+void App::enlarge_font()
+{
+    context()->enlarge_font(SDLContext::SDLFontFamily::Fixed);
+    container().resize({ 0, 0, m_width, m_height });
+}
+
+void App::shrink_font()
+{
+    context()->shrink_font(SDLContext::SDLFontFamily::Fixed);
+    container().resize({ 0, 0, m_width, m_height });
+}
+
+void App::reset_font()
+{
+    context()->reset_font(SDLContext::SDLFontFamily::Fixed);
+    container().resize({ 0, 0, m_width, m_height });
+}
+
 void App::render()
 {
     m_frameCount++;
@@ -92,16 +109,11 @@ void App::render()
     }
 }
 
-double App::last_render_time() const
-{
-    return m_last_render_time;
-}
-
 int App::fps() const
 {
-    if (m_last_render_time < 0.001)
+    if (m_last_render_time.count() < 0.001)
         return 0;
-    return (int) (1.0 / m_last_render_time);
+    return (int) (1.0 / m_last_render_time.count());
 }
 
 
@@ -140,13 +152,34 @@ void App::active(intptr_t val)
  */
 SDL_Color App::color(PaletteIndex color)
 {
-    uint32_t c = m_palette[(size_t)color];
+    static unsigned s_ansicolors[] = {
+        0xff000000, // ANSIBlack,
+        0xff0000cc, // ANSIRed,
+        0xff069a4e, // ANSIGreen,
+        0xff00a0c4, // ANSIYellow,
+        0xffcf9f72, // ANSIBlue,
+        0xff7b5075, // ANSIMagenta,
+        0xff9a9806, // ANSICyan,
+        0xffcfd7d3, // ANSIWhite,
+        0xff535755, // ANSIBrightBlack,
+        0xff2929ef, // ANSIBrightRed,
+        0xff34e28a, // ANSIBrightGreen,
+        0xff4fe9fc, // ANSIBrightYellow,
+        0xffffaf32, // ANSIBrightBlue,
+        0xffa87fad, // ANSIBrightMagenta,
+        0xffe2e234, // ANSIBrightCyan,
+        0xffffffff, // ANSIBrightWhite,
+    };
+    uint32_t c;
+    if (color >= PaletteIndex::ANSIBlack && color <= PaletteIndex::ANSIBrightWhite)
+        c = s_ansicolors[(size_t)color - (size_t)PaletteIndex::ANSIBlack];
+    else
+        c = m_palette[(size_t)color];
     return *((SDL_Color*)&c);
 }
 
 void App::event_loop()
 {
-    Uint64 timestamp = 0;
     SDL_Event evt;
 
     auto start_render = std::chrono::steady_clock::now();
@@ -168,6 +201,7 @@ void App::event_loop()
                 }
             } break;
             case SDL_KEYDOWN: {
+                m_last_key = evt.key.keysym;
                 Widget *target = this;
                 if (auto m = modal(); m != nullptr) {
                     target = m;
@@ -208,20 +242,16 @@ void App::event_loop()
 
         render();
 
-        const Uint64 now = SDL_GetPerformanceCounter();
-        if (timestamp == 0)
-            timestamp = now;
-        const Uint64 diff = now - timestamp;
-        const double ddiff = (double)diff / SDL_GetPerformanceFrequency();
-        const double rest = 1.0 / 60.0 - ddiff; // 60 FPS.
-        timestamp = now;
-        if (rest > 0)
-            SDL_Delay((Uint32)(rest * 1000));
-
         SDL_RenderPresent(renderer());
+
         auto end_render = std::chrono::steady_clock::now();
-        std::chrono::duration<double> render_time = end_render - start_render;
-        m_last_render_time = render_time.count();
+        static std::chrono::duration<double> one_frame(1.0/60.0);
+        auto render_time = end_render - start_render;
+        if (one_frame > render_time) {
+            std::this_thread::sleep_for(one_frame - render_time);
+        }
+        end_render = std::chrono::steady_clock::now();
+        m_last_render_time = end_render - start_render;
         start_render = end_render;
     }
 }

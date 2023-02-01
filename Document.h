@@ -9,58 +9,24 @@
 #include <deque>
 #include <filesystem>
 
+#include <SDL.h>
+
 #include <lexer/BasicParser.h>
 
 #include <Forward.h>
+#include <Parser/CPlusPlus.h>
 
 namespace Scratch {
 
 namespace fs=std::filesystem;
 
-using TokenCode=Obelix::TokenCode;
-using Token=Obelix::Token;
+using namespace Obelix;
 
-constexpr static TokenCode KeywordAuto = TokenCode::Keyword0;
-constexpr static TokenCode KeywordBreak = TokenCode::Keyword1;
-constexpr static TokenCode KeywordCase = TokenCode::Keyword2;
-constexpr static TokenCode KeywordClass = TokenCode::Keyword3;
-constexpr static TokenCode KeywordConst = TokenCode::Keyword4;
-constexpr static TokenCode KeywordContinue = TokenCode::Keyword5;
-constexpr static TokenCode KeywordDefault = TokenCode::Keyword6;
-constexpr static TokenCode KeywordElse = TokenCode::Keyword7;
-constexpr static TokenCode KeywordEnum = TokenCode::Keyword8;
-constexpr static TokenCode KeywordFalse = TokenCode::Keyword9;
-constexpr static TokenCode KeywordFor = TokenCode::Keyword10;
-constexpr static TokenCode KeywordIf = TokenCode::Keyword11;
-constexpr static TokenCode KeywordNamespace = TokenCode::Keyword12;
-constexpr static TokenCode KeywordNullptr = TokenCode::Keyword13;
-constexpr static TokenCode KeywordReturn = TokenCode::Keyword14;
-constexpr static TokenCode KeywordStatic = TokenCode::Keyword15;
-constexpr static TokenCode KeywordStruct = TokenCode::Keyword16;
-constexpr static TokenCode KeywordSwitch = TokenCode::Keyword17;
-constexpr static TokenCode KeywordTrue = TokenCode::Keyword18;
-constexpr static TokenCode KeywordUsing = TokenCode::Keyword19;
-constexpr static TokenCode KeywordWhile = TokenCode::Keyword20;
-
-constexpr static TokenCode KeywordInclude = TokenCode::Keyword21;
-constexpr static TokenCode KeywordDefine = TokenCode::Keyword22;
-constexpr static TokenCode KeywordIfdef = TokenCode::Keyword23;
-constexpr static TokenCode KeywordEndif = TokenCode::Keyword24;
-constexpr static TokenCode KeywordElif = TokenCode::Keyword25;
-constexpr static TokenCode KeywordElifdef = TokenCode::Keyword26;
-constexpr static TokenCode KeywordPragma = TokenCode::Keyword27;
-constexpr static TokenCode KeywordHashIf = TokenCode::Keyword28;
-constexpr static TokenCode KeywordHashElse = TokenCode::Keyword29;
-
-constexpr static TokenCode TokenKeyword = TokenCode::Keyword30;
-constexpr static TokenCode TokenMacroName = TokenCode::Keyword31;
-constexpr static TokenCode TokenMacroParam = TokenCode::Keyword32;
-constexpr static TokenCode TokenMacroExpansion = TokenCode::Keyword33;
-constexpr static TokenCode TokenDirective = TokenCode::Keyword34;
-constexpr static TokenCode TokenDirectiveParam = TokenCode::Keyword35;
-constexpr static TokenCode TokenType = TokenCode::Keyword36;
-constexpr static TokenCode TokenOperator = TokenCode::Keyword37;
-constexpr static TokenCode TokenConstant = TokenCode::Keyword38;
+struct FileType {
+    std::vector<std::string> extensions;
+    std::string mimetype;
+    std::function<Parser::ScratchParser*()> parser_builder;
+};
 
 struct Line {
     Line() = default;
@@ -116,6 +82,14 @@ public:
     void paste_from_clipboard();
 
     void move_to(int line, int column);
+    void up(Editor*, bool);
+    void down(Editor*, bool);
+    void left(Editor*, bool);
+    void word_left(Editor*, bool);
+    void right(Editor*, bool);
+    void word_right(Editor*, bool);
+    void page_up(Editor*, bool);
+    void page_down(Editor*, bool);
 
     void clear();
     std::string load(std::string const&);
@@ -130,24 +104,17 @@ public:
     Token lex();
     void rewind();
     void invalidate();
+    auto last_parse_time() const { return m_last_parse_time.count(); }
 
 private:
-    void parse_include();
-    void parse_define();
-    void parse_hashif();
-    void parse_ifdef();
-
-    Token skip_whitespace();
-    Token get_next(TokenCode = TokenCode::Unknown);
-
     void assign_to_parser();
 
     Editor* m_editor;
     fs::path m_path {};
     bool m_dirty { false };
     bool m_cleared { true };
-    Obelix::BasicParser m_parser;
-    std::deque<Token> m_pending;
+    FileType m_filetype;
+    std::unique_ptr<Parser::ScratchParser> m_parser;
 
     std::vector<Line> m_lines {};
 
@@ -156,7 +123,7 @@ private:
     DocumentPosition m_point;
     DocumentPosition m_mark;
     size_t m_virtual_point_column {0};
-
+    std::chrono::milliseconds m_last_parse_time;
 };
 
 }

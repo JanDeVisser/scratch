@@ -90,11 +90,14 @@ public:
     [[nodiscard]] SDLContext* context() { return m_context.get(); }
     [[nodiscard]] SDLContext const* context() const { return m_context.get(); }
     SDL_Renderer* renderer();
+    void enlarge_font();
+    void shrink_font();
+    void reset_font();
 
 //    [[nodiscard]] bool handle(KeyCode) override;
 //    void vmessage(char const*, va_list) override;
     std::vector<std::string> status() override;
-
+    SDLKey last_key() const { return m_last_key; }
 
     int width() const override;
     int height() const override;
@@ -109,7 +112,6 @@ public:
     bool dispatch(SDL_Keysym) override;
     std::string input_buffer();
     void schedule(Command const* cmd);
-    [[nodiscard]] double last_render_time() const;
     [[nodiscard]] int fps() const;
 
     void add_modal(Widget*);
@@ -148,7 +150,7 @@ private:
     std::unique_ptr<SDLContext> m_context;
     std::deque<Command const*> m_pending_commands;
     SDLKey m_last_key { SDLK_UNKNOWN, KMOD_NONE };
-    double m_last_render_time { 0.0 };
+    std::chrono::duration<double> m_last_render_time { 0.0 };
 };
 
 }

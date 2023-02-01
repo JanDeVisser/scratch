@@ -12,6 +12,7 @@
 
 #include <Forward.h>
 #include <Geometry.h>
+#include <SDLContext.h>
 
 namespace Scratch {
 
@@ -32,14 +33,12 @@ public:
 
     SDL_Rect render_fixed(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
     SDL_Rect render_fixed_right_aligned(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
+    SDL_Rect render_fixed_centered(int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
 
     SDL_Rect normalize(SDL_Rect const&) const;
     void box(SDL_Rect const&, SDL_Color) const;
     void rectangle(SDL_Rect const&, SDL_Color) const;
     void roundedRectangle(SDL_Rect const&, int, SDL_Color) const;
-
-    static int char_height;
-    static int char_width;
 protected:
     Widget() = default;
 
@@ -49,6 +48,8 @@ private:
 enum class SizePolicy {
     Absolute = 0,
     Relative,
+    Characters,
+    Calculated,
     Stretch,
 };
 
@@ -58,10 +59,12 @@ class WidgetContainer;
 using Renderer = std::function<void(WindowedWidget*)>;
 using KeyHandler = std::function<bool(WindowedWidget*, SDL_Keysym)>;
 using TextHandler = std::function<void(WindowedWidget*)>;
+using SizeCalculator = std::function<int(WindowedWidget*)>;
 
 class WindowedWidget : public Widget {
 public:
     WindowedWidget(SizePolicy = SizePolicy::Stretch, int = 0);
+    WindowedWidget(SizeCalculator);
 
     [[nodiscard]] int height() const override;
     [[nodiscard]] int width() const override;
@@ -77,10 +80,12 @@ public:
     void set_renderer(Renderer);
     void set_keyhandler(KeyHandler);
     void set_texthandler(TextHandler);
+    void set_size_calculator(SizeCalculator);
     void render() override;
     bool dispatch(SDL_Keysym) override;
     void handle_text_input() override;
     void resize(Box const&) override;
+    int calculate_size();
 
 protected:
 private:
@@ -88,13 +93,14 @@ private:
     void set_parent(WidgetContainer *parent) { m_parent = parent; }
 
     SizePolicy m_policy { SizePolicy::Absolute };
-    int m_size;
+    int m_size { 0 };
     Box m_outline;
     WidgetContainer* m_parent { nullptr };
 
     Renderer m_renderer { nullptr };
     KeyHandler m_keyhandler { nullptr };
     TextHandler m_texthandler { nullptr };
+    SizeCalculator m_size_calculator { nullptr };
 };
 
 enum class ContainerOrientation {

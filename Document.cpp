@@ -12,56 +12,44 @@
 #include <App.h>
 #include <Document.h>
 #include <Editor.h>
+#include <Parser/CPlusPlus.h>
 
 using namespace Obelix;
+using namespace Scratch::Parser;
 
 namespace Scratch {
+
+FileType s_filetypes[] = {
+    // Plain Text parser must be in slot 0! Do not sort down!
+    { { ".txt" }, "text/plain", []() -> ScratchParser* {
+         return new PlainTextParser();
+    } },
+    { { ".cpp", ".h", ".hpp" }, "text/x-cpp", []() -> ScratchParser* {
+         return new CPlusPlusParser();
+    } },
+};
+
+FileType const& get_filetype(fs::path const& file)
+{
+    auto ext = file.extension();
+    if (ext.empty())
+        return s_filetypes[0];
+    for (auto const& type : s_filetypes) {
+        for (auto const &e : type.extensions) {
+            if (e == ext)
+                return type;
+        }
+    }
+    return s_filetypes[0];
+}
 
 Document::Document(Editor* editor)
     : m_editor(editor)
 {
     m_path.clear();
     m_lines.emplace_back();
-    m_parser.lexer().add_scanner<Obelix::QStringScanner>("\"'", true);
-    m_parser.lexer().add_scanner<Obelix::IdentifierScanner>();
-    m_parser.lexer().add_scanner<Obelix::NumberScanner>(Obelix::NumberScanner::Config { true, false, true, false, true });
-    m_parser.lexer().add_scanner<Obelix::WhitespaceScanner>(Obelix::WhitespaceScanner::Config { false, false, false });
-    m_parser.lexer().add_scanner<Obelix::CommentScanner>(true,
-        Obelix::CommentScanner::CommentMarker { false, false, "/*", "*/" },
-        Obelix::CommentScanner::CommentMarker { false, true, "//", "" });
-    m_parser.lexer().add_scanner<Obelix::KeywordScanner>(
-        Token(KeywordAuto, "auto"),
-        Token(KeywordBreak, "break"),
-        Token(KeywordCase, "case"),
-        Token(KeywordClass, "class"),
-        Token(KeywordConst, "const"),
-        Token(KeywordContinue, "continue"),
-        Token(KeywordDefault, "default"),
-        Token(KeywordElse, "else"),
-        Token(KeywordEnum, "enum"),
-        Token(KeywordFor, "for"),
-        Token(KeywordIf, "if"),
-        Token(KeywordNamespace, "namespace"),
-        Token(KeywordReturn, "return"),
-        Token(KeywordStatic, "static"),
-        Token(KeywordStruct, "struct"),
-        Token(KeywordSwitch, "switch"),
-        Token(KeywordUsing, "using"),
-        Token(KeywordWhile, "while"),
-
-        Token(KeywordTrue, "true"),
-        Token(KeywordFalse, "false"),
-        Token(KeywordNullptr, "nullptr"),
-
-        Token(KeywordDefine, "#define"),
-        Token(KeywordElif, "#elif"),
-        Token(KeywordElifdef, "#elifdef"),
-        Token(KeywordHashElse, "#else"),
-        Token(KeywordEndif, "#endif"),
-        Token(KeywordHashIf, "#if"),
-        Token(KeywordIfdef, "#ifdef"),
-        Token(KeywordInclude, "#include"),
-        Token(KeywordPragma, "#pragma"));
+    m_filetype = get_filetype("");
+    m_parser = std::unique_ptr<ScratchParser>(m_filetype.parser_builder());
 }
 
 std::string const& Document::line(size_t line_no) const
@@ -78,7 +66,7 @@ void Document::assign_to_parser()
     }
     while (s.length() > 2 && s.substr(s.length() - 2) == "\n\n")
         s = s.substr(0, s.length() - 1);
-    m_parser.assign(s);
+    m_parser->assign(s);
     invalidate();
 }
 
@@ -100,7 +88,7 @@ bool Document::empty() const
 
 size_t Document::parsed() const
 {
-    return !m_parser.tokens().empty();
+    return !m_parser->tokens().empty();
 }
 
 void Document::split_line()
@@ -274,12 +262,145 @@ void Document::move_to(int line, int column)
     m_mark = m_point;
 }
 
+void Document::up(Editor*, bool select)
+{
+    if (m_point.line > 0) {
+        m_point.line--;
+        if (m_point.column > line_length(m_point.line))
+            m_point.column = line_length(m_point.line);
+        if (m_screen_top > m_point.line - 1)
+            --m_screen_top;
+        debug(scratch, "KEY_UP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
+    }
+    if (!select)
+        m_mark = m_point;
+}
+
+void Document::down(Editor* editor, bool select)
+{
+    if (m_point.line < (line_count() - 1)) {
+        m_point.line++;
+        if (m_point.column > line_length(m_point.line))
+            m_point.column = line_length(m_point.line);
+        if (m_point.line - m_screen_top >= editor->rows())
+            ++m_screen_top;
+        debug(scratch, "KEY_DOWN: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
+    }
+    if (!select)
+        m_mark = m_point;
+}
+
+void Document::left(Editor*, bool select)
+{
+    if (m_point.column > 0) {
+        --m_point.column;
+        if (m_screen_left > m_point.column - 1)
+            --m_screen_left;
+    } else if (m_point.line > 0) {
+        --m_point.line;
+        m_point.column = line_length(m_point.line);
+        m_screen_left = 0;
+        if (m_screen_top > m_point.line - 1)
+            --m_screen_top;
+    }
+    debug(scratch, "KEY_LEFT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
+    if (!select)
+        m_mark = m_point;
+}
+
+void Document::word_left(Editor* editor, bool select)
+{
+    do {
+        auto line = m_lines[m_point.line].text;
+        while (0 < m_point.column && !isalnum(line[m_point.column])) {
+            --m_point.column;
+        }
+        while (0 < m_point.column && isalnum(line[m_point.column])) {
+            --m_point.column;
+        }
+        if (m_point.column < 0) {
+            if (m_point.line == 0)
+                m_point.column = 0;
+            else
+                --m_point.line;
+        }
+    } while (m_point.column < 0);
+    if (!select)
+        m_mark = m_point;
+}
+
+void Document::right(Editor* editor, bool select)
+{
+    if (m_point.column < line_length(m_point.line)) {
+        ++m_point.column;
+        if (m_point.column - m_screen_left > editor->columns())
+            ++m_screen_left;
+    } else if (m_point.line < line_count()) {
+        ++m_point.line;
+        m_point.column = 0;
+        if (m_point.line - m_screen_top > editor->rows())
+            ++m_screen_top;
+    }
+    debug(scratch, "KEY_RIGHT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
+    if (!select)
+        m_mark = m_point;
+}
+
+void Document::word_right(Editor* editor, bool select)
+{
+    auto line = m_lines[m_point.line].text;
+    do {
+        while (m_point.column < line_length(m_point.line) - 1 && !isalnum(line[m_point.column])) {
+            ++m_point.column;
+        }
+        while (m_point.column < line_length(m_point.line) - 1 && isalnum(line[m_point.column])) {
+            ++m_point.column;
+        }
+        if (m_point.column >= line_length(m_point.line)) {
+            if (m_point.line == line_count() - 1)
+                m_point.column = line_length(m_point.line) - 1;
+            else
+                ++m_point.line;
+        }
+    } while (m_point.column < 0);
+    if (!select)
+        m_mark = m_point;
+}
+
+void Document::page_up(Editor* editor, bool select)
+{
+    if (m_point.line > 0) {
+        m_point.line = clamp((int)m_point.line - editor->rows(), 0, (int)m_point.line - editor->rows());
+        m_screen_top = clamp((int)m_screen_top - editor->rows(), 0, (int)m_point.line);
+        if (m_point.column > line_length(m_point.line))
+            m_point.column = line_length(m_point.line);
+        debug(scratch, "KEY_PGUP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
+    }
+    if (!select)
+        m_mark = m_point;
+}
+
+void Document::page_down(Editor* editor, bool select)
+{
+    if (m_point.line < (line_count() - 1)) {
+        m_point.line = clamp((int)m_point.line + editor->rows(), (int)line_count()-editor->rows(), (int)line_count());
+        m_screen_top = clamp((int)m_screen_top + editor->rows(), (int)line_count() - editor->rows(), (int)line_count());
+        if (m_point.column > line_length(m_point.line))
+            m_point.column = line_length(m_point.line);
+        debug(scratch, "KEY_PGDN: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
+    }
+    if (!select)
+        m_mark = m_point;
+}
+
+
+
 void Document::clear()
 {
     if (empty())
         return;
     m_lines.clear();
-    m_parser.assign("\n");
+    m_parser->assign("\n");
     m_point.clear();
     m_mark.clear();
     invalidate();
@@ -288,7 +409,9 @@ void Document::clear()
 std::string Document::load(std::string const& file_name)
 {
     m_path = fs::absolute(file_name);
-    if (auto error_maybe = m_parser.read_file(m_path.string()); error_maybe.is_error())
+    m_filetype = get_filetype(m_path);
+    m_parser = std::unique_ptr<ScratchParser>(m_filetype.parser_builder());
+    if (auto error_maybe = m_parser->read_file(m_path.string()); error_maybe.is_error())
         return error_maybe.error().message();
     m_point.clear();
     m_mark.clear();
@@ -315,6 +438,8 @@ std::string Document::save()
 std::string Document::save_as(std::string const& new_file_name)
 {
     m_path = new_file_name;
+    m_filetype = get_filetype(m_path);
+    m_parser = std::unique_ptr<ScratchParser>(m_filetype.parser_builder());
     return save();
 }
 
@@ -342,12 +467,9 @@ void Document::render(Editor* editor)
                 break;
             }
         }
-        auto end = std::chrono::steady_clock::now();
-        auto elapsed = (long)std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        debug(scratch, "Parsing done. Generated {} tokens in {}ms", count, elapsed);
+        m_last_parse_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
     }
 
-    auto start_render = std::chrono::steady_clock::now();
     editor->mark_current_line(m_point.line - m_screen_top);
     bool has_selection = m_point != m_mark;
     DocumentPosition start_selection = std::min(m_point, m_mark);
@@ -363,9 +485,9 @@ void Document::render(Editor* editor)
                 block_width = end_selection.column - start_block;
             if (block_width > 0) {
                 SDL_Rect r {
-                    start_block * Editor::char_width,
+                    start_block * App::instance().context()->character_width(),
                     editor->line_top(ix - m_screen_top),
-                    block_width * Editor::char_width,
+                    block_width * App::instance().context()->character_width(),
                     editor->line_height()
                 };
                 editor->box(r, App::instance().color(PaletteIndex::Selection));
@@ -406,7 +528,7 @@ void Document::render(Editor* editor)
                 editor->append(DisplayToken { t, PaletteIndex::Preprocessor });
                 break;
             default:
-                editor->append(DisplayToken { t });
+                editor->append(DisplayToken { t, PaletteIndex::Punctuation });
                 break;
             }
             len += token.value().length();
@@ -417,10 +539,6 @@ void Document::render(Editor* editor)
     }
 
     editor->text_cursor(m_point.line - m_screen_top, m_point.column - m_screen_left);
-
-    auto end_render = std::chrono::steady_clock::now();
-    auto elapsed_render = (long)std::chrono::duration_cast<std::chrono::milliseconds>(end_render - start_render).count();
-    // debug(scratch, "Rendering done in {}ms", elapsed_render);
 }
 
 bool Document::dispatch(Editor* editor, SDL_Keysym sym)
@@ -430,75 +548,28 @@ bool Document::dispatch(Editor* editor, SDL_Keysym sym)
         m_mark = m_point;
         break;
     case SDLK_UP:
-        if (m_point.line > 0) {
-            m_point.line--;
-            if (m_point.column > line_length(m_point.line))
-                m_point.column = line_length(m_point.line);
-            if (m_screen_top > m_point.line - 1)
-                --m_screen_top;
-            debug(scratch, "KEY_UP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
-        }
-        if (!(sym.mod & KMOD_SHIFT))
-            m_mark = m_point;
+        up(editor, sym.mod & KMOD_SHIFT);
         break;
     case SDLK_PAGEUP:
-        if (m_point.line > 0) {
-            if (m_point.line < editor->rows()) {
-                m_point.line = 0;
-                m_screen_top = 0;
-            } else {
-                m_point.line = clamp((int)m_point.line - editor->rows(), 0, (int)m_point.line - editor->rows());
-                m_screen_top = clamp((int)m_screen_top - editor->rows(), 0, (int)m_point.line);
-            }
-            if (m_point.column > line_length(m_point.line))
-                m_point.column = line_length(m_point.line);
-            debug(scratch, "KEY_PGUP: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
-        }
-        if (!(sym.mod & KMOD_SHIFT))
-            m_mark = m_point;
+        page_up(editor, sym.mod & KMOD_SHIFT);
         break;
     case SDLK_DOWN:
-        if (m_point.line < (line_count() - 1)) {
-            m_point.line++;
-            if (m_point.column > line_length(m_point.line))
-                m_point.column = line_length(m_point.line);
-            if (m_point.line - m_screen_top >= editor->rows())
-                ++m_screen_top;
-            debug(scratch, "KEY_DOWN: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
-        }
-        if (!(sym.mod & KMOD_SHIFT))
-            m_mark = m_point;
+        down(editor, sym.mod & KMOD_SHIFT);
+        break;
+    case SDLK_PAGEDOWN:
+        page_down(editor, sym.mod & KMOD_SHIFT);
         break;
     case SDLK_LEFT:
-        if (m_point.column > 0) {
-            --m_point.column;
-            if (m_screen_left > m_point.column - 1)
-                --m_screen_left;
-        } else if (m_point.line > 0) {
-            --m_point.line;
-            m_point.column = line_length(m_point.line);
-            m_screen_left = 0;
-            if (m_screen_top > m_point.line - 1)
-                --m_screen_top;
-        }
-        debug(scratch, "KEY_LEFT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
-        if (!(sym.mod & KMOD_SHIFT))
-            m_mark = m_point;
+        if (sym.mod & KMOD_GUI)
+            word_left(editor, sym.mod & KMOD_SHIFT);
+        else
+            left(editor, sym.mod & KMOD_SHIFT);
         break;
     case SDLK_RIGHT:
-        if (m_point.column < line_length(m_point.line)) {
-            ++m_point.column;
-            if (m_point.column - m_screen_left > editor->columns())
-                ++m_screen_left;
-        } else if (m_point.line < line_count()) {
-            ++m_point.line;
-            m_point.column = 0;
-            if (m_point.line - m_screen_top > editor->rows())
-                ++m_screen_top;
-        }
-        debug(scratch, "KEY_RIGHT: screen: {},{} point: {},{}", m_screen_top, m_screen_left, m_point.line, m_point.column);
-        if (!(sym.mod & KMOD_SHIFT))
-            m_mark = m_point;
+        if (sym.mod & KMOD_GUI)
+            word_right(editor, sym.mod & KMOD_SHIFT);
+        else
+            right(editor, sym.mod & KMOD_SHIFT);
         break;
     case SDLK_BACKSPACE:
     case SDLK_DELETE:
@@ -523,236 +594,20 @@ void Document::handle_text_input()
 
 Token Document::lex()
 {
-    Token token;
-    if (!m_pending.empty()) {
-        token = m_pending.front();
-        m_pending.pop_front();
-        return token;
-    }
-
-    while (m_pending.empty()) {
-        token = m_parser.lex();
-        switch (token.code()) {
-        case TokenCode::NewLine:
-            m_pending.emplace_back(token);
-            break;
-
-        case KeywordInclude:
-            m_pending.emplace_back(TokenDirective, token.value());
-            parse_include();
-            break;
-
-        case KeywordDefine:
-            m_pending.emplace_back(TokenDirective, token.value());
-            parse_define();
-            break;
-
-        case KeywordHashIf:
-        case KeywordElif:
-        case KeywordPragma:
-            m_pending.emplace_back(TokenDirective, token.value());
-            parse_hashif();
-            break;
-
-        case KeywordIfdef:
-        case KeywordElifdef:
-            m_pending.emplace_back(TokenDirective, token.value());
-            parse_ifdef();
-            break;
-
-        case KeywordEndif:
-        case KeywordHashElse:
-            m_pending.emplace_back(TokenDirective, token.value());
-            break;
-
-        case KeywordAuto:
-        case KeywordConst:
-        case KeywordIf:
-        case KeywordElse:
-        case KeywordNamespace:
-        case KeywordWhile:
-        case KeywordClass:
-        case KeywordStruct:
-        case KeywordEnum:
-        case KeywordFor:
-        case KeywordSwitch:
-        case KeywordCase:
-        case KeywordBreak:
-        case KeywordContinue:
-        case KeywordDefault:
-        case KeywordStatic:
-        case KeywordUsing:
-            m_pending.emplace_back(TokenKeyword, token.value());
-            break;
-
-        case KeywordNullptr:
-        case KeywordTrue:
-        case KeywordFalse:
-            m_pending.emplace_back(TokenConstant, token.value());
-            break;
-
-        default:
-            m_pending.emplace_back(token);
-            break;
-        }
-    }
-
-    token = m_pending.front();
-    m_pending.pop_front();
+    Token token = m_parser->next_token();
     return token;
-}
-
-Token Document::skip_whitespace()
-{
-    Token t = m_parser.peek();
-    if (t.code() == TokenCode::Whitespace) {
-        t = m_parser.lex();
-        m_pending.emplace_back(t);
-        t = m_parser.peek();
-    }
-    return t;
-}
-
-Token Document::get_next(TokenCode code)
-{
-    Token t = m_parser.lex();
-    m_pending.emplace_back((code != TokenCode::Unknown) ? code : t.code(), t.value());
-    return skip_whitespace();
-}
-
-void Document::parse_include()
-{
-    Token t = skip_whitespace();
-    switch (t.code()) {
-    case Obelix::TokenCode::DoubleQuotedString:
-        m_parser.lex();
-        m_pending.emplace_back(TokenDirectiveParam, t.value());
-        break;
-    case TokenCode::LessThan: {
-        m_parser.lex();
-        auto include = t.value();
-        do {
-            t = m_parser.lex();
-            include += t.value();
-        } while (t.code() != Obelix::TokenCode::GreaterThan);
-        m_pending.emplace_back(TokenDirectiveParam, include);
-        break;
-    }
-    default:
-        break;
-    }
-}
-
-void Document::parse_define()
-{
-    Token t = skip_whitespace();
-    if (t.code() != TokenCode::Identifier)
-        return;
-    t = get_next(TokenMacroName);
-    if (t.code() == TokenCode::OpenParen) {
-        t = get_next();
-        while (true) {
-            if (t.code() != TokenCode::Identifier)
-                return;
-            t = get_next(TokenMacroParam);
-            if (t.code() == TokenCode::CloseParen) {
-                m_parser.lex();
-                m_pending.emplace_back(t);
-                break;
-            }
-            if (t.code() != TokenCode::Comma)
-                return;
-            t = get_next();
-        }
-    }
-
-    auto escape { false };
-    std::string def_string;
-    skip_whitespace();
-    while (true) {
-        t = m_parser.peek();
-        switch (t.code()) {
-        case TokenCode::Comment:
-            m_pending.emplace_back(TokenMacroExpansion, def_string);
-            return;
-        case TokenCode::Backslash: {
-            m_parser.lex();
-            escape = !escape;
-            def_string += t.value();
-            break;
-        }
-        case TokenCode::NewLine:
-            m_parser.lex();
-            m_pending.emplace_back(TokenMacroExpansion, def_string);
-            if (!escape)
-                return;
-            def_string = "";
-            escape = false;
-            m_pending.emplace_back(TokenCode::NewLine, "\n");
-            break;
-        default:
-            escape = false;
-            m_parser.lex();
-            def_string += t.value();
-            break;
-        }
-    }
-}
-
-void Document::parse_ifdef()
-{
-    Token t = skip_whitespace();
-    if (t.code() != TokenCode::Identifier)
-        return;
-    m_parser.lex();
-    m_pending.emplace_back(TokenDirectiveParam, t.value());
-}
-
-void Document::parse_hashif()
-{
-    Token t = skip_whitespace();
-    auto escape { false };
-    std::string expr;
-    while (true) {
-        t = m_parser.peek();
-        switch (t.code()) {
-        case TokenCode::Comment:
-            m_pending.emplace_back(TokenDirectiveParam, expr);
-            return;
-        case TokenCode::Backslash: {
-            m_parser.lex();
-            escape = !escape;
-            expr += t.value();
-            break;
-        }
-        case TokenCode::NewLine:
-            m_parser.lex();
-            m_pending.emplace_back(TokenDirectiveParam, expr);
-            if (!escape)
-                return;
-            expr = "";
-            escape = false;
-            m_pending.emplace_back(TokenCode::NewLine, "\n");
-            break;
-        default:
-            escape = false;
-            m_parser.lex();
-            expr += t.value();
-            break;
-        }
-    }
 }
 
 void Document::rewind()
 {
-    m_parser.rewind();
+    m_parser->rewind();
 }
 
 void Document::invalidate()
 {
     m_lines.clear();
     m_lines.emplace_back();
-    m_parser.invalidate();
+    m_parser->invalidate();
     m_cleared = true;
     m_dirty = true;
     m_mark = m_point;

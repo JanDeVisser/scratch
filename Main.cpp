@@ -87,8 +87,34 @@ void Scratch::run_app(int argc, char const** argv)
     auto main_area = new Layout(ContainerOrientation::Horizontal);
     app.add_component(main_area);
     app.add_component(app.m_status_bar = new StatusBar());
-    app.add_status_bar_applet(160, [&app](WindowedWidget* applet) -> void {
-        applet->render_fixed(10, 2, format("{>3} fps", app.fps()), SDL_Color { 0xff, 0xff, 0xff, 0xff });
+    app.add_status_bar_applet(7, [](WindowedWidget* applet) -> void {
+        applet->render_fixed(5, 2, App::instance().last_key().to_string(), SDL_Color { 0xff, 0xff, 0xff, 0xff });
+    });
+    app.add_status_bar_applet(5, [](WindowedWidget* applet) -> void {
+        PaletteIndex box_color;
+        auto f = App::instance().fps();
+        if (f >= 55) {
+            box_color = PaletteIndex::ANSIGreen;
+        } else if (f >= 40) {
+            box_color = PaletteIndex::ANSIYellow;
+        } else {
+            box_color = PaletteIndex::ANSIBrightRed;
+        }
+        applet->box(SDL_Rect { 0, 0, 0, 0 }, App::instance().color(box_color));
+        applet->render_fixed_centered(2, "fps", SDL_Color { 0xff, 0xff, 0xff, 0xff });
+    });
+    app.add_status_bar_applet(7, [](WindowedWidget* applet) -> void {
+        PaletteIndex box_color;
+        auto t = Scratch::scratch().editor()->document()->last_parse_time();
+        if (t < 10) {
+            box_color = PaletteIndex::ANSIGreen;
+        } else if (t < 20) {
+            box_color = PaletteIndex::ANSIYellow;
+        } else {
+            box_color = PaletteIndex::ANSIBrightRed;
+        }
+        applet->box(SDL_Rect { 0, 0, 0, 0 }, App::instance().color(box_color));
+        applet->render_fixed_centered(2, "parse", SDL_Color { 0xff, 0xff, 0xff, 0xff });
     });
     main_area->add_component(app.m_gutter = new Gutter());
     main_area->add_component(app.m_editor = new Editor());

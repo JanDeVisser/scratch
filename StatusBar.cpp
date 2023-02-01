@@ -13,15 +13,19 @@ using namespace Obelix;
 namespace Scratch {
 
 StatusBar::StatusBar()
-    : Layout(ContainerOrientation::Horizontal, SizePolicy::Absolute, App::instance().context()->character_height() + 9)
+    : Layout(ContainerOrientation::Horizontal, SizePolicy::Calculated, App::instance().context()->character_height() + 12)
 {
+    set_size_calculator([](WindowedWidget*) -> int {
+        return App::instance().context()->character_height() + 12;
+    });
+    add_component(new WindowedWidget());
 }
 
 void StatusBar::add_applet(int sz, Renderer renderer)
 {
-    auto widget = new WindowedWidget(SizePolicy::Absolute, sz);
+    auto widget = new WindowedWidget(SizePolicy::Stretch);
     widget->set_renderer(std::move(renderer));
-    auto frame = new Frame(FrameStyle::Rectangle, 3, widget, SizePolicy::Absolute, sz + 6);
+    auto frame = new Frame(FrameStyle::Rectangle, 3, widget, SizePolicy::Characters, sz + 1);
     add_component(frame);
 }
 

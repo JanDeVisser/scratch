@@ -12,9 +12,6 @@
 
 namespace Scratch {
 
-int Widget::char_height { 0 };
-int Widget::char_width { 0 };
-
 void Widget::render()
 {
 }
@@ -40,8 +37,8 @@ bool Widget::empty() const
 
 SDL_Rect Widget::render_fixed(int x, int y, std::string const& text, SDL_Color const& color) const
 {
-    auto ret = App::instance().context()->render_fixed(left() + x, top() + y,
-        text, color);
+    auto ret = App::instance().context()->render_text(left() + x, top() + y,
+        text, color, SDLContext::SDLFontFamily::Fixed);
     ret.x -= left();
     ret.y -= top();
     return ret;
@@ -49,8 +46,17 @@ SDL_Rect Widget::render_fixed(int x, int y, std::string const& text, SDL_Color c
 
 SDL_Rect Widget::render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color const& color) const
 {
-    auto ret = App::instance().context()->render_fixed_right_aligned(left() + x, top() + y,
-        text, color);
+    auto ret = App::instance().context()->render_text_right_aligned(left() + x, top() + y,
+        text, color, SDLContext::SDLFontFamily::Fixed);
+    ret.x -= left();
+    ret.y -= top();
+    return ret;
+}
+
+SDL_Rect Widget::render_fixed_centered(int y, std::string const& text, SDL_Color const& color) const
+{
+    auto ret = App::instance().context()->render_text_centered(left() + width()/2, top() + y,
+        text, color, SDLContext::SDLFontFamily::Fixed);
     ret.x -= left();
     ret.y -= top();
     return ret;
@@ -120,6 +126,13 @@ WindowedWidget::WindowedWidget(SizePolicy policy, int size)
 {
 }
 
+WindowedWidget::WindowedWidget(SizeCalculator calculator)
+    : Widget()
+    , m_policy(SizePolicy::Calculated)
+    , m_size_calculator(std::move(calculator))
+{
+}
+
 SizePolicy WindowedWidget::policy() const
 {
     return m_policy;
@@ -185,6 +198,12 @@ void WindowedWidget::set_texthandler(TextHandler handler)
     m_texthandler = std::move(handler);
 }
 
+void WindowedWidget::set_size_calculator(SizeCalculator calculator)
+{
+    m_size_calculator = std::move(calculator);
+    m_policy = SizePolicy::Calculated;
+}
+
 void WindowedWidget::render()
 {
     if (m_renderer != nullptr)
@@ -207,6 +226,12 @@ void WindowedWidget::handle_text_input()
 void WindowedWidget::resize(Box const& outline)
 {
     m_outline = outline;
+}
+
+int WindowedWidget::calculate_size()
+{
+    assert(m_policy == SizePolicy::Calculated && m_size_calculator != nullptr);
+    return m_size_calculator(this);
 }
 
 /* ----------------------------------------------------------------------- */
@@ -249,27 +274,36 @@ void WidgetContainer::resize(Box const& outline)
     auto var_pos_coord = (m_orientation == ContainerOrientation::Vertical) ? 1 : 0;
 
     for (auto ix = 0; ix < m_components.size(); ++ix) {
-        auto const& c  = m_components[ix];
+        auto const& c = m_components[ix];
         m_outlines[ix].size[fixed_size_coord] = fixed_size;
         m_outlines[ix].position[fixed_pos_coord] = fixed_pos;
+        int sz = 0;
         switch (c->policy()) {
         case SizePolicy::Absolute:
-            m_outlines[ix].size[var_size_coord] = c->policy_size();
-            allocated += c->policy_size();
+            sz = c->policy_size();
             break;
         case SizePolicy::Relative: {
-            auto sz = (int)((float)(total * c->policy_size()) / 100.0f);
-            m_outlines[ix].size[var_size_coord] = sz;
-            allocated += sz;
+            sz = (int)((float)(total * c->policy_size()) / 100.0f);
         } break;
-        case SizePolicy::Stretch:
-            m_outlines[ix].size[var_size_coord] = -1;
+        case SizePolicy::Characters: {
+            sz = c->policy_size() * ((m_orientation == ContainerOrientation::Vertical) ? App::instance().context()->character_height() : App::instance().context()->character_width());
+        } break;
+        case SizePolicy::Calculated: {
+            sz = c->calculate_size();
+        } break;
+        case SizePolicy::Stretch: {
+            sz = -1;
             stretch_count++;
-            break;
+        } break;
         }
+        oassert(sz != 0, "Size Policy {} resulted in zero size", (int)c->policy());
+        m_outlines[ix].size[var_size_coord] = sz;
+        if (sz > 0)
+            allocated += sz;
     }
 
     if (stretch_count) {
+        oassert(total > allocated, "No room left in container for {} stretched components. Available: {} Allocated: {}", stretch_count, total, allocated);
         auto stretch = (int)((float)(total - allocated) / (float)stretch_count);
         for (auto& o : m_outlines) {
             if (o.size[var_size_coord] == -1)

@@ -15,6 +15,24 @@
 
 namespace Scratch {
 
+template<typename T>
+T clamp(T v, T lo, T hi)
+{
+    assert(lo <= hi);
+    if (v < lo)
+        v = lo;
+    if (v > hi)
+        v = hi;
+
+    return v;
+}
+
+template<typename T>
+bool intersects(T px, T py, T x0, T y0, T x1, T y1)
+{
+    return (px > std::min(x0, x1) && px < std::max(x0, x1)) && (py > std::min(y0, y1) && py < std::max(y0, y1));
+}
+
 template <size_t Dim, typename ...Args>
 constexpr bool CheckParameterPackSize()
 {
@@ -128,9 +146,15 @@ struct Box {
 
     [[nodiscard]] int top() const { return position.top(); }
     [[nodiscard]] int left() const { return position.left(); }
+    [[nodiscard]] int bottom() const { return position.top() + size.height(); }
+    [[nodiscard]] int right() const { return position.left() + size.width(); }
     [[nodiscard]] int width() const { return size.width(); }
     [[nodiscard]] int height() const { return size.height(); }
     [[nodiscard]] bool empty() const { return size.empty(); }
+    [[nodiscard]] bool contains(int x, int y) const
+    {
+        return intersects(x, y, left(), top(), right(), bottom());
+    }
 
     [[nodiscard]] std::string to_string() const
     {
@@ -165,23 +189,5 @@ struct Rect : public Vector<float,4> {
     [[nodiscard]] float width() const { return coordinates[2]; }
     [[nodiscard]] float height() const { return coordinates[3]; }
 };
-
-template<typename T>
-T clamp(T v, T lo, T hi)
-{
-    assert(lo <= hi);
-    if (v < lo)
-        v = lo;
-    if (v > hi)
-        v = hi;
-
-    return v;
-}
-
-template<typename T>
-bool intersects(T px, T py, T x0, T y0, T x1, T y1)
-{
-    return (px > std::min(x0, x1) && px < std::max(x0, x1)) && (py > std::min(y0, y1) && py < std::max(y0, y1));
-}
 
 }

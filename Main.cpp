@@ -5,6 +5,7 @@
  */
 
 #include <SDL2_gfxPrimitives.h>
+#include <SDL_image.h>
 
 #include <core/Logging.h>
 
@@ -19,9 +20,9 @@
 #define WINDOW_HEIGHT 600
 #endif
 
-using namespace Obelix;
-
 namespace Scratch {
+
+using namespace Obelix;
 
 logging_category(scratch);
 
@@ -55,6 +56,13 @@ Scratch::Scratch(Config& config, SDLContext *ctx)
     : App("Scratch", ctx)
     , m_config(config)
 {
+    auto icon_surface = IMG_LoadTyped_RW(SDL_RWFromFile("scratch.png", "rb"), 1, "PN");
+    if(!icon_surface) {
+        log_error("Could not load application icon");
+        return;
+    }
+    SDL_SetWindowIcon(context()->window(), icon_surface);
+    SDL_FreeSurface(icon_surface);
 }
 
 Editor* Scratch::editor()

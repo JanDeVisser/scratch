@@ -36,7 +36,8 @@ struct CommandParameter {
     CommandParameterType type;
 };
 
-struct Command {
+class Command {
+public:
     std::string name;
     std::string synopsis;
     std::vector<CommandParameter> parameters;
@@ -55,14 +56,13 @@ private:
     static std::map<SDLKey, std::string> s_key_bindings;
 };
 
-class CommandHandler;
-
 class CommandHandler : public ModalWidget {
 public:
     explicit CommandHandler(Command const& command);
     void render() override;
     void argument_done(std::string);
     void abort();
+
 private:
     Command const& m_command;
     ModalWidget* m_current_handler { nullptr };

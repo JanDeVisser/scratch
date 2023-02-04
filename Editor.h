@@ -40,21 +40,21 @@ class Editor : public WindowedWidget {
 public:
     Editor();
 
-    [[nodiscard]] Document* document() { return m_current_document; }
+    [[nodiscard]] Document* document() const { return m_current_document; }
     void new_buffer();
     std::string open_file(fs::path const&);
-    std::string save_file();
-    std::string save_file_as(fs::path const&);
-    std::string save_all();
-    void move_to(int line, int column);
+    std::string save_file() const;
+    std::string save_file_as(fs::path const&) const;
+    std::string save_all() const;
+    void move_to(int , int, bool) const;
     void switch_to(std::string const&);
 
     [[nodiscard]] int rows() const;
     [[nodiscard]] int columns() const;
     [[nodiscard]] int line_top(int line) const;
     [[nodiscard]] int line_bottom(int line) const;
-    [[nodiscard]] int column_left(int column) const;
-    [[nodiscard]] int column_right(int column) const;
+    [[nodiscard]] static int column_left(int column);
+    [[nodiscard]] static int column_right(int column);
     [[nodiscard]] int line_height() const;
     [[nodiscard]] static int column_width();
 
@@ -63,6 +63,7 @@ public:
     void text_cursor(int line, int column);
     void mark_current_line(int line);
     bool dispatch(SDL_Keysym) override;
+    void handle_click(SDL_MouseButtonEvent const& event) override;
     void handle_text_input() override;
     void append(DisplayToken const&);
     void newline();

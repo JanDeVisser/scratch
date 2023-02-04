@@ -36,6 +36,7 @@ public:
 
     [[nodiscard]] int width() const { return m_width; }
     [[nodiscard]] int height() const { return m_height; }
+    void resize(int, int);
     SDL_Window* window() { return m_window; }
     SDL_Renderer* renderer() { return m_renderer; }
     SDL_Cursor* arrow() { return m_arrow; }
@@ -60,6 +61,12 @@ private:
     struct SDLTTF {
         SDLTTF();
         ~SDLTTF();
+        bool init { false };
+    };
+
+    struct SDLIMG {
+        SDLIMG();
+        ~SDLIMG();
         bool init { false };
     };
 
@@ -114,6 +121,7 @@ private:
     SDLTTF m_ttf {};
     SDLWindow m_window { m_width, m_height };
     SDLRenderer m_renderer { m_window };
+    SDLIMG m_img {};
     std::array<SDLFont, (size_t) SDLFontFamily::Max> m_fonts {
         SDLFont { m_renderer, "JetBrainsMono.ttf", 15 },
         SDLFont { m_renderer, "Swansea-q3pd.ttf", 15 }

@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include <SDL2_gfxPrimitives.h>
+#include <SDL_image.h>
 #include <SDL_ttf.h>
 
 #include <SDLContext.h>
@@ -45,6 +46,21 @@ SDLContext::SDLTTF::~SDLTTF()
     debug(scratch, "Terminating SDL TTF system");
     if (init)
         TTF_Quit();
+}
+
+SDLContext::SDLIMG::SDLIMG()
+{
+    if (IMG_Init(IMG_INIT_PNG) < 0)
+        fatal("Failed to initialize SDL IMG system");
+    init = true;
+    debug(scratch, "Initialized SDL IMG system");
+}
+
+SDLContext::SDLIMG::~SDLIMG()
+{
+    debug(scratch, "Terminating SDL IMG system");
+    if (init)
+        IMG_Quit();
 }
 
 SDLContext::SDLWindow::SDLWindow(int width, int height)
@@ -189,6 +205,12 @@ SDLContext::SDLContext(int width, int height)
     if (!TTF_FontFaceIsFixedWidth(m_fonts[(size_t)SDLFontFamily::Fixed].font))
         fatal("Font '{}' is proportional", m_fonts[(size_t)SDLFontFamily::Fixed].name);
     SDL_ShowCursor(1);
+}
+
+void SDLContext::resize(int width, int height)
+{
+    m_width = width;
+    m_height = height;
 }
 
 int SDLContext::character_width() const

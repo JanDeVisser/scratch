@@ -109,6 +109,12 @@ void App::render()
     }
 }
 
+void App::resize(Box const& outline)
+{
+    context()->resize(m_width, m_height);
+    Layout::resize(outline);
+}
+
 int App::fps() const
 {
     if (m_last_render_time.count() < 0.001)
@@ -196,7 +202,7 @@ void App::event_loop()
                 case SDL_WINDOWEVENT_SHOWN:
                 case SDL_WINDOWEVENT_RESIZED: {
                     SDL_GetRendererOutputSize(renderer(), &m_width, &m_height);
-                    container().resize({ 0, 0, m_width, m_height });
+                    resize({ 0, 0, m_width, m_height });
                 } break;
                 }
             } break;
@@ -220,6 +226,7 @@ void App::event_loop()
                 }
             } break;
             case SDL_MOUSEBUTTONUP: {
+                handle_click(evt.button);
                 m_mouse_clicked_count = evt.button.clicks;
             } break;
             case SDL_MOUSEWHEEL: {

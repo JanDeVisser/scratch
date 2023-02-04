@@ -55,14 +55,16 @@ public:
     explicit Document(Editor *);
 
     [[nodiscard]] std::string const& line(size_t) const;
-    [[nodiscard]] size_t line_length(size_t) const;
-    [[nodiscard]] size_t line_count() const;
+    [[nodiscard]] int line_length(size_t) const;
+    [[nodiscard]] int line_count() const;
     [[nodiscard]] bool empty() const;
     [[nodiscard]] size_t parsed() const;
     [[nodiscard]] fs::path const& path() const;
 
     [[nodiscard]] int screen_top() const { return m_screen_top; }
     [[nodiscard]] int screen_left() const { return m_screen_left; }
+    [[nodiscard]] int rows() const;
+    [[nodiscard]] int columns() const;
     [[nodiscard]] DocumentPosition const& point() const { return m_point; }
     [[nodiscard]] DocumentPosition const& mark() const { return m_mark; }
     [[nodiscard]] int point_line() const { return m_point.line; }
@@ -81,15 +83,17 @@ public:
     void cut_to_clipboard();
     void paste_from_clipboard();
 
-    void move_to(int line, int column);
-    void up(Editor*, bool);
-    void down(Editor*, bool);
-    void left(Editor*, bool);
-    void word_left(Editor*, bool);
-    void right(Editor*, bool);
-    void word_right(Editor*, bool);
-    void page_up(Editor*, bool);
-    void page_down(Editor*, bool);
+    void move_to(int, int, bool);
+    void up(bool);
+    void down(bool);
+    void left(bool);
+    void word_left(bool);
+    void right(bool);
+    void word_right(bool);
+    void page_up(bool);
+    void page_down(bool);
+    void home(bool);
+    void end(bool);
 
     void clear();
     std::string load(std::string const&);
@@ -97,8 +101,9 @@ public:
     std::string save_as(std::string const&);
     [[nodiscard]] bool dirty() const { return m_dirty; }
 
-    void render(Editor *editor);
-    bool dispatch(Editor *editor, SDL_Keysym);
+    void render();
+    bool dispatch(SDL_Keysym);
+    void handle_click(int, int);
     void handle_text_input();
 
     Token lex();
@@ -108,6 +113,7 @@ public:
 
 private:
     void assign_to_parser();
+    void update_internals_after_move(bool);
 
     Editor* m_editor;
     fs::path m_path {};
@@ -118,12 +124,12 @@ private:
 
     std::vector<Line> m_lines {};
 
-    size_t m_screen_top {0};
-    size_t m_screen_left {0};
+    int m_screen_top {0};
+    int m_screen_left {0};
     DocumentPosition m_point;
     DocumentPosition m_mark;
     size_t m_virtual_point_column {0};
-    std::chrono::milliseconds m_last_parse_time;
+    std::chrono::milliseconds m_last_parse_time { 0 };
 };
 
 }

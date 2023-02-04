@@ -257,9 +257,6 @@ void UndoRecord::redo(App* app)
 
 #endif
 
-static unsigned s_ansicolors[16] = {
-};
-
 Palette const& DarkPalette()
 {
     static Palette p = {

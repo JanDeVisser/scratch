@@ -217,6 +217,12 @@ bool WindowedWidget::dispatch(SDL_Keysym sym)
     return false;
 }
 
+void WindowedWidget::handle_click(SDL_MouseButtonEvent const& event)
+{
+    if (m_mousebuttonhandler != nullptr)
+        m_mousebuttonhandler(this, event);
+}
+
 void WindowedWidget::handle_text_input()
 {
     if (m_texthandler != nullptr)
@@ -321,6 +327,18 @@ void WidgetContainer::resize(Box const& outline)
     }
 }
 
+void WidgetContainer::handle_click(Box const& outline, SDL_MouseButtonEvent const& event)
+{
+    if (outline.contains((int) event.x, (int) event.y)) {
+        for (auto const& c : m_components) {
+            if (c->outline().contains((int) event.x, (int) event.y)) {
+                c->handle_click(event);
+                return;
+            }
+        }
+    }
+}
+
 /* ----------------------------------------------------------------------- */
 
 Layout::Layout(ContainerOrientation orientation, SizePolicy policy, int size)
@@ -369,6 +387,11 @@ WidgetContainer const& Layout::container() const
 WidgetContainer& Layout::container()
 {
     return m_container;
+}
+
+void Layout::handle_click(SDL_MouseButtonEvent const& event)
+{
+    m_container.handle_click(outline(), event);
 }
 
 /* ----------------------------------------------------------------------- */

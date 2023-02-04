@@ -29,6 +29,7 @@ FetchContent_MakeAvailable(obelixlibs)
 
 find_package(SDL2 REQUIRED)
 find_package(SDL2_gfx REQUIRED)
+find_package(SDL2_image REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 
 include_directories(
@@ -48,7 +49,6 @@ endif(READLINE_FOUND)
 add_executable(
         scratch
         App.cpp
-        Command.cpp
         Display.cpp
         Document.cpp
         Editor.cpp
@@ -62,6 +62,10 @@ add_executable(
         StatusBar.cpp
         Text.cpp
         Widget.cpp
+        Commands/ArgumentHandler.cpp
+        Commands/Command.cpp
+        Commands/CommandHandler.cpp
+        Commands/DefaultArgumentHandler.cpp
         Parser/CPlusPlus.cpp
 )
 
@@ -71,6 +75,7 @@ target_link_libraries(
         obllexer
         SDL2::Main
         SDL2::GFX
+        SDL2::Image
         SDL2::TTF
 )
 

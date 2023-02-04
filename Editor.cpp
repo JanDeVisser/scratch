@@ -56,12 +56,12 @@ int Editor::line_bottom(int line) const
     return (line + 1) * line_height();
 }
 
-int Editor::column_left(int column) const
+int Editor::column_left(int column)
 {
     return column_width() * column;
 }
 
-int Editor::column_right(int column) const
+int Editor::column_right(int column)
 {
     return column_width() * (column + 1);
 }
@@ -89,7 +89,7 @@ void Editor::render()
     box(SDL_Rect { 0, 0, 0, 0 }, SDL_Color { 0x2c, 0x2c, 0x2c, 0xff });
     m_line = 0;
     m_column = 0;
-    document()->render(this);
+    document()->render();
 }
 
 void Editor::mark_current_line(int line)
@@ -142,7 +142,16 @@ void Editor::newline()
 
 bool Editor::dispatch(SDL_Keysym sym)
 {
-    return document()->dispatch(this, sym);
+    return document()->dispatch(sym);
+}
+
+void Editor::handle_click(SDL_MouseButtonEvent const& event)
+{
+    auto offset_x = event.x - left();
+    auto offset_y = event.y - top();
+    auto column = offset_x / App::instance().context()->character_width();
+    auto line = offset_y / line_height();
+    document()->handle_click(line, column);
 }
 
 void Editor::handle_text_input()
@@ -164,21 +173,21 @@ std::string Editor::open_file(fs::path const& path)
     return document()->load(path);
 }
 
-std::string Editor::save_file()
+std::string Editor::save_file() const
 {
     if (!document()->path().empty() || (document()->line_count() > 0))
         return document()->save();
     return "";
 }
 
-std::string Editor::save_file_as(fs::path const& new_file_name)
+std::string Editor::save_file_as(fs::path const& new_file_name) const
 {
     if (!document()->path().empty() || (document()->line_count() > 0))
         return document()->save_as(new_file_name);
     return "";
 }
 
-std::string Editor::save_all()
+std::string Editor::save_all() const
 {
     for (auto* doc : documents()) {
         if (doc->path().empty())
@@ -189,9 +198,9 @@ std::string Editor::save_all()
     return "";
 }
 
-void Editor::move_to(int line, int column)
+void Editor::move_to(int line, int column, bool select) const
 {
-    document()->move_to(line, column);
+    document()->move_to(line, column, select);
 }
 
 void Editor::switch_to(std::string const& buffer_name)
@@ -205,6 +214,7 @@ void Editor::switch_to(std::string const& buffer_name)
 std::vector<Document*> Editor::documents() const
 {
     std::vector<Document*> ret;
+    ret.resize(m_documents.size());
     for (auto& doc : m_documents)
         ret.push_back(doc.get());
     std::sort(ret.begin(), ret.end(),

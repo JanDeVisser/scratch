@@ -14,7 +14,7 @@
 
 #include <core/Logging.h>
 
-#include <Command.h>
+#include <Commands/Command.h>
 #include <EditorState.h>
 //#include <Scrollbar.h>
 #include <Geometry.h>
@@ -110,6 +110,7 @@ public:
     void event_loop();
     void render() override;
     bool dispatch(SDL_Keysym) override;
+    void resize(Box const&) override;
     std::string input_buffer();
     void schedule(Command const* cmd);
     [[nodiscard]] int fps() const;

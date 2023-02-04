@@ -48,9 +48,9 @@ public:
 private:
     Scratch(Config& config, SDLContext *ctx);
     Config& m_config;
-    Editor* m_editor;
-    Gutter* m_gutter;
-    StatusBar* m_status_bar;
+    Editor* m_editor { nullptr };
+    Gutter* m_gutter { nullptr };
+    StatusBar* m_status_bar { nullptr };
 };
 
 }

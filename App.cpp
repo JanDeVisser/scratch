@@ -93,6 +93,8 @@ void App::render()
     m_frameCount++;
     m_mouse_clicked_count = 0;
 
+    SDL_SetRenderDrawColor(renderer(), 0x2e, 0x32, 0x38, 0xff);
+    SDL_RenderClear(renderer());
     for (auto const& c : components()) {
         c->render();
     }
@@ -107,6 +109,7 @@ void App::render()
             m->render();
         }
     }
+    SDL_RenderPresent(renderer());
 }
 
 void App::resize(Box const& outline)
@@ -243,13 +246,7 @@ void App::event_loop()
             }
         }
 
-        // Renders.
-        SDL_SetRenderDrawColor(renderer(), 0x2e, 0x32, 0x38, 0xff);
-        SDL_RenderClear(renderer());
-
         render();
-
-        SDL_RenderPresent(renderer());
 
         auto end_render = std::chrono::steady_clock::now();
         static std::chrono::duration<double> one_frame(1.0/60.0);

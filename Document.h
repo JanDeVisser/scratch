@@ -30,12 +30,8 @@ struct FileType {
 
 struct Line {
     Line() = default;
-    explicit Line(std::string t)
-        : text(std::move(t))
-    {
-    }
 
-    std::string text;
+    int start_index {0};
     std::vector<Token> tokens {};
 };
 
@@ -54,7 +50,7 @@ class Document {
 public:
     explicit Document(Editor *);
 
-    [[nodiscard]] std::string const& line(size_t) const;
+    [[nodiscard]] std::string line(size_t) const;
     [[nodiscard]] int line_length(size_t) const;
     [[nodiscard]] int line_count() const;
     [[nodiscard]] bool empty() const;
@@ -65,11 +61,15 @@ public:
     [[nodiscard]] int screen_left() const { return m_screen_left; }
     [[nodiscard]] int rows() const;
     [[nodiscard]] int columns() const;
-    [[nodiscard]] DocumentPosition const& point() const { return m_point; }
-    [[nodiscard]] DocumentPosition const& mark() const { return m_mark; }
-    [[nodiscard]] int point_line() const { return m_point.line; }
-    [[nodiscard]] int point_column() const { return m_point.column; }
-    [[nodiscard]] int virtual_point_column() const { return m_virtual_point_column; }
+
+    [[nodiscard]] int find_line_number(int) const;
+    [[nodiscard]] DocumentPosition position(int) const;
+    [[nodiscard]] int point() const { return m_point; };
+    [[nodiscard]] int mark() const { return m_mark; }
+    [[nodiscard]] int point_line() const;
+    [[nodiscard]] int point_column() const;
+    [[nodiscard]] int mark_line() const;
+    [[nodiscard]] int mark_column() const;
 
     void split_line();
     void insert(std::string const&);
@@ -109,26 +109,26 @@ public:
     Token const& lex();
     void rewind();
     void invalidate();
-    auto last_parse_time() const { return m_last_parse_time.count(); }
+    [[nodiscard]] auto last_parse_time() const { return m_last_parse_time.count(); }
+
 
 private:
     void assign_to_parser();
-    void update_internals_after_move(bool);
+    void update_internals_after_move(bool, int = -1);
 
     Editor* m_editor;
     fs::path m_path {};
     bool m_dirty { false };
-    bool m_cleared { true };
     FileType m_filetype;
     std::unique_ptr<Parser::ScratchParser> m_parser;
 
+    std::string m_text;
     std::vector<Line> m_lines {};
 
     int m_screen_top {0};
     int m_screen_left {0};
-    DocumentPosition m_point;
-    DocumentPosition m_mark;
-    size_t m_virtual_point_column {0};
+    int m_point {0};
+    int m_mark {0};
     std::chrono::milliseconds m_last_parse_time { 0 };
 };
 

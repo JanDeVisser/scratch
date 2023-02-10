@@ -19,26 +19,16 @@ set(CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR})
 set(scratch_DIR ${CMAKE_INSTALL_PREFIX})
 set(scratch_DATADIR ${CMAKE_INSTALL_PREFIX}/share)
 
-include(FetchContent)
-FetchContent_Declare(
-        obelixlibs
-        GIT_REPOSITORY git@github.com:JanDeVisser/obelixlibs.git
-        GIT_TAG main
-)
-FetchContent_MakeAvailable(obelixlibs)
+set(INCLUDES "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/include")
 
 find_package(SDL2 REQUIRED)
 find_package(SDL2_gfx REQUIRED)
 find_package(SDL2_image REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 
-include_directories(
-        "${PROJECT_SOURCE_DIR}"
-        "${obelixlibs_SOURCE_DIR}"
-        "${PROJECT_SOURCE_DIR}/include"
-        "${SDL2_INCLUDE_DIRS}"
-        "${SDL2_TTF_INCLUDE_DIRS}"
-)
+set(INCLUDES ${INCLUDES} "${SDL2_INCLUDE_DIRS}" "${SDL2_TTF_INCLUDE_DIRS}")
+
+include(FetchContent)
 
 find_package(Readline)
 if(READLINE_FOUND)
@@ -46,10 +36,27 @@ if(READLINE_FOUND)
     set(INCLUDES ${INCLUDES} ${READLINE_INCLUDE_DIRS})
 endif(READLINE_FOUND)
 
+if(FETCH_OBELIXLIBS)
+    FetchContent_Declare(
+            obelixlibs
+            GIT_REPOSITORY git@github.com:JanDeVisser/obelixlibs.git
+            GIT_TAG main
+    )
+    FetchContent_MakeAvailable(obelixlibs)
+else()
+    set(INCLUDES ${INCLUDES} ${PROJECT_SOURCE_DIR}/obelixlibs)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/obelixlibs)
+endif()
+
+include_directories(
+        "${INCLUDES}"
+        "${SDL2_INCLUDE_DIRS}"
+        "${SDL2_TTF_INCLUDE_DIRS}"
+)
+
 add_executable(
         scratch
         App.cpp
-        Display.cpp
         Document.cpp
         Editor.cpp
         EditorState.cpp

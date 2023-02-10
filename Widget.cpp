@@ -35,28 +35,21 @@ bool Widget::empty() const
     return width() == 0 && height() == 0;
 }
 
-SDL_Rect Widget::render_fixed(int x, int y, std::string const& text, SDL_Color const& color) const
+SDL_Rect Widget::render_text(int x, int y, std::string const& text, SDL_Color const& color, TextAlignment alignment, SDLContext::SDLFontFamily family) const
 {
-    auto ret = App::instance().context()->render_text(left() + x, top() + y,
-        text, color, SDLContext::SDLFontFamily::Fixed);
-    ret.x -= left();
-    ret.y -= top();
-    return ret;
-}
-
-SDL_Rect Widget::render_fixed_right_aligned(int x, int y, std::string const& text, SDL_Color const& color) const
-{
-    auto ret = App::instance().context()->render_text_right_aligned(left() + x, top() + y,
-        text, color, SDLContext::SDLFontFamily::Fixed);
-    ret.x -= left();
-    ret.y -= top();
-    return ret;
-}
-
-SDL_Rect Widget::render_fixed_centered(int y, std::string const& text, SDL_Color const& color) const
-{
-    auto ret = App::instance().context()->render_text_centered(left() + width()/2, top() + y,
-        text, color, SDLContext::SDLFontFamily::Fixed);
+    SDL_Rect ret;
+    switch (alignment) {
+    case TextAlignment::Left:
+        ret = App::instance().context()->render_text(left() + x, top() + y,
+            text, color, family);
+        break;
+    case TextAlignment::Right:
+        ret = App::instance().context()->render_text_right_aligned(left() + x, top() + y,
+            text, color, family);
+    case TextAlignment::Center:
+        ret = App::instance().context()->render_text_centered(left() + width()/2, top() + y,
+            text, color, family);
+    }
     ret.x -= left();
     ret.y -= top();
     return ret;

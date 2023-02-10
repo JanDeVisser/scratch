@@ -30,7 +30,7 @@ PlainTextParser::PlainTextParser()
     });
 }
 
-Token PlainTextParser::next_token()
+Token const& PlainTextParser::next_token()
 {
     return lex();
 }
@@ -45,93 +45,91 @@ CPlusPlusParser::CPlusPlusParser()
         Obelix::CommentScanner::CommentMarker { false, false, "/*", "*/" },
         Obelix::CommentScanner::CommentMarker { false, true, "//", "" });
     lexer().add_scanner<Obelix::KeywordScanner>(
-        Token(KeywordAuto, "auto"),
-        Token(KeywordBreak, "break"),
-        Token(KeywordCase, "case"),
-        Token(KeywordClass, "class"),
-        Token(KeywordConst, "const"),
-        Token(KeywordContinue, "continue"),
-        Token(KeywordDefault, "default"),
-        Token(KeywordElse, "else"),
-        Token(KeywordEnum, "enum"),
-        Token(KeywordFor, "for"),
-        Token(KeywordIf, "if"),
-        Token(KeywordNamespace, "namespace"),
-        Token(KeywordReturn, "return"),
-        Token(KeywordStatic, "static"),
-        Token(KeywordStruct, "struct"),
-        Token(KeywordSwitch, "switch"),
-        Token(KeywordUsing, "using"),
-        Token(KeywordWhile, "while"),
+        KeywordAuto, "auto",
+        KeywordBreak, "break",
+        KeywordCase, "case",
+        KeywordClass, "class",
+        KeywordConst, "const",
+        KeywordContinue, "continue",
+        KeywordDefault, "default",
+        KeywordElse, "else",
+        KeywordEnum, "enum",
+        KeywordFor, "for",
+        KeywordIf, "if",
+        KeywordNamespace, "namespace",
+        KeywordReturn, "return",
+        KeywordStatic, "static",
+        KeywordStruct, "struct",
+        KeywordSwitch, "switch",
+        KeywordUsing, "using",
+        KeywordWhile, "while",
 
-        Token(KeywordTrue, "true"),
-        Token(KeywordFalse, "false"),
-        Token(KeywordNullptr, "nullptr"),
+        KeywordTrue, "true",
+        KeywordFalse, "false",
+        KeywordNullptr, "nullptr",
 
-        Token(KeywordDefine, "#define"),
-        Token(KeywordElif, "#elif"),
-        Token(KeywordElifdef, "#elifdef"),
-        Token(KeywordHashElse, "#else"),
-        Token(KeywordEndif, "#endif"),
-        Token(KeywordHashIf, "#if"),
-        Token(KeywordIfdef, "#ifdef"),
-        Token(KeywordIfndef, "#ifndef"),
-        Token(KeywordInclude, "#include"),
-        Token(KeywordPragma, "#pragma"));
+        KeywordDefine, "#define",
+        KeywordElif, "#elif",
+        KeywordElifdef, "#elifdef",
+        KeywordHashElse, "#else",
+        KeywordEndif, "#endif",
+        KeywordHashIf, "#if",
+        KeywordIfdef, "#ifdef",
+        KeywordIfndef, "#ifndef",
+        KeywordInclude, "#include",
+        KeywordPragma, "#pragma");
 }
 
-Token CPlusPlusParser::next_token()
+Token const& CPlusPlusParser::next_token()
 {
-    Token token;
     if (!m_pending.empty()) {
-        token = m_pending.front();
+        auto const& token = m_pending.front();
         m_pending.pop_front();
         return token;
     }
 
     while (m_pending.empty()) {
-        token = lex();
+        auto const& token = lex();
         switch (token.code()) {
         case TokenCode::NewLine:
             m_pending.emplace_back(token);
             break;
 
         case KeywordInclude:
-            m_pending.emplace_back(TokenDirective, token.value());
+            m_pending.emplace_back(token.location(), TokenDirective, token.value());
             parse_include();
             break;
 
         case KeywordDefine:
-            m_pending.emplace_back(TokenDirective, token.value());
+            m_pending.emplace_back(token.location(), TokenDirective, token.value());
             parse_define();
             break;
 
         case KeywordHashIf:
         case KeywordElif:
         case KeywordPragma:
-            m_pending.emplace_back(TokenDirective, token.value());
+            m_pending.emplace_back(token.location(), TokenDirective, token.value());
             parse_hashif();
             break;
 
         case KeywordIfdef:
         case KeywordIfndef:
         case KeywordElifdef:
-            m_pending.emplace_back(TokenDirective, token.value());
+            m_pending.emplace_back(token.location(), TokenDirective, token.value());
             parse_ifdef();
             break;
 
         case KeywordEndif:
         case KeywordHashElse:
-            m_pending.emplace_back(TokenDirective, token.value());
+            m_pending.emplace_back(token.location(), TokenDirective, token.value());
             break;
 
         case KeywordClass:
         case KeywordStruct:
-            m_pending.emplace_back(TokenKeyword, token.value());
-            token = peek();
-            if (token.code() == TokenCode::Identifier) {
-                lex();
-                m_pending.emplace_back(TokenType, token.value());
+            m_pending.emplace_back(token.location(), TokenKeyword, token.value());
+            if (peek().code() == TokenCode::Identifier) {
+                auto const& identifier = lex();
+                m_pending.emplace_back(identifier.location(), TokenType, identifier.value());
             }
             break;
 
@@ -151,13 +149,13 @@ Token CPlusPlusParser::next_token()
         case KeywordDefault:
         case KeywordStatic:
         case KeywordUsing:
-            m_pending.emplace_back(TokenKeyword, token.value());
+            m_pending.emplace_back(token.location(), TokenKeyword, token.value());
             break;
 
         case KeywordNullptr:
         case KeywordTrue:
         case KeywordFalse:
-            m_pending.emplace_back(TokenConstant, token.value());
+            m_pending.emplace_back(token.location(), TokenConstant, token.value());
             break;
 
         default:
@@ -166,7 +164,7 @@ Token CPlusPlusParser::next_token()
         }
     }
 
-    token = m_pending.front();
+    auto const& token = m_pending.front();
     m_pending.pop_front();
     return token;
 }
@@ -177,16 +175,19 @@ void CPlusPlusParser::parse_include()
     switch (t.code()) {
     case Obelix::TokenCode::DoubleQuotedString:
         lex();
-        m_pending.emplace_back(TokenDirectiveParam, t.value());
+        m_pending.emplace_back(t.location(), TokenDirectiveParam, t.value());
         break;
     case TokenCode::LessThan: {
         lex();
-        auto include = t.value();
+        auto include = std::string(t.value());
+        auto start_loc = t.location();
+        Span end_loc;
         do {
             t = lex();
             include += t.value();
+            end_loc = t.location();
         } while (t.code() != Obelix::TokenCode::GreaterThan);
-        m_pending.emplace_back(TokenDirectiveParam, include);
+        m_pending.emplace_back(start_loc.merge(end_loc), TokenDirectiveParam, include);
         break;
     }
     default:
@@ -220,11 +221,13 @@ void CPlusPlusParser::parse_define()
     auto escape { false };
     std::string def_string;
     skip_whitespace();
+    t = peek();
+    auto start_loc = t.location();
+    auto end_loc = start_loc;
     while (true) {
-        t = peek();
         switch (t.code()) {
         case TokenCode::Comment:
-            m_pending.emplace_back(TokenMacroExpansion, def_string);
+            m_pending.emplace_back(start_loc.merge(end_loc), TokenMacroExpansion, def_string);
             return;
         case TokenCode::Backslash: {
             lex();
@@ -234,8 +237,8 @@ void CPlusPlusParser::parse_define()
         }
         case TokenCode::NewLine:
             lex();
-            m_pending.emplace_back(TokenMacroExpansion, def_string);
-            m_pending.emplace_back(TokenCode::NewLine, "\n");
+            m_pending.emplace_back(start_loc.merge(end_loc), TokenMacroExpansion, def_string);
+            m_pending.emplace_back(t.location(), TokenCode::NewLine, "\n");
             if (!escape)
                 return;
             def_string = "";
@@ -247,6 +250,8 @@ void CPlusPlusParser::parse_define()
             def_string += t.value();
             break;
         }
+        t = peek();
+        end_loc = t.location();
     }
 }
 
@@ -256,7 +261,7 @@ void CPlusPlusParser::parse_ifdef()
     if (t.code() != TokenCode::Identifier)
         return;
     lex();
-    m_pending.emplace_back(TokenDirectiveParam, t.value());
+    m_pending.emplace_back(t.location(), TokenDirectiveParam, t.value());
 }
 
 void CPlusPlusParser::parse_hashif()
@@ -264,11 +269,13 @@ void CPlusPlusParser::parse_hashif()
     Token t = skip_whitespace();
     auto escape { false };
     std::string expr;
+    t = peek();
+    auto start_loc = t.location();
+    auto end_loc = t.location();
     while (true) {
-        t = peek();
         switch (t.code()) {
         case TokenCode::Comment:
-            m_pending.emplace_back(TokenDirectiveParam, expr);
+            m_pending.emplace_back(start_loc.merge(end_loc), TokenDirectiveParam, expr);
             return;
         case TokenCode::Backslash: {
             lex();
@@ -278,8 +285,8 @@ void CPlusPlusParser::parse_hashif()
         }
         case TokenCode::NewLine:
             lex();
-            m_pending.emplace_back(TokenDirectiveParam, expr);
-            m_pending.emplace_back(TokenCode::NewLine, "\n");
+            m_pending.emplace_back(start_loc.merge(end_loc), TokenDirectiveParam, expr);
+            m_pending.emplace_back(t.location(), TokenCode::NewLine, "\n");
             if (!escape)
                 return;
             expr = "";
@@ -291,24 +298,23 @@ void CPlusPlusParser::parse_hashif()
             expr += t.value();
             break;
         }
-    }
-}
-
-Token CPlusPlusParser::skip_whitespace()
-{
-    Token t = peek();
-    if (t.code() == TokenCode::Whitespace) {
-        t = lex();
-        m_pending.emplace_back(t);
         t = peek();
+        end_loc = t.location();
     }
-    return t;
 }
 
-Token CPlusPlusParser::get_next(TokenCode code)
+Token const& CPlusPlusParser::skip_whitespace()
+{
+    if (peek().code() != TokenCode::Whitespace)
+        return peek();
+    m_pending.emplace_back(lex());
+    return m_pending.back();
+}
+
+Token const& CPlusPlusParser::get_next(TokenCode code)
 {
     Token t = lex();
-    m_pending.emplace_back((code != TokenCode::Unknown) ? code : t.code(), t.value());
+    m_pending.emplace_back(t.location(), (code != TokenCode::Unknown) ? code : t.code(), t.value());
     return skip_whitespace();
 }
 

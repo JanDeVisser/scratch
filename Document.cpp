@@ -454,10 +454,17 @@ void Document::render()
         m_lines.clear();
         m_lines.emplace_back();
         auto start = std::chrono::steady_clock::now();
-        for (auto token = lex(); token.code() != TokenCode::EndOfFile; token = lex()) {
+        bool done { false };
+        while (!done) {
+            auto& token = lex();
+            if (token.code() == TokenCode::EndOfFile)
+                break;
             switch (token.code()) {
             case TokenCode::NewLine:
                 m_lines.emplace_back();
+                break;
+            case TokenCode::EndOfFile:
+                done = true;
                 break;
             default:
                 m_lines.back().tokens.push_back(token);
@@ -607,10 +614,9 @@ void Document::handle_text_input()
     insert(App::instance().input_buffer());
 }
 
-Token Document::lex()
+Token const& Document::lex()
 {
-    Token token = m_parser->next_token();
-    return token;
+    return m_parser->next_token();
 }
 
 void Document::rewind()

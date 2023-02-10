@@ -106,7 +106,7 @@ public:
     void handle_click(int, int);
     void handle_text_input();
 
-    Token lex();
+    Token const& lex();
     void rewind();
     void invalidate();
     auto last_parse_time() const { return m_last_parse_time.count(); }

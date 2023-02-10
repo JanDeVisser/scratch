@@ -16,6 +16,12 @@
 
 namespace Scratch {
 
+enum class TextAlignment {
+    Left,
+    Right,
+    Center,
+};
+
 class Widget : public std::enable_shared_from_this<Widget> {
 public:
     virtual ~Widget() = default;
@@ -32,9 +38,29 @@ public:
     virtual void resize(Box const&);
     virtual std::vector<std::string> status() { return {}; }
 
-    SDL_Rect render_fixed(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
-    SDL_Rect render_fixed_right_aligned(int, int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
-    SDL_Rect render_fixed_centered(int, std::string const&, SDL_Color const& = SDL_Color { 255, 255, 255, 255 }) const;
+    SDL_Rect render_text(int x, int y, std::string const& text,
+        SDL_Color const& color = SDL_Color { 255, 255, 255, 255 },
+        TextAlignment = TextAlignment::Left,
+        SDLContext::SDLFontFamily = SDLContext::SDLFontFamily::Fixed) const;
+
+
+    template <class Str>
+    SDL_Rect render_fixed(int x, int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
+    {
+        return render_text(x, y, std::string(text), color, TextAlignment::Left, SDLContext::SDLFontFamily::Fixed);
+    }
+
+    template <class Str>
+    SDL_Rect render_fixed_right_aligned(int x, int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
+    {
+        return render_text(x, y, std::string(text), color, TextAlignment::Left, SDLContext::SDLFontFamily::Fixed);
+    }
+
+    template <class Str>
+    SDL_Rect render_fixed_centered(int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
+    {
+        return render_text(0, y, std::string(text), color, TextAlignment::Center, SDLContext::SDLFontFamily::Fixed);
+    }
 
     SDL_Rect normalize(SDL_Rect const&) const;
     void box(SDL_Rect const&, SDL_Color) const;

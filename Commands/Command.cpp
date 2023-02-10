@@ -48,10 +48,10 @@ std::map<std::string, Command> Command::s_commands = {
                 auto line_col = split(args[0], ':');
                 if (line_col.size() < 1)
                     return;
-                if (auto line_maybe = to_long(line_col[0]); line_maybe.has_value()) {
+                if (auto line_maybe = try_to_long(line_col[0]); line_maybe.has_value()) {
                     int col = -1;
                     if (line_col.size() > 1) {
-                        if (auto col_maybe = to_long(line_col[1]); col_maybe.has_value())
+                        if (auto col_maybe = try_to_long(line_col[1]); col_maybe.has_value())
                             col = col_maybe.value();
                     }
                     Scratch::editor()->move_to(line_maybe.value() - 1, col - 1, false);

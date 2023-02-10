@@ -58,7 +58,7 @@ constexpr static TokenCode TokenConstant = TokenCode::Keyword89;
 class ScratchParser : public BasicParser {
 public:
     virtual ~ScratchParser() = default;
-    [[nodiscard]] virtual Token next_token() = 0;
+    [[nodiscard]] virtual Token const& next_token() = 0;
 protected:
     ScratchParser() = default;
 };
@@ -66,7 +66,7 @@ protected:
 class PlainTextParser : public ScratchParser {
 public:
     PlainTextParser();
-    Token next_token() override;
+    Token const& next_token() override;
 private:
     std::string m_current_line;
     TokenCode m_last_code { TokenCode::Unknown };
@@ -75,14 +75,14 @@ private:
 class CPlusPlusParser : public ScratchParser {
 public:
     CPlusPlusParser();
-    Token next_token() override;
+    Token const& next_token() override;
 private:
     void parse_include();
     void parse_define();
     void parse_hashif();
     void parse_ifdef();
-    Token skip_whitespace();
-    Token get_next(TokenCode = TokenCode::Unknown);
+    Token const& skip_whitespace();
+    Token const& get_next(TokenCode = TokenCode::Unknown);
 
     std::deque<Token> m_pending;
 };

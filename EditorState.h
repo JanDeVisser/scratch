@@ -62,13 +62,21 @@ enum class PaletteIndex : uint8_t {
 using Palette = std::array<unsigned, (size_t)PaletteIndex::Max>;
 
 struct DisplayToken {
-    explicit DisplayToken(std::string t, PaletteIndex c = PaletteIndex::Default)
+    explicit DisplayToken(std::string_view t, PaletteIndex c = PaletteIndex::Default)
         : text(std::move(t))
         , color(c)
     {
     }
 
-    std::string text;
+    explicit DisplayToken(std::string const& t, PaletteIndex c = PaletteIndex::Default)
+        : text_string(t)
+        , text(text_string.value())
+        , color(c)
+    {
+    }
+
+    std::optional<std::string> text_string {};
+    std::string_view text;
     PaletteIndex color;
 };
 

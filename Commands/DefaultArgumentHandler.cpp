@@ -72,7 +72,7 @@ bool DefaultArgumentHandler::dispatch(SDL_Keysym sym)
     }
     case SDLK_UP: {
         if (m_parameter.type == CommandParameterType::Integer) {
-            auto val = to_long_unconditional(m_value);
+            auto val = to_long(m_value);
             ++val;
             m_value = format("{}", val);
             m_pos = m_value.length();
@@ -81,7 +81,7 @@ bool DefaultArgumentHandler::dispatch(SDL_Keysym sym)
     };
     case SDLK_DOWN: {
         if (m_parameter.type == CommandParameterType::Integer) {
-            if (auto val = to_long_unconditional(m_value); val > 0) {
+            if (auto val = to_long(m_value); val > 0) {
                 --val;
                 m_value = format("{}", val);
                 m_pos = m_value.length();

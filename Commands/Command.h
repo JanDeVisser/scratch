@@ -33,7 +33,8 @@ enum class CommandParameterType {
 
 struct CommandParameter {
     std::string prompt;
-    CommandParameterType type;
+    CommandParameterType type { CommandParameterType::String };
+    std::function<std::string(void)> get_default { nullptr };
 };
 
 class Command {

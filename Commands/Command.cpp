@@ -18,29 +18,43 @@ namespace Scratch {
 std::map<std::string, Command> Command::s_commands = {
     { "copy-to-clipboard",
         { "copy-to-clipboard", "Copy selection to clipboard", {},
-        [](strings const&) -> void {
+            [](strings const&) -> void {
                 auto doc = Scratch::editor()->document();
                 doc->copy_to_clipboard();
-            }
-        }
-    },
+            } } },
     { "cut-to-clipboard",
         { "cut-to-clipboard", "Cut selection to clipboard", {},
-        [](strings const&) -> void {
+            [](strings const&) -> void {
                 auto doc = Scratch::editor()->document();
                 doc->cut_to_clipboard();
-            }
-        }
-    },
-    {
-        "enlarge-font",
+            } } },
+    { "enlarge-font",
         { "enlarge-font", "Enlarge editor font", {},
             [](strings const&) -> void {
                 auto& app = App::instance();
                 app.enlarge_font();
-            }
-        }
-    },
+            } } },
+
+    { "find-first",
+        { "find-first", "Find",
+            { {
+                "Find",
+                CommandParameterType::String,
+                []() -> std::string {
+                    return Scratch::editor()->document()->selected_text();
+                }
+            } },
+            [](strings const& args) -> void {
+                Scratch::editor()->document()->find(args[0]);
+            } } },
+
+    { "find-next",
+        { "find-next", "Find next",
+            {},
+            [](strings const& args) -> void {
+                Scratch::editor()->document()->find_next();
+            } } },
+
     { "goto-line-column",
         { "goto-line-column", "Goto line:column",
             { { "Line:Column to go to", CommandParameterType::String } },
@@ -56,17 +70,13 @@ std::map<std::string, Command> Command::s_commands = {
                     }
                     Scratch::editor()->move_to(line_maybe.value() - 1, col - 1, false);
                 }
-            }
-        }
-    },
+            } } },
     { "paste-from-clipboard",
         { "paste-from-clipboard", "Paste text from clipboard", {},
-        [](strings const&) -> void {
+            [](strings const&) -> void {
                 auto doc = Scratch::editor()->document();
                 doc->paste_from_clipboard();
-            }
-        }
-    },
+            } } },
     { "scratch-quit",
         { "scratch-quit", "Quits the editor",
             {},
@@ -83,15 +93,12 @@ std::map<std::string, Command> Command::s_commands = {
             [](strings const& args) -> void {
                 Scratch::editor()->open_file(args[0]);
             } } },
-    {
-        "reset-font",
+    { "reset-font",
         { "reset-font", "Reset editor font", {},
             [](strings const&) -> void {
                 auto& app = App::instance();
                 app.reset_font();
-            }
-        }
-    },
+            } } },
     { "save-current-as",
         { "save-current-as", "Save current file as",
             { { "New file name", CommandParameterType::String } },
@@ -112,15 +119,12 @@ std::map<std::string, Command> Command::s_commands = {
                     editor->save_file();
                 }
             } } },
-    {
-        "shrink-font",
+    { "shrink-font",
         { "shrink-font", "Shrink editor font", {},
             [](strings const&) -> void {
                 auto& app = App::instance();
                 app.shrink_font();
-            }
-        }
-    },
+            } } },
     { "switch-buffer",
         { "switch-buffer", "Switch buffer",
             { { "Buffer", CommandParameterType::Buffer } },
@@ -143,7 +147,9 @@ std::map<SDLKey, std::string> Command::s_key_bindings = {
     { { SDLK_0, KMOD_GUI }, "reset-font" },
     { { SDLK_b, KMOD_CTRL }, "switch-buffer" },
     { { SDLK_c, KMOD_CTRL }, "copy-to-clipboard" },
+    { { SDLK_f, KMOD_CTRL }, "find-first" },
     { { SDLK_g, KMOD_CTRL }, "goto-line-column" },
+    { { SDLK_f, KMOD_CTRL | KMOD_SHIFT }, "find-next" },
     { { SDLK_l, KMOD_CTRL }, "save-all-files" },
     { { SDLK_n, KMOD_CTRL }, "new-buffer" },
     { { SDLK_o, KMOD_CTRL }, "open-file" },

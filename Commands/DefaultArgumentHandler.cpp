@@ -11,6 +11,10 @@ namespace Scratch {
 DefaultArgumentHandler::DefaultArgumentHandler(CommandHandler* handler, CommandParameter const& parameter)
     : ArgumentHandler(handler, parameter, 2 * (App::instance().context()->character_height() + 4) + 12)
 {
+    if (parameter.get_default != nullptr) {
+        m_value = parameter.get_default();
+        m_pos = static_cast<int>(m_value.length());
+    }
 }
 
 void DefaultArgumentHandler::render()
@@ -61,7 +65,7 @@ bool DefaultArgumentHandler::dispatch(SDL_Keysym sym)
         m_pos = 0;
         return true;
     case SDLK_END:
-        m_pos = m_value.length();
+        m_pos = static_cast<int>(m_value.length());
         return true;
     case SDLK_BACKSPACE: {
         if (m_pos > 0) {
@@ -75,7 +79,7 @@ bool DefaultArgumentHandler::dispatch(SDL_Keysym sym)
             auto val = to_long(m_value);
             ++val;
             m_value = format("{}", val);
-            m_pos = m_value.length();
+            m_pos = static_cast<int>(m_value.length());
         }
         return true;
     };
@@ -84,7 +88,7 @@ bool DefaultArgumentHandler::dispatch(SDL_Keysym sym)
             if (auto val = to_long(m_value); val > 0) {
                 --val;
                 m_value = format("{}", val);
-                m_pos = m_value.length();
+                m_pos = static_cast<int>(m_value.length());
             }
         }
         return true;
@@ -103,7 +107,7 @@ void DefaultArgumentHandler::handle_text_input()
         switch (m_parameter.type) {
         case CommandParameterType::String: {
             m_value.insert(m_pos, str);
-            m_pos += str.length();
+            m_pos += static_cast<int>(str.length());
         } break;
         case CommandParameterType::Integer: {
             for (auto const& ch : str) {

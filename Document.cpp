@@ -23,10 +23,10 @@ FileType s_filetypes[] = {
     // Plain Text parser must be in slot 0! Do not sort down!
     { { ".txt" }, "text/plain", []() -> ScratchParser* {
          return new PlainTextParser();
-    } },
+     } },
     { { ".cpp", ".h", ".hpp" }, "text/x-cpp", []() -> ScratchParser* {
          return new CPlusPlusParser();
-    } },
+     } },
 };
 
 FileType const& get_filetype(fs::path const& file)
@@ -35,7 +35,7 @@ FileType const& get_filetype(fs::path const& file)
     if (ext.empty())
         return s_filetypes[0];
     for (auto const& type : s_filetypes) {
-        for (auto const &e : type.extensions) {
+        for (auto const& e : type.extensions) {
             if (e == ext)
                 return type;
         }
@@ -55,9 +55,9 @@ Document::Document(Editor* editor)
 std::string Document::line(size_t line_no) const
 {
     assert(line_no < m_lines.size());
-    if (line_no == m_lines.size()-1)
+    if (line_no == m_lines.size() - 1)
         return m_text.substr(m_lines[line_no].start_index);
-    return m_text.substr(m_lines[line_no].start_index, m_lines[line_no+1].start_index);
+    return m_text.substr(m_lines[line_no].start_index, m_lines[line_no + 1].start_index);
 }
 
 void Document::assign_to_parser()
@@ -69,9 +69,9 @@ void Document::assign_to_parser()
 int Document::line_length(size_t line_no) const
 {
     assert(line_no < m_lines.size());
-    if (line_no == m_lines.size()-1)
+    if (line_no == m_lines.size() - 1)
         return static_cast<int>(m_text.length()) - m_lines[line_no].start_index;
-    return m_lines[line_no+1].start_index-m_lines[line_no].start_index - 1;
+    return m_lines[line_no + 1].start_index - m_lines[line_no].start_index - 1;
 }
 
 int Document::line_count() const
@@ -103,7 +103,8 @@ void Document::split_line()
 void Document::join_lines()
 {
     int ix;
-    for (ix = m_point; (ix > 0) && (m_text[ix] != '\n'); --ix);
+    for (ix = m_point; (ix > 0) && (m_text[ix] != '\n'); --ix)
+        ;
     if (ix > 0) {
         m_text.erase(ix, 1);
         m_point = ix - 1;
@@ -197,8 +198,7 @@ int Document::find_line_number(int cursor) const
     int line_max = static_cast<int>(m_lines.size()) - 1;
     while (true) {
         int line = line_min + (line_max - line_min) / 2;
-        if ((line < m_lines.size() - 1 && m_lines[line].start_index <= cursor && cursor < m_lines[line+1].start_index) ||
-            (line == m_lines.size() - 1 && m_lines[line].start_index <= cursor)) {
+        if ((line < m_lines.size() - 1 && m_lines[line].start_index <= cursor && cursor < m_lines[line + 1].start_index) || (line == m_lines.size() - 1 && m_lines[line].start_index <= cursor)) {
             return line;
         } else {
             if (m_lines[line].start_index > cursor) {
@@ -240,13 +240,13 @@ int Document::mark_column() const
 
 void Document::move_to(int line, int column, bool select)
 {
-    line = clamp(line, 0, (int) line_count()-1);
-    column = clamp(column, 0, (int) line_length(line));
+    line = clamp(line, 0, (int)line_count() - 1);
+    column = clamp(column, 0, (int)line_length(line));
     m_point = m_lines[line].start_index + column;
     if (m_screen_top > line || m_screen_top + rows() < line)
-        m_screen_top = line - rows()/2;
+        m_screen_top = line - rows() / 2;
     if (m_screen_left > column || m_screen_left + columns() < column)
-        m_screen_left = column - columns()/2;
+        m_screen_left = column - columns() / 2;
     update_internals_after_move(select);
 }
 
@@ -266,9 +266,9 @@ void Document::up(bool select)
     int line = find_line_number(m_point);
     int column = m_point - m_lines[line].start_index;
     if (line > 0) {
-        m_point = clamp(m_lines[line-1].start_index + column, m_lines[line-1].start_index, m_lines[line-1].start_index + line_length(line-1));
+        m_point = clamp(m_lines[line - 1].start_index + column, m_lines[line - 1].start_index, m_lines[line - 1].start_index + line_length(line - 1));
     }
-    update_internals_after_move(select, line-1);
+    update_internals_after_move(select, line - 1);
 }
 
 void Document::down(bool select)
@@ -276,9 +276,9 @@ void Document::down(bool select)
     int line = find_line_number(m_point);
     int column = m_point - m_lines[line].start_index;
     if (line < (line_count() - 1)) {
-        m_point = clamp(m_lines[line+1].start_index + column, m_lines[line+1].start_index, m_lines[line+1].start_index + line_length(line+1));
+        m_point = clamp(m_lines[line + 1].start_index + column, m_lines[line + 1].start_index, m_lines[line + 1].start_index + line_length(line + 1));
     }
-    update_internals_after_move(select, line+1);
+    update_internals_after_move(select, line + 1);
 }
 
 void Document::left(bool select)
@@ -339,14 +339,45 @@ void Document::page_down(bool select)
 
 void Document::home(bool select)
 {
-    for (; m_point > 1 && m_text[m_point-1] != '\n'; --m_point);
+    for (; m_point > 1 && m_text[m_point - 1] != '\n'; --m_point)
+        ;
     update_internals_after_move(select);
 }
 
 void Document::end(bool select)
 {
-    for (; m_point < m_text.length() && m_text[m_point] != '\n'; ++m_point);
+    for (; m_point < m_text.length() && m_text[m_point] != '\n'; ++m_point)
+        ;
     update_internals_after_move(select);
+}
+
+bool Document::find(std::string const& term)
+{
+    m_found = true;
+    m_find_term = term;
+    return find_next();
+}
+
+bool Document::find_next()
+{
+    if (m_find_term.empty())
+        return true;
+    auto stash_point = m_point;
+    auto stash_mark = m_mark;
+    if (!m_found) {
+        m_mark = m_point = 0;
+    }
+    auto where = m_text.find(m_find_term, m_point);
+    if (where != m_text.npos) {
+        m_mark = where;
+        m_point = m_mark + m_find_term.length();
+        m_found = true;
+        return true;
+    }
+    m_point = stash_point;
+    m_mark = stash_mark;
+    m_found = false;
+    return false;
 }
 
 void Document::clear()
@@ -453,7 +484,6 @@ void Document::render()
         auto const& line = m_lines[ix];
         auto line_len = line_length(ix);
         auto line_end = line.start_index + line_len;
-        auto start_next_line = (ix < m_lines.size() - 1) ? m_lines[ix+1].start_index : m_text.length();
         if (has_selection && (start_selection <= line_end) && (end_selection >= line.start_index)) {
             int start_block = start_selection - line.start_index;
             if (start_block < 0)

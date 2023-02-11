@@ -95,6 +95,9 @@ public:
     void home(bool);
     void end(bool);
 
+    bool find(std::string const&);
+    bool find_next();
+
     void clear();
     std::string load(std::string const&);
     std::string save();
@@ -129,6 +132,8 @@ private:
     int m_screen_left {0};
     int m_point {0};
     int m_mark {0};
+    std::string m_find_term;
+    bool m_found { true };
     std::chrono::milliseconds m_last_parse_time { 0 };
 };
 

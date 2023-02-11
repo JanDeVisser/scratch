@@ -11,25 +11,37 @@
 
 namespace Scratch {
 
+static uint32_t normalize_mod(uint32_t mod)
+{
+    uint32_t ret = 0;
+    if (mod & KMOD_SHIFT)
+        ret |= KMOD_SHIFT;
+    if (mod & KMOD_CTRL)
+        ret |= KMOD_CTRL;
+    if (mod & KMOD_ALT)
+        ret |= KMOD_ALT;
+    if (mod & KMOD_GUI)
+        ret |= KMOD_GUI;
+    return ret;
+}
+
 SDLKey::SDLKey(SDL_Keycode the_sym, uint32_t the_mod)
     : sym(the_sym)
-    , mod(the_mod)
 {
+    mod = normalize_mod(the_mod);
 }
 
 SDLKey::SDLKey(SDL_Keysym const& key)
-    : sym(key.sym)
-    , mod(key.mod)
+    : sym((key.sym < 'A' || key.sym > 'Z') ? key.sym : key.sym + 32)
 {
+    mod = normalize_mod(key.mod);
 }
 
 int SDLKey::operator<=>(SDLKey const& other) const
 {
     if (sym != other.sym)
         return sym - other.sym;
-    if (mod == KMOD_NONE && other.mod == KMOD_NONE)
-        return 0;
-    if (mod & other.mod)
+    if (mod == other.mod)
         return 0;
     return mod - other.mod;
 }
@@ -61,13 +73,9 @@ std::string SDLKey::to_string() const
     if (mod & KMOD_CTRL)
         ss << "C-";
     if (mod & KMOD_SHIFT) {
-        if ((sym >= SDLK_a) && (sym <= SDLK_z)) {
-            ss << (char)sym - 32;
-            return ss.str();
-        } else {
-            ss << "S-";
-        }
-    } else if ((sym >= ' ') && (sym <= '~')) {
+        ss << "S-";
+    }
+    if ((sym >= ' ') && (sym <= '~')) {
         ss << (char)sym;
         return ss.str();
     }

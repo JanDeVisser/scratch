@@ -155,6 +155,16 @@ void Document::select_word()
     }
 }
 
+void Document::select_line()
+{
+    auto line = find_line_number(m_point);
+    m_point = m_lines[line].start_index;
+    if (line < m_lines.size()-1)
+        m_mark = m_lines[line+1].start_index;
+    else
+        m_mark = static_cast<int>(m_text.length());
+}
+
 std::string Document::selected_text()
 {
     if (m_point == m_mark)
@@ -379,10 +389,10 @@ bool Document::find_next()
     if (!m_found) {
         m_mark = m_point = 0;
     }
-    auto where = m_text.find(m_find_term, m_point);
-    if (where != m_text.npos) {
+    auto where = static_cast<int>(m_text.find(m_find_term, m_point));
+    if (where != std::string::npos) {
         m_mark = where;
-        m_point = m_mark + m_find_term.length();
+        m_point = m_mark + static_cast<int>(m_find_term.length());
         m_found = true;
         return true;
     }
@@ -637,7 +647,7 @@ void Document::handle_click(int line, int column, int clicks)
         select_word();
         break;
     case 3:
-        // Select line
+        select_line();
         break;
     default:
         break;

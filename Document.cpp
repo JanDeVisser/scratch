@@ -143,6 +143,18 @@ void Document::extend_selection(int num)
     }
 }
 
+void Document::select_word()
+{
+    m_mark = m_point;
+    if (isalnum(m_text[m_point]) || m_text[m_point] == '_') {
+        while (m_point > 0 && (isalnum(m_text[m_point-1]) || m_text[m_point-1] == '_')) --m_point;
+        while (m_mark < m_text.length() && (isalnum(m_text[m_mark]) || m_text[m_mark] == '_')) ++m_mark;
+    } else {
+        while (m_point > 0 && !isalnum(m_text[m_point-1]) && m_text[m_point-1] != '_') --m_point;
+        while (m_mark < m_text.length() && !isalnum(m_text[m_mark]) && m_text[m_mark] != '_') ++m_mark;
+    }
+}
+
 std::string Document::selected_text()
 {
     if (m_point == m_mark)
@@ -622,7 +634,7 @@ void Document::handle_click(int line, int column, int clicks)
 {
     switch (clicks) {
     case 2:
-        // Select word
+        select_word();
         break;
     case 3:
         // Select line

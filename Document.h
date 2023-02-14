@@ -77,6 +77,7 @@ public:
 
     void reset_selection();
     void extend_selection(int);
+    void select_word();
     std::string selected_text();
     void erase_selection();
     void copy_to_clipboard();

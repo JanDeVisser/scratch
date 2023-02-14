@@ -191,6 +191,26 @@ void WindowedWidget::set_texthandler(TextHandler handler)
     m_texthandler = std::move(handler);
 }
 
+void WindowedWidget::set_mousedownhandler(MouseButtonHandler handler)
+{
+    m_mousedownhandler = std::move(handler);
+}
+
+void WindowedWidget::set_mouseclickhandler(MouseButtonHandler handler)
+{
+    m_mouseclickhandler = std::move(handler);
+}
+
+void WindowedWidget::set_mousewheelhandler(MouseWheelHandler handler)
+{
+    m_mousewheelhandler = std::move(handler);
+}
+
+void WindowedWidget::set_mousemotionhandler(MouseMotionHandler handler)
+{
+    m_mousemotionhandler = std::move(handler);
+}
+
 void WindowedWidget::set_size_calculator(SizeCalculator calculator)
 {
     m_size_calculator = std::move(calculator);
@@ -210,10 +230,28 @@ bool WindowedWidget::dispatch(SDL_Keysym sym)
     return false;
 }
 
+void WindowedWidget::handle_mousedown(SDL_MouseButtonEvent const& event)
+{
+    if (m_mousedownhandler != nullptr)
+        m_mousedownhandler(this, event);
+}
+
 void WindowedWidget::handle_click(SDL_MouseButtonEvent const& event)
 {
-    if (m_mousebuttonhandler != nullptr)
-        m_mousebuttonhandler(this, event);
+    if (m_mouseclickhandler != nullptr)
+        m_mouseclickhandler(this, event);
+}
+
+void WindowedWidget::handle_wheel(SDL_MouseWheelEvent const& event)
+{
+    if (m_mousewheelhandler != nullptr)
+        m_mousewheelhandler(this, event);
+}
+
+void WindowedWidget::handle_motion(SDL_MouseMotionEvent const& event)
+{
+    if (m_mousemotionhandler != nullptr)
+        m_mousemotionhandler(this, event);
 }
 
 void WindowedWidget::handle_text_input()
@@ -320,12 +358,50 @@ void WidgetContainer::resize(Box const& outline)
     }
 }
 
+void WidgetContainer::handle_motion(Box const& outline, SDL_MouseMotionEvent const& event)
+{
+    m_mouse_focus = nullptr;
+    if (outline.contains((int) event.x, (int) event.y)) {
+        for (auto const& c : m_components) {
+            if (c->outline().contains((int) event.x, (int) event.y)) {
+                m_mouse_focus = c.get();
+                c->handle_motion(event);
+                return;
+            }
+        }
+    }
+}
+
+void WidgetContainer::handle_mousedown(Box const& outline, SDL_MouseButtonEvent const& event)
+{
+    if (outline.contains((int) event.x, (int) event.y)) {
+        for (auto const& c : m_components) {
+            if (c->outline().contains((int) event.x, (int) event.y)) {
+                c->handle_mousedown(event);
+                return;
+            }
+        }
+    }
+}
+
 void WidgetContainer::handle_click(Box const& outline, SDL_MouseButtonEvent const& event)
 {
     if (outline.contains((int) event.x, (int) event.y)) {
         for (auto const& c : m_components) {
             if (c->outline().contains((int) event.x, (int) event.y)) {
                 c->handle_click(event);
+                return;
+            }
+        }
+    }
+}
+
+void WidgetContainer::handle_wheel(Box const& outline, SDL_MouseWheelEvent const& event)
+{
+    if (outline.contains((int) event.mouseX, (int) event.mouseY)) {
+        for (auto const& c : m_components) {
+            if (c->outline().contains((int) event.mouseX, (int) event.mouseY)) {
+                c->handle_wheel(event);
                 return;
             }
         }
@@ -382,9 +458,24 @@ WidgetContainer& Layout::container()
     return m_container;
 }
 
+void Layout::handle_mousedown(SDL_MouseButtonEvent const& event)
+{
+    m_container.handle_mousedown(outline(), event);
+}
+
 void Layout::handle_click(SDL_MouseButtonEvent const& event)
 {
     m_container.handle_click(outline(), event);
+}
+
+void Layout::handle_wheel(SDL_MouseWheelEvent const& event)
+{
+    m_container.handle_wheel(outline(), event);
+}
+
+void Layout::handle_motion(SDL_MouseMotionEvent const& event)
+{
+    m_container.handle_motion(outline(), event);
 }
 
 /* ----------------------------------------------------------------------- */

@@ -106,7 +106,10 @@ public:
 
     void render();
     bool dispatch(SDL_Keysym);
-    void handle_click(int, int);
+    void handle_mousedown(int, int);
+    void handle_motion(int, int);
+    void handle_click(int, int, int);
+    void handle_wheel(int);
     void handle_text_input();
 
     Token const& lex();

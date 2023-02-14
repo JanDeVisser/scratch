@@ -62,6 +62,7 @@ std::string SDLKey::to_string() const
         { SDLK_TAB, "TAB" },
         { SDLK_RETURN, "RET" },
         { SDLK_KP_ENTER, "RET" },
+        { SDLK_ESCAPE, "ESC" },
         { SDLK_UNKNOWN, "" },
     };
 

@@ -63,7 +63,10 @@ public:
     void text_cursor(int line, int column);
     void mark_current_line(int line);
     bool dispatch(SDL_Keysym) override;
+    void handle_mousedown(SDL_MouseButtonEvent const& event) override;
+    void handle_motion(SDL_MouseMotionEvent const& event) override;
     void handle_click(SDL_MouseButtonEvent const& event) override;
+    void handle_wheel(SDL_MouseWheelEvent const& event) override;
     void handle_text_input() override;
     void append(DisplayToken const&);
     void newline();
@@ -79,6 +82,7 @@ private:
     int m_rows { -1 };
     int m_columns { -1 };
     int m_line_height { 0 };
+    std::optional<Position> m_mouse_down_at;
 };
 
 }

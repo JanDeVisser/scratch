@@ -33,7 +33,10 @@ public:
 
     virtual void render();
     virtual bool dispatch(SDL_Keysym) { return false; }
+    virtual void handle_mousedown(SDL_MouseButtonEvent const&) { }
     virtual void handle_click(SDL_MouseButtonEvent const&) { }
+    virtual void handle_wheel(SDL_MouseWheelEvent const&) { }
+    virtual void handle_motion(SDL_MouseMotionEvent const&) { }
     virtual void handle_text_input() { }
     virtual void resize(Box const&);
     virtual std::vector<std::string> status() { return {}; }
@@ -86,6 +89,8 @@ class WidgetContainer;
 using Renderer = std::function<void(WindowedWidget*)>;
 using KeyHandler = std::function<bool(WindowedWidget*, SDL_Keysym)>;
 using MouseButtonHandler = std::function<void(WindowedWidget*, SDL_MouseButtonEvent const&)>;
+using MouseWheelHandler = std::function<void(WindowedWidget*, SDL_MouseWheelEvent const&)>;
+using MouseMotionHandler = std::function<void(WindowedWidget*, SDL_MouseMotionEvent const&)>;
 using TextHandler = std::function<void(WindowedWidget*)>;
 using SizeCalculator = std::function<int(WindowedWidget*)>;
 
@@ -107,12 +112,18 @@ public:
     [[nodiscard]] Box const& outline() const;
     void set_renderer(Renderer);
     void set_keyhandler(KeyHandler);
-    void set_mousebuttonhandler(MouseButtonHandler);
+    void set_mousedownhandler(MouseButtonHandler);
+    void set_mouseclickhandler(MouseButtonHandler);
+    void set_mousewheelhandler(MouseWheelHandler);
+    void set_mousemotionhandler(MouseMotionHandler);
     void set_texthandler(TextHandler);
     void set_size_calculator(SizeCalculator);
     void render() override;
     bool dispatch(SDL_Keysym) override;
+    void handle_mousedown(SDL_MouseButtonEvent const&) override;
     void handle_click(SDL_MouseButtonEvent const&) override;
+    void handle_wheel(SDL_MouseWheelEvent const&) override;
+    void handle_motion(SDL_MouseMotionEvent const&) override;
     void handle_text_input() override;
     void resize(Box const&) override;
     int calculate_size();
@@ -129,7 +140,10 @@ private:
 
     Renderer m_renderer { nullptr };
     KeyHandler m_keyhandler { nullptr };
-    MouseButtonHandler m_mousebuttonhandler { nullptr };
+    MouseButtonHandler m_mousedownhandler { nullptr };
+    MouseButtonHandler m_mouseclickhandler { nullptr };
+    MouseWheelHandler m_mousewheelhandler { nullptr };
+    MouseMotionHandler m_mousemotionhandler { nullptr };
     TextHandler m_texthandler { nullptr };
     SizeCalculator m_size_calculator { nullptr };
 };
@@ -157,12 +171,16 @@ public:
         return nullptr;
     }
 
+    void handle_mousedown(Box const&, SDL_MouseButtonEvent const&);
     void handle_click(Box const&, SDL_MouseButtonEvent const&);
+    void handle_wheel(Box const&, SDL_MouseWheelEvent const&);
+    void handle_motion(Box const&, SDL_MouseMotionEvent const&);
 
 private:
     ContainerOrientation m_orientation { ContainerOrientation::Vertical };
     std::vector<std::unique_ptr<WindowedWidget>> m_components;
     std::vector<Box> m_outlines;
+    Widget* m_mouse_focus { nullptr };
 };
 
 class Layout : public WindowedWidget {
@@ -174,7 +192,10 @@ public:
     std::vector<Widget*> components();
     void add_component(WindowedWidget*);
     WidgetContainer const& container() const;
+    void handle_mousedown(SDL_MouseButtonEvent const&) override;
     void handle_click(SDL_MouseButtonEvent const&) override;
+    void handle_wheel(SDL_MouseWheelEvent const&) override;
+    void handle_motion(SDL_MouseMotionEvent const&) override;
 
     template <class ComponentClass>
     requires std::derived_from<ComponentClass, WindowedWidget>

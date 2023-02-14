@@ -94,6 +94,8 @@ void Editor::render()
 
 void Editor::mark_current_line(int line)
 {
+    if (line < 0 || line >= rows())
+        return;
     SDL_Rect r {
         0,
         line_top(line),
@@ -106,7 +108,7 @@ void Editor::mark_current_line(int line)
 
 void Editor::text_cursor(int line, int column)
 {
-    if (App::instance().modal() != nullptr)
+    if (line < 0 || line >= rows() || column < 0 || column >= columns() || App::instance().modal() != nullptr)
         return;
     static auto time_start = std::chrono::system_clock::now();
     auto time_end = std::chrono::system_clock::now();
@@ -145,13 +147,42 @@ bool Editor::dispatch(SDL_Keysym sym)
     return document()->dispatch(sym);
 }
 
+void Editor::handle_mousedown(SDL_MouseButtonEvent const& event)
+{
+    auto offset_x = event.x - left();
+    auto offset_y = event.y - top();
+    auto column = offset_x / App::instance().context()->character_width();
+    auto line = offset_y / line_height();
+    m_mouse_down_at = { column, line };
+    document()->handle_mousedown(line, column);
+}
+
+void Editor::handle_motion(SDL_MouseMotionEvent const& event)
+{
+    if (m_mouse_down_at.has_value()) {
+        auto offset_x = event.x - left();
+        auto offset_y = event.y - top();
+        auto column = offset_x / App::instance().context()->character_width();
+        auto line = offset_y / line_height();
+        if (column != m_mouse_down_at->left() || line != m_mouse_down_at->top()) {
+            document()->handle_motion(line, column);
+        }
+    }
+}
+
 void Editor::handle_click(SDL_MouseButtonEvent const& event)
 {
     auto offset_x = event.x - left();
     auto offset_y = event.y - top();
     auto column = offset_x / App::instance().context()->character_width();
     auto line = offset_y / line_height();
-    document()->handle_click(line, column);
+    document()->handle_click(line, column, event.clicks);
+    m_mouse_down_at = {};
+}
+
+void Editor::handle_wheel(SDL_MouseWheelEvent const& event)
+{
+    document()->handle_wheel(-event.y);
 }
 
 void Editor::handle_text_input()

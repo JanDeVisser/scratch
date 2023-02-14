@@ -228,18 +228,17 @@ void App::event_loop()
                     w->handle_text_input();
                 }
             } break;
+            case SDL_MOUSEMOTION: {
+                handle_motion(evt.motion);
+            } break;
+            case SDL_MOUSEBUTTONDOWN: {
+                handle_mousedown(evt.button);
+            } break;
             case SDL_MOUSEBUTTONUP: {
                 handle_click(evt.button);
-                m_mouse_clicked_count = evt.button.clicks;
             } break;
             case SDL_MOUSEWHEEL: {
-                if (evt.wheel.y < 0)
-                    m_scrollY += 32.0f;
-                else if (evt.wheel.y > 0)
-                    m_scrollY -= 32.0f;
-                m_scrollY = clamp(m_scrollY,
-                    0.0f,
-                    m_contentSize.y() <= m_widgetSize.y() ? 0.0f : m_contentSize.y() - m_widgetSize.y());
+                handle_wheel(evt.wheel);
             } break;
             default:
                 break;

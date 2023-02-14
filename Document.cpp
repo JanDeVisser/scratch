@@ -204,7 +204,7 @@ int Document::find_line_number(int cursor) const
             if (m_lines[line].start_index > cursor) {
                 line_max = line;
             } else {
-                line_min = line;
+                line_min = line + 1;
             }
         }
     }
@@ -331,7 +331,7 @@ void Document::page_down(bool select)
 {
     auto line = find_line_number(m_point);
     int column = m_point - m_lines[line].start_index;
-    line = clamp(line + rows(), line, static_cast<int>(m_lines.size()));
+    line = clamp(line + rows(), line, static_cast<int>(m_lines.size()-1));
     column = clamp(column, 0, line_length(line));
     m_point = m_lines[line].start_index + column;
     update_internals_after_move(select, line);
@@ -608,9 +608,33 @@ bool Document::dispatch(SDL_Keysym sym)
     return true;
 }
 
-void Document::handle_click(int line, int column)
+void Document::handle_mousedown(int line, int column)
 {
     move_to(m_screen_top + line, m_screen_left + column, false);
+}
+
+void Document::handle_motion(int line, int column)
+{
+    move_to(m_screen_top + line, m_screen_left + column, true);
+}
+
+void Document::handle_click(int line, int column, int clicks)
+{
+    switch (clicks) {
+    case 2:
+        // Select word
+        break;
+    case 3:
+        // Select line
+        break;
+    default:
+        break;
+    }
+}
+
+void Document::handle_wheel(int lines)
+{
+    m_screen_top = clamp(m_screen_top + lines, 0, static_cast<int>(m_lines.size())-1);
 }
 
 void Document::handle_text_input()

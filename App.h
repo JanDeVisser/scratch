@@ -105,8 +105,6 @@ public:
     void active(intptr_t);
     SDL_Color color(PaletteIndex color);
 
-    Coordinates cursor_position() const { return { 1, 1 }; }
-
     void event_loop();
     void render() override;
     bool dispatch(SDL_Keysym) override;
@@ -142,7 +140,7 @@ private:
 
     Vec2 m_contentSize;
 //    float m_scrollX = 0.0f;
-    float m_scrollY = 0.0f;
+//    float m_scrollY = 0.0f;
 
     unsigned m_frameCount = 0;
 

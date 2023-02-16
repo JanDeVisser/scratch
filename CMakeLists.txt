@@ -58,6 +58,7 @@ add_executable(
         scratch
         App.cpp
         Document.cpp
+        EditAction.cpp
         Editor.cpp
         EditorState.cpp
         Frame.cpp

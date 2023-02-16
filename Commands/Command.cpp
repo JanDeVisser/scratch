@@ -16,25 +16,44 @@ using namespace Obelix;
 namespace Scratch {
 
 std::map<std::string, Command> Command::s_commands = {
-    { "copy-to-clipboard",
-        { "copy-to-clipboard", "Copy selection to clipboard", {},
+    {
+        "copy-to-clipboard",
+        {
+            "copy-to-clipboard", "Copy selection to clipboard", {},
             [](strings const&) -> void {
                 auto doc = Scratch::editor()->document();
                 doc->copy_to_clipboard();
-            } } },
-    { "cut-to-clipboard",
-        { "cut-to-clipboard", "Cut selection to clipboard", {},
+            }
+        }
+    },
+    {
+        "cut-to-clipboard",
+        {
+            "cut-to-clipboard", "Cut selection to clipboard", {},
             [](strings const&) -> void {
                 auto doc = Scratch::editor()->document();
                 doc->cut_to_clipboard();
-            } } },
-    { "enlarge-font",
+            }
+        }
+    },
+    {
+        "duplicate-line",
+        {
+            "duplicate-line", "Duplicate current line", {},
+            [](strings const&) -> void {
+                Scratch::editor()->document()->duplicate_line();
+            }
+        }
+    },
+    {
+        "enlarge-font",
         { "enlarge-font", "Enlarge editor font", {},
             [](strings const&) -> void {
                 auto& app = App::instance();
                 app.enlarge_font();
-            } } },
-
+            }
+        }
+    },
     { "find-first",
         { "find-first", "Find",
             { {
@@ -93,6 +112,15 @@ std::map<std::string, Command> Command::s_commands = {
             [](strings const& args) -> void {
                 Scratch::editor()->open_file(args[0]);
             } } },
+    {
+        "redo",
+        {
+            "redo", "Redo edit", { },
+            [](strings const&) -> void {
+                Scratch::editor()->document()->redo();
+            }
+        }
+    },
     { "reset-font",
         { "reset-font", "Reset editor font", {},
             [](strings const&) -> void {
@@ -107,9 +135,10 @@ std::map<std::string, Command> Command::s_commands = {
         { "save-all-files", "Save call files",
             {},
             [](strings const&) -> void { Scratch::editor()->save_all(); } } },
-    { "save-file",
-        { "save-file", "Save current file",
-            {},
+    {
+        "save-file",
+        {
+            "save-file", "Save current file", {},
             [](strings const&) -> void {
                 auto editor = Scratch::editor();
                 assert(editor != nullptr);
@@ -118,19 +147,81 @@ std::map<std::string, Command> Command::s_commands = {
                 } else {
                     editor->save_file();
                 }
-            } } },
+            }
+        }
+    },
+    {
+        "select-all",
+        {
+            "select-all", "Select all", {},
+            [](strings const&) -> void {
+                Scratch::editor()->document()->select_all();
+            }
+        }
+    },
+    {
+        "select-line",
+        {
+            "select-line", "Select line", {},
+            [](strings const&) -> void {
+                Scratch::editor()->document()->select_line();
+            }
+        }
+    },
+    {
+        "select-word",
+        {
+            "select-word", "Select word", {},
+            [](strings const&) -> void {
+                Scratch::editor()->document()->select_word();
+            }
+        }
+    },
     { "shrink-font",
         { "shrink-font", "Shrink editor font", {},
             [](strings const&) -> void {
                 auto& app = App::instance();
                 app.shrink_font();
             } } },
-    { "switch-buffer",
-        { "switch-buffer", "Switch buffer",
-            { { "Buffer", CommandParameterType::Buffer } },
+    {
+        "switch-buffer",
+        {
+            "switch-buffer", "Switch buffer",
+            {
+                { "Buffer", CommandParameterType::Buffer }
+            },
             [](strings const& args) -> void {
                 Scratch::editor()->switch_to(args[0]);
-            } } },
+            }
+        }
+    },
+    {
+        "transpose-lines-down",
+        {
+            "transpose-lines-down", "Transpose lines down", {},
+            [](strings const&) -> void {
+                Scratch::editor()->document()->transpose_lines(Document::TransposeDirection::Down);
+            }
+        }
+    },
+    {
+        "transpose-lines-up",
+        {
+            "transpose-lines-up", "Transpose lines up", {},
+            [](strings const&) -> void {
+                Scratch::editor()->document()->transpose_lines(Document::TransposeDirection::Up);
+            }
+        }
+    },
+    {
+        "undo",
+        {
+            "undo", "Undo edit", { },
+            [](strings const&) -> void {
+                Scratch::editor()->document()->undo();
+            }
+        }
+    },
     { "invoke",
         { "invoke", "Invoke command",
             { { "Command", CommandParameterType::Command } },
@@ -144,9 +235,13 @@ std::map<std::string, Command> Command::s_commands = {
 std::map<SDLKey, std::string> Command::s_key_bindings = {
     { { SDLK_EQUALS, KMOD_GUI }, "enlarge-font" },
     { { SDLK_MINUS, KMOD_GUI }, "shrink-font" },
+    { { SDLK_DOWN, KMOD_ALT }, "transpose-lines-down" },
+    { { SDLK_UP, KMOD_ALT }, "transpose-lines-up" },
     { { SDLK_0, KMOD_GUI }, "reset-font" },
+    { { SDLK_a, KMOD_CTRL }, "select-all" },
     { { SDLK_b, KMOD_CTRL }, "switch-buffer" },
     { { SDLK_c, KMOD_CTRL }, "copy-to-clipboard" },
+    { { SDLK_d, KMOD_CTRL }, "duplicate-line" },
     { { SDLK_f, KMOD_CTRL }, "find-first" },
     { { SDLK_g, KMOD_CTRL }, "goto-line-column" },
     { { SDLK_f, KMOD_CTRL | KMOD_SHIFT }, "find-next" },
@@ -159,6 +254,8 @@ std::map<SDLKey, std::string> Command::s_key_bindings = {
     { { SDLK_v, KMOD_CTRL }, "paste-from-clipboard" },
     { { SDLK_x, KMOD_CTRL }, "cut-to-clipboard" },
     { { SDLK_x, KMOD_GUI }, "invoke" },
+    { { SDLK_y, KMOD_CTRL }, "redo" },
+    { { SDLK_z, KMOD_CTRL }, "undo" },
 };
 
 bool Command::bind(SDLKey key)

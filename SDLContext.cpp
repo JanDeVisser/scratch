@@ -103,10 +103,9 @@ SDLContext::SDLFont::SDLFont(SDLRenderer& renderer, std::string font_name, int p
     : renderer(renderer)
     , name(std::move(font_name))
     , initial_size(point_size)
+    , size(point_size)
 {
-    if (font = TTF_OpenFont(name.c_str(), size); font == nullptr)
-        fatal("Could not load font '{}'", name);
-    set_size(point_size);
+    set_font(name);
     debug(scratch, "Opened font '{}' w/ character size {}x{}", name, character_width, character_height);
 }
 
@@ -125,6 +124,14 @@ void SDLContext::SDLFont::set_size(int point_size)
         fatal("Error getting size of text: {}", TTF_GetError());
     if (character_height = TTF_FontHeight(font); character_height < 0)
         fatal("Error getting font height: {}", TTF_GetError());
+}
+
+void SDLContext::SDLFont::set_font(std::string const& font_name)
+{
+    name = font_name;
+    if (font = TTF_OpenFont(format("fonts/{}.ttf", name).c_str(), size); font == nullptr)
+        fatal("Could not load font '{}'", name);
+    set_size(size);
 }
 
 SDL_Rect SDLContext::SDLFont::render(int x, int y, std::string const& text, SDL_Color color) const
@@ -225,17 +232,27 @@ int SDLContext::character_height() const
 
 void SDLContext::enlarge_font(SDLFontFamily family)
 {
-    m_fonts[(size_t)family].set_size((int)(m_fonts[(size_t)family].size * 1.2));
+    set_font_size(m_fonts[(size_t)family].size * 1.2, family);
 }
 
 void SDLContext::shrink_font(SDLFontFamily family)
 {
-    m_fonts[(size_t)family].set_size((int)(m_fonts[(size_t)family].size / 1.2));
+    set_font_size(m_fonts[(size_t)family].size / 1.2, family);
 }
 
 void SDLContext::reset_font(SDLFontFamily family)
 {
-    m_fonts[(size_t)family].set_size(m_fonts[(size_t)family].initial_size);
+    set_font_size(m_fonts[(size_t)family].initial_size, family);
+}
+
+void SDLContext::set_font(std::string const& name, SDLFontFamily family)
+{
+    m_fonts[(size_t)family].set_font(name);
+}
+
+void SDLContext::set_font_size(int points, SDLFontFamily family)
+{
+    m_fonts[(size_t)family].set_size(points);
 }
 
 SDL_Rect SDLContext::render_text(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily family) const

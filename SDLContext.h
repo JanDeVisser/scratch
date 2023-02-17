@@ -46,6 +46,8 @@ public:
     void enlarge_font(SDLFontFamily = SDLFontFamily::Fixed);
     void shrink_font(SDLFontFamily = SDLFontFamily::Fixed);
     void reset_font(SDLFontFamily = SDLFontFamily::Fixed);
+    void set_font(std::string const&, SDLFontFamily = SDLFontFamily::Fixed);
+    void set_font_size(int, SDLFontFamily = SDLFontFamily::Fixed);
 
     SDL_Rect render_text(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily = SDLFontFamily::Fixed) const;
     SDL_Rect render_text_right_aligned(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily = SDLFontFamily::Fixed) const;
@@ -91,6 +93,7 @@ private:
         ~SDLFont();
 
         void set_size(int);
+        void set_font(std::string const&);
         [[nodiscard]] std::string to_string() const { return name; }
         operator TTF_Font*() const { return font; }
         SDL_Rect render(int, int, std::string const& text, SDL_Color color) const;
@@ -123,8 +126,8 @@ private:
     SDLRenderer m_renderer { m_window };
     SDLIMG m_img {};
     std::array<SDLFont, (size_t) SDLFontFamily::Max> m_fonts {
-        SDLFont { m_renderer, "JetBrainsMono.ttf", 15 },
-        SDLFont { m_renderer, "Swansea-q3pd.ttf", 15 }
+        SDLFont { m_renderer, "JetBrainsMono", 18 },
+        SDLFont { m_renderer, "Swansea-q3pd", 15 }
     };
     SDLCursor m_arrow { SDL_SYSTEM_CURSOR_ARROW };
     SDLCursor m_input { SDL_SYSTEM_CURSOR_IBEAM };

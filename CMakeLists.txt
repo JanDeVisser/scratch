@@ -28,15 +28,8 @@ find_package(SDL2_ttf REQUIRED)
 
 set(INCLUDES ${INCLUDES} "${SDL2_INCLUDE_DIRS}" "${SDL2_TTF_INCLUDE_DIRS}")
 
-include(FetchContent)
-
-find_package(Readline)
-if(READLINE_FOUND)
-    set(LIBS ${READLINE_LIBRARIES} ${LIBS})
-    set(INCLUDES ${INCLUDES} ${READLINE_INCLUDE_DIRS})
-endif(READLINE_FOUND)
-
 if(FETCH_OBELIXLIBS)
+    include(FetchContent)
     FetchContent_Declare(
             obelixlibs
             GIT_REPOSITORY git@github.com:JanDeVisser/obelixlibs.git
@@ -61,21 +54,24 @@ add_executable(
         EditAction.cpp
         Editor.cpp
         EditorState.cpp
-        Frame.cpp
         Geometry.h
         Gutter.cpp
         Key.cpp
-        Main.cpp
+        Scratch.cpp
         SDLContext.cpp
         StatusBar.cpp
         Text.cpp
-        Widget.cpp
         Commands/ArgumentHandler.cpp
         Commands/Command.cpp
         Commands/CommandHandler.cpp
         Commands/DefaultArgumentHandler.cpp
         Parser/CPlusPlus.cpp
-)
+        Widget/Frame.cpp
+        Widget/Layout.cpp
+        Widget/ModalWidget.cpp
+        Widget/Widget.cpp
+        Widget/WindowedWidget.cpp
+        Widget/WidgetContainer.cpp)
 
 target_link_libraries(
         scratch
@@ -89,9 +85,7 @@ target_link_libraries(
 
 target_compile_features(scratch PUBLIC cxx_std_20)
 
-add_executable(escape escape.c)
-
-install(TARGETS scratch escape
+install(TARGETS scratch
         ARCHIVE DESTINATION lib
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib

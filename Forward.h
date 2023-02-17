@@ -13,24 +13,23 @@
 
 #define ENUMERATE_CLASSES(S) \
     S(App)                   \
+    S(Command)               \
+    S(Commands)              \
     S(Document)              \
     S(Editor)                \
-    S(Menu)                  \
-    S(MenuBar)               \
-    S(MenuEntry)             \
-    S(Messenger)             \
+    S(Gutter)                \
+    S(Layout)                \
+    S(ModalWidget)           \
     S(StatusBar)             \
-    S(StatusReporter)        \
-    S(WindowedWidget)        \
-    S(Widget)
+    S(Widget)                \
+    S(WidgetContainer)       \
+    S(WindowedWidget)
 
 namespace Scratch {
 
 #undef ENUM_CLASS
-#define ENUM_CLASS(type)                   \
-    class type;                            \
-    using p##type = std::shared_ptr<type>; \
-    using type##s = std::vector<p##type>;
+#define ENUM_CLASS(type) \
+    class type;
 ENUMERATE_CLASSES(ENUM_CLASS)
 #undef ENUM_CLASS
 

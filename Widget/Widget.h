@@ -13,6 +13,7 @@
 #include <Forward.h>
 #include <Geometry.h>
 #include <SDLContext.h>
+#include <Commands/Command.h>
 
 namespace Scratch {
 
@@ -25,54 +26,21 @@ enum class TextAlignment {
 class Widget : public std::enable_shared_from_this<Widget> {
 public:
     virtual ~Widget() = default;
-    [[nodiscard]] virtual int height() const = 0;
-    [[nodiscard]] virtual int width() const = 0;
-    [[nodiscard]] virtual int top() const = 0;
-    [[nodiscard]] virtual int left() const = 0;
-    [[nodiscard]] bool empty() const;
 
     virtual void render();
-    virtual bool dispatch(SDL_Keysym) { return false; }
+    virtual bool dispatch(SDL_Keysym);
     virtual void handle_mousedown(SDL_MouseButtonEvent const&) { }
     virtual void handle_click(SDL_MouseButtonEvent const&) { }
     virtual void handle_wheel(SDL_MouseWheelEvent const&) { }
     virtual void handle_motion(SDL_MouseMotionEvent const&) { }
     virtual void handle_text_input() { }
     virtual void resize(Box const&);
-    virtual std::vector<std::string> status() { return {}; }
+    [[nodiscard]] virtual std::optional<ScheduledCommand> command(std::string const&) const;
+    [[nodiscard]] virtual std::vector<Command> commands() const;
 
-    SDL_Rect render_text(int x, int y, std::string const& text,
-        SDL_Color const& color = SDL_Color { 255, 255, 255, 255 },
-        TextAlignment = TextAlignment::Left,
-        SDLContext::SDLFontFamily = SDLContext::SDLFontFamily::Fixed) const;
-
-
-    template <class Str>
-    SDL_Rect render_fixed(int x, int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
-    {
-        return render_text(x, y, std::string(text), color, TextAlignment::Left, SDLContext::SDLFontFamily::Fixed);
-    }
-
-    template <class Str>
-    SDL_Rect render_fixed_right_aligned(int x, int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
-    {
-        return render_text(x, y, std::string(text), color, TextAlignment::Left, SDLContext::SDLFontFamily::Fixed);
-    }
-
-    template <class Str>
-    SDL_Rect render_fixed_centered(int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
-    {
-        return render_text(0, y, std::string(text), color, TextAlignment::Center, SDLContext::SDLFontFamily::Fixed);
-    }
-
-    SDL_Rect normalize(SDL_Rect const&) const;
-    void box(SDL_Rect const&, SDL_Color) const;
-    void rectangle(SDL_Rect const&, SDL_Color) const;
-    void roundedRectangle(SDL_Rect const&, int, SDL_Color) const;
 protected:
     Widget() = default;
-
-private:
+    Commands* m_commands { nullptr };
 };
 
 enum class SizePolicy {
@@ -99,10 +67,11 @@ public:
     WindowedWidget(SizePolicy = SizePolicy::Stretch, int = 0);
     WindowedWidget(SizeCalculator);
 
-    [[nodiscard]] int height() const override;
-    [[nodiscard]] int width() const override;
-    [[nodiscard]] int top() const override;
-    [[nodiscard]] int left() const override;
+    [[nodiscard]] virtual int height() const;
+    [[nodiscard]] virtual int width() const;
+    [[nodiscard]] virtual int top() const;
+    [[nodiscard]] virtual int left() const;
+    [[nodiscard]] bool empty() const;
     [[nodiscard]] SizePolicy policy() const;
     [[nodiscard]] int policy_size() const;
     [[nodiscard]] WidgetContainer const* parent() const;
@@ -127,6 +96,34 @@ public:
     void handle_text_input() override;
     void resize(Box const&) override;
     int calculate_size();
+
+    SDL_Rect render_text(int x, int y, std::string const& text,
+        SDL_Color const& color = SDL_Color { 255, 255, 255, 255 },
+        TextAlignment = TextAlignment::Left,
+        SDLContext::SDLFontFamily = SDLContext::SDLFontFamily::Fixed) const;
+
+    template <class Str>
+    SDL_Rect render_fixed(int x, int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
+    {
+        return render_text(x, y, std::string(text), color, TextAlignment::Left, SDLContext::SDLFontFamily::Fixed);
+    }
+
+    template <class Str>
+    SDL_Rect render_fixed_right_aligned(int x, int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
+    {
+        return render_text(x, y, std::string(text), color, TextAlignment::Left, SDLContext::SDLFontFamily::Fixed);
+    }
+
+    template <class Str>
+    SDL_Rect render_fixed_centered(int y, Str text, SDL_Color const& color = SDL_Color { 255, 255, 255, 255 }) const
+    {
+        return render_text(0, y, std::string(text), color, TextAlignment::Center, SDLContext::SDLFontFamily::Fixed);
+    }
+
+    SDL_Rect normalize(SDL_Rect const&) const;
+    void box(SDL_Rect const&, SDL_Color) const;
+    void rectangle(SDL_Rect const&, SDL_Color) const;
+    void roundedRectangle(SDL_Rect const&, int, SDL_Color) const;
 
 protected:
 private:
@@ -157,7 +154,7 @@ class WidgetContainer {
 public:
     explicit WidgetContainer(ContainerOrientation);
     void add_component(WindowedWidget*);
-    [[nodiscard]] std::vector<Widget*> components();
+    [[nodiscard]] std::vector<Widget*> components() const;
     void resize(Box const&);
 
     template <class ComponentClass>
@@ -196,6 +193,8 @@ public:
     void handle_click(SDL_MouseButtonEvent const&) override;
     void handle_wheel(SDL_MouseWheelEvent const&) override;
     void handle_motion(SDL_MouseMotionEvent const&) override;
+    std::optional<ScheduledCommand> command(std::string const&) const override;
+    [[nodiscard]] std::vector<Command> commands() const override;
 
     template <class ComponentClass>
     requires std::derived_from<ComponentClass, WindowedWidget>
@@ -235,7 +234,7 @@ private:
     std::unique_ptr<WindowedWidget> m_contents;
 };
 
-class ModalWidget : public Widget {
+class ModalWidget : public WindowedWidget {
 public:
     ModalWidget(int, int);
     void dismiss();

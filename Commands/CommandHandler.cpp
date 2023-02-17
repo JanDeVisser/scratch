@@ -7,16 +7,16 @@
 #include <core/StringUtil.h>
 
 #include <Commands/ArgumentHandler.h>
-#include <Commands/Command.h>
-#include <Scratch.h>
+#include <Commands/CommandHandler.h>
 
 using namespace Obelix;
 
 namespace Scratch {
 
-CommandHandler::CommandHandler(Command const& command)
+CommandHandler::CommandHandler(ScheduledCommand& scheduled_command)
     : ModalWidget(App::instance().width() / 2, App::instance().height() / 2)
-    , m_command(command)
+    , m_owner(scheduled_command.owner)
+    , m_command(scheduled_command.command)
 {
 }
 
@@ -27,7 +27,7 @@ void CommandHandler::render()
         return;
     }
     if (m_current_parameter >= m_command.parameters.size()) {
-        m_command.function(m_arguments);
+        m_command.function(m_owner, m_arguments);
         dismiss();
         return;
     }
@@ -55,4 +55,4 @@ void CommandHandler::abort()
     m_current_parameter = -1;
 }
 
-} // Scratch
+}

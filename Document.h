@@ -14,7 +14,9 @@
 #include <lexer/BasicParser.h>
 
 #include <Forward.h>
+#include <Commands/Command.h>
 #include <Parser/CPlusPlus.h>
+#include <Widget/Widget.h>
 
 namespace Scratch {
 
@@ -52,6 +54,10 @@ enum class EditActionType {
     CursorMove,
 };
 
+struct DocumentCommands : public Commands {
+    DocumentCommands();
+};
+
 class EditAction {
 public:
     static EditAction insert_text(int, std::string);
@@ -75,7 +81,7 @@ private:
     std::string m_text;
 };
 
-class Document {
+class Document : public Widget {
 public:
     explicit Document(Editor *);
 
@@ -150,17 +156,16 @@ public:
 
     void render();
     bool dispatch(SDL_Keysym);
-    void handle_mousedown(int, int);
-    void handle_motion(int, int);
-    void handle_click(int, int, int);
-    void handle_wheel(int);
+    void mousedown(int, int);
+    void motion(int, int);
+    void click(int, int, int);
+    void wheel(int);
     void handle_text_input();
 
     Token const& lex();
     void rewind();
     void invalidate();
     [[nodiscard]] auto last_parse_time() const { return m_last_parse_time.count(); }
-
 
 private:
     void insert_text(std::string const&, int = -1);
@@ -188,6 +193,7 @@ private:
     std::vector<EditAction> m_edits;
     int m_undo_pointer { -1 };
     std::chrono::milliseconds m_last_parse_time { 0 };
+    static DocumentCommands s_document_commands;
 
     friend EditAction;
 };

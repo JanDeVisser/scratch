@@ -13,8 +13,8 @@
 
 #include <SDL.h>
 
+#include <Forward.h>
 #include <Key.h>
-#include <Widget.h>
 
 namespace Scratch {
 
@@ -37,38 +37,33 @@ struct CommandParameter {
     std::function<std::string(void)> get_default { nullptr };
 };
 
+using CommandHandlerFunction = std::function<void(Widget&, std::vector<std::string> const&)>;
+
 class Command {
 public:
     std::string name;
     std::string synopsis;
     std::vector<CommandParameter> parameters;
-    std::function<void(std::vector<std::string> const&)> function;
-
-    bool bind(SDLKey);
-
-    static std::map<std::string, Command> const& commands();
-    static Command const& register_command(Command);
-    static bool is_bound(SDLKey const&);
-    static Command* command_for_key(SDLKey const&);
-    static Command* get(std::string const&);
-
-private:
-    static std::map<std::string, Command> s_commands;
-    static std::map<SDLKey, std::string> s_key_bindings;
+    CommandHandlerFunction function;
 };
 
-class CommandHandler : public ModalWidget {
+class Commands {
 public:
-    explicit CommandHandler(Command const& command);
-    void render() override;
-    void argument_done(std::string);
-    void abort();
+    std::map<std::string, Command> const& commands();
+    Command const& register_command(Command, SDLKey = { SDLK_UNKNOWN, KMOD_NONE} );
+    bool bind(std::string const&, SDLKey);
+    bool is_bound(SDLKey const&);
+    Command* command_for_key(SDLKey const&);
+    Command* get(std::string const&);
 
 private:
-    Command const& m_command;
-    ModalWidget* m_current_handler { nullptr };
-    std::vector<std::string> m_arguments;
-    int m_current_parameter { 0 };
+    std::map<std::string, Command> m_commands;
+    std::map<SDLKey, std::string> m_key_bindings;
+};
+
+struct ScheduledCommand {
+    Widget& owner;
+    Command const& command;
 };
 
 }

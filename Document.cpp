@@ -13,6 +13,7 @@
 #include <Document.h>
 #include <Editor.h>
 #include <Parser/CPlusPlus.h>
+#include <Scratch.h>
 
 using namespace Obelix;
 using namespace Scratch::Parser;
@@ -43,13 +44,152 @@ FileType const& get_filetype(fs::path const& file)
     return s_filetypes[0];
 }
 
+DocumentCommands::DocumentCommands()
+{
+    register_command(
+        { "copy-to-clipboard", "Copy selection to clipboard", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.copy_to_clipboard();
+            } },
+        { SDLK_c, KMOD_CTRL });
+    register_command(
+        { "cut-to-clipboard", "Cut selection to clipboard", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.cut_to_clipboard();
+            } },
+        { SDLK_x, KMOD_CTRL });
+    register_command(
+        { "duplicate-line", "Duplicate current line", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.duplicate_line();
+            } },
+        { SDLK_d, KMOD_CTRL });
+    register_command(
+        { "find-first", "Find",
+            { { "Find", CommandParameterType::String,
+                []() -> std::string {
+                    return Scratch::editor()->document()->selected_text();
+                } } },
+            [](Widget& w, strings const& args) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.find(args[0]);
+            } },
+        { SDLK_f, KMOD_CTRL });
+    register_command(
+        { "find-next", "Find next", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.find_next();
+            } },
+        { SDLK_f, KMOD_CTRL | KMOD_SHIFT });
+    register_command(
+        { "goto-line-column", "Goto line:column",
+            { { "Line:Column to go to", CommandParameterType::String } },
+            [](Widget& w, strings const& args) -> void {
+                auto line_col = split(args[0], ':');
+                if (line_col.size() < 1)
+                    return;
+                if (auto line_maybe = try_to_long(line_col[0]); line_maybe.has_value()) {
+                    int col = -1;
+                    if (line_col.size() > 1) {
+                        if (auto col_maybe = try_to_long(line_col[1]); col_maybe.has_value())
+                            col = col_maybe.value();
+                    }
+                    auto& doc = dynamic_cast<Document&>(w);
+                    doc.move_to(line_maybe.value() - 1, col - 1, false);
+                }
+            } },
+        { SDLK_g, KMOD_CTRL });
+    register_command(
+        { "paste-from-clipboard", "Paste text from clipboard", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.paste_from_clipboard();
+            } },
+        { SDLK_v, KMOD_CTRL });
+    register_command(
+        { "redo", "Redo edit", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.redo();
+            } },
+        { SDLK_y, KMOD_CTRL });
+    register_command(
+        { "save-current-as", "Save current file as",
+            { { "New file name", CommandParameterType::String } },
+            [](Widget& w, strings const& args) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.save_as(args[0]);
+            } },
+        { SDLK_s, KMOD_CTRL | KMOD_GUI });
+    register_command(
+        { "save-file", "Save current file", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                if (doc.path().empty()) {
+                    App::instance().schedule(doc.command("save-current-as").value());
+                } else {
+                    doc.save();
+                }
+            } },
+        { SDLK_s, KMOD_CTRL });
+    register_command(
+        { "select-all", "Select all", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.select_all();
+            } },
+        { SDLK_a, KMOD_CTRL });
+    register_command(
+        { "select-line", "Select line", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.select_line();
+            } });
+    register_command(
+        { "select-word", "Select word", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.select_word();
+            } },
+        { SDLK_UP, KMOD_GUI });
+    register_command(
+        { "transpose-lines-down", "Transpose lines down", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.transpose_lines(Document::TransposeDirection::Down);
+            } },
+        { SDLK_DOWN, KMOD_ALT });
+    register_command(
+        { "transpose-lines-up", "Transpose lines up", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.transpose_lines(Document::TransposeDirection::Up);
+            } },
+        { SDLK_UP, KMOD_ALT });
+    register_command(
+        { "undo", "Undo edit", {},
+            [](Widget& w, strings const&) -> void {
+                auto& doc = dynamic_cast<Document&>(w);
+                doc.undo();
+            } },
+        { SDLK_z, KMOD_CTRL });
+}
+
+DocumentCommands Document::s_document_commands;
+
 Document::Document(Editor* editor)
-    : m_editor(editor)
+    : Widget()
+    , m_editor(editor)
 {
     m_path.clear();
     m_lines.emplace_back();
     m_filetype = get_filetype("");
     m_parser = std::unique_ptr<ScratchParser>(m_filetype.parser_builder());
+    m_commands = &s_document_commands;
 }
 
 std::string Document::line(size_t line_no) const
@@ -130,10 +270,9 @@ void Document::transpose_lines(TransposeDirection direction)
         return;
     auto line = find_line_number(m_point);
     auto column = m_point - m_lines[line].start_index;
-    if (((direction == TransposeDirection::Down) && (line < line_count() - 1)) ||
-        ((direction == TransposeDirection::Up) && (line > 0))) {
-        auto top_line = (direction == TransposeDirection::Down) ? line : line-1;
-        auto bottom_line = (direction == TransposeDirection::Down) ? line+1 : line;
+    if (((direction == TransposeDirection::Down) && (line < line_count() - 1)) || ((direction == TransposeDirection::Up) && (line > 0))) {
+        auto top_line = (direction == TransposeDirection::Down) ? line : line - 1;
+        auto bottom_line = (direction == TransposeDirection::Down) ? line + 1 : line;
         auto top = m_text.substr(m_lines[top_line].start_index, line_length(top_line));
         auto bottom = m_text.substr(m_lines[bottom_line].start_index, line_length(bottom_line));
         auto offset = (direction == TransposeDirection::Down) ? line_length(top_line) + 1 + column : column;
@@ -197,11 +336,15 @@ void Document::select_word()
     auto point = m_point;
     m_mark = m_point;
     if (isalnum(m_text[m_point]) || m_text[m_point] == '_') {
-        while (m_point > 0 && (isalnum(m_text[m_point-1]) || m_text[m_point-1] == '_')) --m_point;
-        while (m_mark < m_text.length() && (isalnum(m_text[m_mark]) || m_text[m_mark] == '_')) ++m_mark;
+        while (m_point > 0 && (isalnum(m_text[m_point - 1]) || m_text[m_point - 1] == '_'))
+            --m_point;
+        while (m_mark < m_text.length() && (isalnum(m_text[m_mark]) || m_text[m_mark] == '_'))
+            ++m_mark;
     } else {
-        while (m_point > 0 && !isalnum(m_text[m_point-1]) && m_text[m_point-1] != '_') --m_point;
-        while (m_mark < m_text.length() && !isalnum(m_text[m_mark]) && m_text[m_mark] != '_') ++m_mark;
+        while (m_point > 0 && !isalnum(m_text[m_point - 1]) && m_text[m_point - 1] != '_')
+            --m_point;
+        while (m_mark < m_text.length() && !isalnum(m_text[m_mark]) && m_text[m_mark] != '_')
+            ++m_mark;
     }
     add_edit_action(EditAction::move_cursor(point, m_point));
 }
@@ -210,8 +353,8 @@ void Document::select_line()
 {
     auto line = find_line_number(m_point);
     move_point(m_lines[line].start_index);
-    if (line < m_lines.size()-1)
-        m_mark = m_lines[line+1].start_index;
+    if (line < m_lines.size() - 1)
+        m_mark = m_lines[line + 1].start_index;
     else
         m_mark = text_length();
 }
@@ -379,7 +522,7 @@ void Document::move_point(int point)
 void Document::add_edit_action(EditAction action)
 {
     if (m_undo_pointer < m_edits.size() - 1) {
-        m_edits.erase(m_edits.begin() + clamp(m_undo_pointer, 0, static_cast<int>(m_edits.size())-1), m_edits.end());
+        m_edits.erase(m_edits.begin() + clamp(m_undo_pointer, 0, static_cast<int>(m_edits.size()) - 1), m_edits.end());
     }
     if (!m_edits.empty()) {
         if (auto merged = m_edits.back().merge(action); merged.has_value()) {
@@ -739,7 +882,7 @@ bool Document::dispatch(SDL_Keysym sym)
         break;
     case SDLK_END:
         if (sym.mod & KMOD_GUI) {
-            move_to(line_count()-1, line_length(line_count()-1), sym.mod & KMOD_SHIFT);
+            move_to(line_count() - 1, line_length(line_count() - 1), sym.mod & KMOD_SHIFT);
         } else {
             end(sym.mod & KMOD_SHIFT);
         }
@@ -760,17 +903,17 @@ bool Document::dispatch(SDL_Keysym sym)
     return true;
 }
 
-void Document::handle_mousedown(int line, int column)
+void Document::mousedown(int line, int column)
 {
     move_to(m_screen_top + line, m_screen_left + column, false);
 }
 
-void Document::handle_motion(int line, int column)
+void Document::motion(int line, int column)
 {
     move_to(m_screen_top + line, m_screen_left + column, true);
 }
 
-void Document::handle_click(int line, int column, int clicks)
+void Document::click(int line, int column, int clicks)
 {
     switch (clicks) {
     case 2:
@@ -784,9 +927,9 @@ void Document::handle_click(int line, int column, int clicks)
     }
 }
 
-void Document::handle_wheel(int lines)
+void Document::wheel(int lines)
 {
-    m_screen_top = clamp(m_screen_top + lines, 0, line_count()-1);
+    m_screen_top = clamp(m_screen_top + lines, 0, line_count() - 1);
 }
 
 void Document::handle_text_input()

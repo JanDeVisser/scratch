@@ -11,6 +11,7 @@
 #include <SDL2_gfxPrimitives.h>
 
 #include <App.h>
+#include <Commands/CommandHandler.h>
 #include <Forward.h>
 #include <SDLContext.h>
 #include <Text.h>
@@ -88,6 +89,12 @@ void App::reset_font()
     container().resize({ 0, 0, m_width, m_height });
 }
 
+void App::set_font(std::string const& name)
+{
+    context()->set_font(name, SDLContext::SDLFontFamily::Fixed);
+    container().resize({ 0, 0, m_width, m_height });
+}
+
 void App::render()
 {
     m_frameCount++;
@@ -101,7 +108,7 @@ void App::render()
     if (m_modals.empty()) {
         if (!m_pending_commands.empty()) {
             auto cmd = m_pending_commands.front();
-            add_modal(new CommandHandler(*cmd));
+            add_modal(new CommandHandler(cmd));
             m_pending_commands.pop_front();
         }
     } else {
@@ -126,7 +133,7 @@ int App::fps() const
 }
 
 
-void App::schedule(Command const* cmd)
+void App::schedule(ScheduledCommand cmd)
 {
     m_pending_commands.push_back(cmd);
 }
@@ -275,16 +282,7 @@ bool dispatch_to(Widget* w, SDL_Keysym sym)
 bool App::dispatch(SDL_Keysym sym)
 {
     m_last_key = sym;
-    if (auto* cmd = Command::command_for_key(m_last_key); cmd != nullptr) {
-        schedule(cmd);
-        return true;
-    }
     return Layout::dispatch(sym);
-}
-
-std::vector<std::string> App::status()
-{
-    return { m_last_key.to_string() };
 }
 
 std::string App::input_buffer()

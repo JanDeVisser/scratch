@@ -103,7 +103,7 @@ template<>
 std::vector<Command> get_entries(CommandParameter const& param, int const&)
 {
     std::vector<Command> entries;
-    for (auto const& [name, cmd] : Command::commands()) {
+    for (auto const& cmd : App::instance().commands()) {
         entries.push_back(cmd);
     }
     std::sort(entries.begin(), entries.end(), [](auto const& e1, auto const& e2) -> bool {

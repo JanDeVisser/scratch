@@ -5,7 +5,7 @@
  */
 #pragma once
 
-#include <Widget.h>
+#include <Widget/Widget.h>
 
 namespace Scratch {
 

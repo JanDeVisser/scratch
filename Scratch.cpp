@@ -13,11 +13,11 @@
 #include <Scratch.h>
 
 #ifndef WINDOW_WIDTH
-#define WINDOW_WIDTH 800
+#define WINDOW_WIDTH 1024
 #endif
 
 #ifndef WINDOW_HEIGHT
-#define WINDOW_HEIGHT 600
+#define WINDOW_HEIGHT 768
 #endif
 
 namespace Scratch {
@@ -25,6 +25,59 @@ namespace Scratch {
 using namespace Obelix;
 
 logging_category(scratch);
+
+Scratch::ScratchCommands::ScratchCommands()
+{
+    register_command({ "enlarge-font", "Enlarge editor font", {},
+        [](Widget&, strings const&) -> void {
+            App::instance().enlarge_font();
+        }
+    }, { SDLK_EQUALS, KMOD_GUI } );
+
+    register_command({ "invoke", "Invoke command",
+        {
+            { "Command", CommandParameterType::Command }
+        },
+        [](Widget& app, strings const& args) -> void {
+             if (auto scheduled_command = app.command(args[0]); scheduled_command.has_value()) {
+                 App::instance().schedule(scheduled_command.value());
+             }
+        }
+    }, { SDLK_x, KMOD_GUI });
+
+    register_command({ "reset-font", "Reset editor font", {},
+        [](Widget&, strings const&) -> void {
+            auto& app = App::instance();
+            app.reset_font();
+        }
+    }, { SDLK_0, KMOD_GUI });
+
+    register_command({ "scratch-quit", "Quits the editor", {},
+        [](Widget&, strings const&) -> void {
+            App::instance().quit();
+        }
+    }, { SDLK_q, KMOD_CTRL });
+
+    register_command({ "set-fixed-width-font", "Set fixed width (editor) font",
+        {
+            {
+                "Font file name", CommandParameterType::ExistingFilename
+            }
+        },
+        [](Widget&, strings const& args) -> void {
+            Scratch::instance().set_font(args[0]);
+        }
+    });
+
+    register_command({ "shrink-font", "Shrink editor font", {},
+        [](Widget&, strings const&) -> void {
+            App::instance().shrink_font();
+        }
+    }, { SDLK_MINUS, KMOD_GUI });
+
+}
+
+Scratch::ScratchCommands Scratch::s_scratch_commands;
 
 Config::Config(int argc, char const** argv)
 {
@@ -63,6 +116,7 @@ Scratch::Scratch(Config& config, SDLContext *ctx)
     }
     SDL_SetWindowIcon(context()->window(), icon_surface);
     SDL_FreeSurface(icon_surface);
+    m_commands = &s_scratch_commands;
 }
 
 Editor* Scratch::editor()

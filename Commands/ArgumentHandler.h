@@ -10,6 +10,7 @@
 
 #include <Scratch.h>
 #include <Commands/Command.h>
+#include <Commands/CommandHandler.h>
 
 namespace Scratch {
 

@@ -45,12 +45,19 @@ public:
     static void add_status_bar_applet(int, Renderer);
     static Scratch& scratch();
 
+    class ScratchCommands : public Commands {
+    public:
+        ScratchCommands();
+    };
+
 private:
     Scratch(Config& config, SDLContext *ctx);
     Config& m_config;
     Editor* m_editor { nullptr };
     Gutter* m_gutter { nullptr };
     StatusBar* m_status_bar { nullptr };
+
+    static ScratchCommands s_scratch_commands;
 };
 
 }

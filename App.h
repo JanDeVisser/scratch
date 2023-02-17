@@ -19,7 +19,7 @@
 //#include <Scrollbar.h>
 #include <Geometry.h>
 #include <Key.h>
-#include <Widget.h>
+#include <Widget/Widget.h>
 
 #ifndef WIDGET_BORDER_X
 #define WIDGET_BORDER_X 8
@@ -93,10 +93,8 @@ public:
     void enlarge_font();
     void shrink_font();
     void reset_font();
+    void set_font(std::string const&);
 
-//    [[nodiscard]] bool handle(KeyCode) override;
-//    void vmessage(char const*, va_list) override;
-    std::vector<std::string> status() override;
     SDLKey last_key() const { return m_last_key; }
 
     int width() const override;
@@ -110,7 +108,7 @@ public:
     bool dispatch(SDL_Keysym) override;
     void resize(Box const&) override;
     std::string input_buffer();
-    void schedule(Command const* cmd);
+    void schedule(ScheduledCommand cmd);
     [[nodiscard]] int fps() const;
 
     void add_modal(Widget*);
@@ -135,19 +133,15 @@ private:
 
     Vec2 m_widgetPos;
     Vec2 m_widgetSize;
-//    bool m_widgetFocused = true;
-//    bool m_widgetHoverable = true;
 
     Vec2 m_contentSize;
-//    float m_scrollX = 0.0f;
-//    float m_scrollY = 0.0f;
 
     unsigned m_frameCount = 0;
 
     Widget* m_focus { nullptr };
     std::vector<std::unique_ptr<Widget>> m_modals;
     std::unique_ptr<SDLContext> m_context;
-    std::deque<Command const*> m_pending_commands;
+    std::deque<ScheduledCommand> m_pending_commands;
     SDLKey m_last_key { SDLK_UNKNOWN, KMOD_NONE };
     std::chrono::duration<double> m_last_render_time { 0.0 };
 };

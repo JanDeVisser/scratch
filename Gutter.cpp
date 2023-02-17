@@ -21,7 +21,7 @@ Gutter::Gutter()
         auto rows = Scratch::editor()->rows();
         for (auto row = 0; row < rows && screen_top + row < lines; ++row) {
             auto x = 24;
-            auto y = row * App::instance().context()->character_height() * 1.2;
+            auto y = Scratch::editor()->line_top(row);
 
             auto line = screen_top + row;
             auto color = PaletteIndex::LineNumber;

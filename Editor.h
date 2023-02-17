@@ -10,7 +10,7 @@
 
 #include <Document.h>
 #include <EditorState.h>
-#include <Widget.h>
+#include <Widget/Widget.h>
 
 namespace Scratch {
 
@@ -34,6 +34,11 @@ public:
 private:
     SDL_Renderer* m_renderer = nullptr;
     SDL_Rect m_clip;
+};
+
+class EditorCommands : public Commands {
+public:
+    EditorCommands();
 };
 
 class Editor : public WindowedWidget {
@@ -68,6 +73,9 @@ public:
     void handle_click(SDL_MouseButtonEvent const& event) override;
     void handle_wheel(SDL_MouseWheelEvent const& event) override;
     void handle_text_input() override;
+    std::optional<ScheduledCommand> command(std::string const&) const override;
+    [[nodiscard]] std::vector<Command> commands() const override;
+
     void append(DisplayToken const&);
     void newline();
 
@@ -83,6 +91,7 @@ private:
     int m_columns { -1 };
     int m_line_height { 0 };
     std::optional<Position> m_mouse_down_at;
+    static EditorCommands s_editor_commands;
 };
 
 }

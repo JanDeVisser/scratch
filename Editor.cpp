@@ -20,6 +20,38 @@ extern_logging_category(scratch);
 
 namespace fs=std::filesystem;
 
+EditorCommands::EditorCommands()
+{
+    register_command({ "new-buffer", "New buffer", {},
+        [](Widget&, strings const&) -> void {
+            Scratch::editor()->new_buffer();
+        }
+    }, { SDLK_n, KMOD_CTRL });
+    register_command({ "open-file", "Open file",
+        {
+            { "File to open", CommandParameterType::ExistingFilename }
+        },
+        [](Widget&, strings const& args) -> void {
+            Scratch::editor()->open_file(args[0]);
+        }
+    }, { SDLK_o, KMOD_CTRL });
+    register_command({ "save-all-files", "Save call files", {},
+        [](Widget&, strings const&) -> void {
+            Scratch::editor()->save_all();
+        }
+    }, { SDLK_l, KMOD_CTRL });
+    register_command({ "switch-buffer", "Switch buffer",
+        {
+            { "Buffer", CommandParameterType::Buffer }
+        },
+        [](Widget&, strings const& args) -> void {
+            Scratch::editor()->switch_to(args[0]);
+        }
+    }, { SDLK_b, KMOD_CTRL });
+}
+
+EditorCommands Editor::s_editor_commands;
+
 Editor::Editor()
     : WindowedWidget()
 {
@@ -35,6 +67,7 @@ Editor::Editor()
     Scratch::status_bar()->add_applet(20, [this](WindowedWidget* applet) -> void {
         applet->render_fixed(10, 2, fs::relative(document()->path()).string(), SDL_Color { 0xff, 0xff, 0xff, 0xff });
     });
+    m_commands = &s_editor_commands;
 }
 
 int Editor::rows() const
@@ -80,9 +113,9 @@ int Editor::column_width()
 void Editor::resize(const Box& outline)
 {
     WindowedWidget::resize(outline);
-    m_rows = height() / (int)(App::instance().context()->character_height() * 1.2);
+    m_line_height = (int)(App::instance().context()->character_height() * 1.2);
+    m_rows = height() / m_line_height;
     m_columns = width() / App::instance().context()->character_width();
-    m_line_height = height() / m_rows;
 }
 
 void Editor::render()
@@ -131,9 +164,7 @@ void Editor::text_cursor(int line, int column)
 
 void Editor::append(DisplayToken const& token)
 {
-    auto x = m_column * App::instance().context()->character_width();
-    auto y = m_line * line_height();
-    render_fixed(x, (int)y, token.text, App::instance().color(token.color));
+    render_fixed(column_left(m_column), line_top(m_line), token.text, App::instance().color(token.color));
     m_column += (int)token.text.length();
 }
 
@@ -155,7 +186,7 @@ void Editor::handle_mousedown(SDL_MouseButtonEvent const& event)
     auto column = offset_x / App::instance().context()->character_width();
     auto line = offset_y / line_height();
     m_mouse_down_at = { column, line };
-    document()->handle_mousedown(line, column);
+    document()->mousedown(line, column);
 }
 
 void Editor::handle_motion(SDL_MouseMotionEvent const& event)
@@ -166,7 +197,7 @@ void Editor::handle_motion(SDL_MouseMotionEvent const& event)
         auto column = offset_x / App::instance().context()->character_width();
         auto line = offset_y / line_height();
         if (column != m_mouse_down_at->left() || line != m_mouse_down_at->top()) {
-            document()->handle_motion(line, column);
+            document()->motion(line, column);
         }
     }
 }
@@ -177,18 +208,35 @@ void Editor::handle_click(SDL_MouseButtonEvent const& event)
     auto offset_y = event.y - top();
     auto column = offset_x / App::instance().context()->character_width();
     auto line = offset_y / line_height();
-    document()->handle_click(line, column, event.clicks);
+    document()->click(line, column, event.clicks);
     m_mouse_down_at = {};
 }
 
 void Editor::handle_wheel(SDL_MouseWheelEvent const& event)
 {
-    document()->handle_wheel(-event.y);
+    document()->wheel(-event.y);
 }
 
 void Editor::handle_text_input()
 {
     document()->handle_text_input();
+}
+
+std::optional<ScheduledCommand> Editor::command(std::string const& name) const
+{
+    if (auto ret = Widget::command(name); ret.has_value())
+        return ret;
+    if (auto ret = document()->command(name); ret.has_value())
+        return ret;
+    return {};
+}
+
+std::vector<Command> Editor::commands() const
+{
+    auto ret = Widget::commands();
+    auto document_commands = document()->commands();
+    ret.insert(ret.cend(), document_commands.cbegin(), document_commands.cend());
+    return ret;
 }
 
 void Editor::new_buffer()

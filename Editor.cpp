@@ -176,6 +176,8 @@ void Editor::newline()
 
 bool Editor::dispatch(SDL_Keysym sym)
 {
+    if (Widget::dispatch(sym))
+        return true;
     return document()->dispatch(sym);
 }
 

@@ -66,12 +66,24 @@ add_executable(
         Commands/CommandHandler.cpp
         Commands/DefaultArgumentHandler.cpp
         Parser/CPlusPlus.cpp
+        Parser/PlainText.cpp
+        Scribble/Parser.cpp
+        Scribble/Processor.cpp
+        Scribble/Scribble.cpp
+        Scribble/Syntax/ControlFlow.cpp
+        Scribble/Syntax/Expression.cpp
+        Scribble/Syntax/Function.cpp
+        Scribble/Syntax/literal.cpp
+        Scribble/Syntax/Statement.cpp
+        Scribble/Syntax/Syntax.cpp
+        Scribble/Syntax/Variable.cpp
         Widget/Frame.cpp
         Widget/Layout.cpp
         Widget/ModalWidget.cpp
         Widget/Widget.cpp
         Widget/WindowedWidget.cpp
-        Widget/WidgetContainer.cpp)
+        Widget/WidgetContainer.cpp
+)
 
 target_link_libraries(
         scratch

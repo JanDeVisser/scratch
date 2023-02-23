@@ -53,8 +53,6 @@
 #define countof(A) (sizeof(A) / sizeof(*(A)))
 #endif /* countof */
 
-static const int COLORIZE_DELAY_FRAME_COUNT = 60;
-
 namespace Scratch {
 
 extern_logging_category(scratch);
@@ -63,22 +61,9 @@ using Key=int;
 using Keycode=int32_t;
 static_assert(sizeof(Keycode) == sizeof(SDL_Keycode), "Wrong type size.");
 
-class Messenger {
-public:
-    void message(char const* msg, ...)
-    {
-        va_list args;
-        va_start(args, msg);
-        vmessage(msg, args);
-        va_end(args);
-    }
-
-    virtual void vmessage(char const*, va_list) = 0;
-};
-
 class SDLContext;
 
-class App : public Layout /*, public Messenger */ {
+class App : public Layout {
 public:
     App(std::string, SDLContext*);
     static App& instance();
@@ -126,7 +111,6 @@ private:
     int m_width { 0 };
     int m_height { 0 };
     intptr_t m_active { 0 };
-    int m_mouse_clicked_count { 0 };
 
     Palette m_palette;
     InputBuffer m_input_characters;

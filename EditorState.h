@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -63,13 +64,13 @@ using Palette = std::array<unsigned, (size_t)PaletteIndex::Max>;
 
 struct DisplayToken {
     explicit DisplayToken(std::string_view t, PaletteIndex c = PaletteIndex::Default)
-        : text(std::move(t))
+        : text(t)
         , color(c)
     {
     }
 
-    explicit DisplayToken(std::string const& t, PaletteIndex c = PaletteIndex::Default)
-        : text_string(t)
+    explicit DisplayToken(std::string t, PaletteIndex c = PaletteIndex::Default)
+        : text_string(std::move(t))
         , text(text_string.value())
         , color(c)
     {

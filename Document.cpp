@@ -13,10 +13,13 @@
 #include <Document.h>
 #include <Editor.h>
 #include <Parser/CPlusPlus.h>
+#include <Parser/PlainText.h>
 #include <Scratch.h>
+#include <Scribble/Scribble.h>
 
 using namespace Obelix;
 using namespace Scratch::Parser;
+using namespace Scratch::Scribble;
 
 namespace Scratch {
 
@@ -27,6 +30,9 @@ FileType s_filetypes[] = {
      } },
     { { ".cpp", ".h", ".hpp" }, "text/x-cpp", []() -> ScratchParser* {
          return new CPlusPlusParser();
+     } },
+    { { ".scratch" }, "text/x-scratch", []() -> ScratchParser* {
+         return new class Scribble();
      } },
 };
 
@@ -92,10 +98,10 @@ DocumentCommands::DocumentCommands()
                 auto line_col = split(args[0], ':');
                 if (line_col.size() < 1)
                     return;
-                if (auto line_maybe = try_to_long(line_col[0]); line_maybe.has_value()) {
+                if (auto line_maybe = try_to_long<std::string>()(line_col[0]); line_maybe.has_value()) {
                     int col = -1;
                     if (line_col.size() > 1) {
-                        if (auto col_maybe = try_to_long(line_col[1]); col_maybe.has_value())
+                        if (auto col_maybe = try_to_long<std::string>()(line_col[1]); col_maybe.has_value())
                             col = col_maybe.value();
                     }
                     auto& doc = dynamic_cast<Document&>(w);
@@ -809,30 +815,7 @@ void Document::render()
             } else if (len + t.length() > m_screen_left + columns()) {
                 t = t.substr(0, m_screen_left + columns() - len);
             }
-            switch (token.code()) {
-            case TokenCode::Comment:
-                m_editor->append(DisplayToken { t, PaletteIndex::Comment });
-                break;
-            case TokenCode::Identifier:
-                m_editor->append(DisplayToken { t, PaletteIndex::Identifier });
-                break;
-            case TokenCode::DoubleQuotedString:
-                m_editor->append(DisplayToken { t, PaletteIndex::CharLiteral });
-                break;
-            case TokenCode::SingleQuotedString:
-                m_editor->append(DisplayToken { t, PaletteIndex::String });
-                break;
-            case TokenKeyword:
-            case TokenConstant:
-                m_editor->append(DisplayToken { t, PaletteIndex::Keyword });
-                break;
-            case TokenDirective:
-                m_editor->append(DisplayToken { t, PaletteIndex::Preprocessor });
-                break;
-            default:
-                m_editor->append(DisplayToken { t, PaletteIndex::Punctuation });
-                break;
-            }
+            m_editor->append(m_parser->colorize(token.code(), t));
             len += token.value().length();
             if (len >= m_screen_left + m_editor->columns())
                 break;

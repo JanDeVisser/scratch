@@ -4,36 +4,9 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <Document.h>
 #include <Parser/CPlusPlus.h>
 
 namespace Scratch::Parser {
-
-PlainTextParser::PlainTextParser()
-{
-    lexer().add_scanner("plaintext", [](Tokenizer& tokenizer) {
-        switch (int ch = tokenizer.peek()) {
-        case '\n':
-            tokenizer.push();
-            tokenizer.accept(TokenCode::NewLine);
-            break;
-        case 0:
-            break;
-        default:
-            do {
-                tokenizer.push();
-                ch = tokenizer.peek();
-            } while (ch && ch != '\n');
-            tokenizer.accept(TokenCode::Text);
-            break;
-        }
-    });
-}
-
-Token const& PlainTextParser::next_token()
-{
-    return lex();
-}
 
 CPlusPlusParser::CPlusPlusParser()
 {
@@ -78,6 +51,36 @@ CPlusPlusParser::CPlusPlusParser()
         KeywordIfndef, "#ifndef",
         KeywordInclude, "#include",
         KeywordPragma, "#pragma");
+}
+
+DisplayToken CPlusPlusParser::colorize(TokenCode code, std::string_view const& text)
+{
+    PaletteIndex color;
+    switch (code) {
+    case TokenCode::Comment:
+        color = PaletteIndex::Comment;
+        break;
+    case TokenCode::Identifier:
+        color = PaletteIndex::Identifier;
+        break;
+    case TokenCode::DoubleQuotedString:
+        color = PaletteIndex::CharLiteral;
+        break;
+    case TokenCode::SingleQuotedString:
+        color = PaletteIndex::String;
+        break;
+    case TokenKeyword:
+    case TokenConstant:
+        color = PaletteIndex::Keyword;
+        break;
+    case TokenDirective:
+        color = PaletteIndex::Preprocessor;
+        break;
+    default:
+        color = PaletteIndex::Punctuation;
+        break;
+    }
+    return DisplayToken { text, color };
 }
 
 Token const& CPlusPlusParser::next_token()

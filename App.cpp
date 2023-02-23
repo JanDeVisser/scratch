@@ -98,7 +98,6 @@ void App::set_font(std::string const& name)
 void App::render()
 {
     m_frameCount++;
-    m_mouse_clicked_count = 0;
 
     SDL_SetRenderDrawColor(renderer(), 0x2e, 0x32, 0x38, 0xff);
     SDL_RenderClear(renderer());

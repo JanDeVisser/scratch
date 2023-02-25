@@ -226,7 +226,7 @@ void App::event_loop()
             case SDL_TEXTINPUT: {
                 CodePoint wchars[17];
                 strFromUtf8(wchars, countof(wchars), evt.text.text, nullptr);
-                for (int i = 0; i < countof(wchars) && wchars[i] != 0; i++)
+                for (auto i = 0u; i < countof(wchars) && wchars[i] != 0; i++)
                     m_input_characters.push_back(wchars[i]);
                 if (auto m = modal(); m != nullptr) {
                     m->handle_text_input();

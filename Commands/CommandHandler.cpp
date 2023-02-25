@@ -26,7 +26,7 @@ void CommandHandler::render()
         dismiss();
         return;
     }
-    if (m_current_parameter >= m_command.parameters.size()) {
+    if (m_current_parameter >= static_cast<int>(m_command.parameters.size())) {
         m_command.function(m_owner, m_arguments);
         dismiss();
         return;

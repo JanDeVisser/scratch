@@ -35,7 +35,7 @@ Nodes SyntaxNode::children() const
 std::string SyntaxNode::to_xml(int indent) const
 {
     std::string ret = "";
-    while (ret.length() < indent)
+    while (static_cast<int>(ret.length()) < indent)
         ret += ' ';
     ret += format("<{}", node_type());
     auto attrs = attributes();

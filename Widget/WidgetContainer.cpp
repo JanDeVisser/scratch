@@ -134,9 +134,10 @@ void WidgetContainer::handle_click(Box const& outline, SDL_MouseButtonEvent cons
 
 void WidgetContainer::handle_wheel(Box const& outline, SDL_MouseWheelEvent const& event)
 {
-    if (outline.contains((int) event.mouseX, (int) event.mouseY)) {
+    Position mouse = App::instance().mouse_position();
+    if (outline.contains(mouse.left(), mouse.top())) {
         for (auto const& c : m_components) {
-            if (c->outline().contains((int) event.mouseX, (int) event.mouseY)) {
+            if (c->outline().contains(mouse.left(), mouse.top())) {
                 c->handle_wheel(event);
                 return;
             }

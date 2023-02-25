@@ -235,6 +235,7 @@ void App::event_loop()
                 }
             } break;
             case SDL_MOUSEMOTION: {
+                m_mouse = { evt.motion.x, evt.motion.y };
                 handle_motion(evt.motion);
             } break;
             case SDL_MOUSEBUTTONDOWN: {

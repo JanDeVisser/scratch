@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <deque>
 #include <filesystem>
 #include <sstream>
 #include <string>

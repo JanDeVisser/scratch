@@ -35,7 +35,10 @@ template<>
 std::vector<fs::directory_entry> get_entries(CommandParameter const& param, fs::path const& path)
 {
     std::vector<fs::directory_entry> entries;
-    auto canon_path = fs::canonical(path);
+    fs::path p { path };
+    if (p.empty())
+        p = fs::current_path();
+    auto canon_path = fs::canonical(p);
     bool only_dirs = param.type == CommandParameterType::Directory || param.type == CommandParameterType::ExistingDirectory;
     for (auto const& dir_entry : fs::directory_iterator { canon_path }) {
         if (dir_entry.path() == fs::path { "." })

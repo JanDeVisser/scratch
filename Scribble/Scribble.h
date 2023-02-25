@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <deque>
+
 #include <Parser/ScratchParser.h>
 
 using namespace Obelix;

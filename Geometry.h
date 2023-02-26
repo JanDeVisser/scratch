@@ -106,8 +106,8 @@ struct Tuple {
 };
 
 struct Position : public Tuple {
-    Position(int t, int l)
-        : Tuple(t, l)
+    Position(int left, int top)
+        : Tuple(left, top)
     {
     }
     Position() = default;

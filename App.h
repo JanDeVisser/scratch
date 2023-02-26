@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <deque>
 #include <filesystem>
 #include <sstream>
 #include <string>
@@ -81,6 +82,7 @@ public:
     void set_font(std::string const&);
 
     SDLKey last_key() const { return m_last_key; }
+    Position mouse_position() const { return m_mouse; }
 
     int width() const override;
     int height() const override;
@@ -127,6 +129,7 @@ private:
     std::unique_ptr<SDLContext> m_context;
     std::deque<ScheduledCommand> m_pending_commands;
     SDLKey m_last_key { SDLK_UNKNOWN, KMOD_NONE };
+    Position m_mouse { 0, 0 };
     std::chrono::duration<double> m_last_render_time { 0.0 };
 };
 

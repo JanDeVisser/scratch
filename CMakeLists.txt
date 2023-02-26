@@ -74,7 +74,7 @@ add_executable(
         Scribble/Syntax/ControlFlow.cpp
         Scribble/Syntax/Expression.cpp
         Scribble/Syntax/Function.cpp
-        Scribble/Syntax/literal.cpp
+        Scribble/Syntax/Literal.cpp
         Scribble/Syntax/Statement.cpp
         Scribble/Syntax/Syntax.cpp
         Scribble/Syntax/Variable.cpp

@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <deque>
+
 #include <EditorState.h>
 #include <Parser/ScratchParser.h>
 

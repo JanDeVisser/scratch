@@ -57,7 +57,7 @@ bool DefaultArgumentHandler::dispatch(SDL_Keysym sym)
         return true;
     }
     case SDLK_RIGHT: {
-        if (m_pos < m_value.length())
+        if (m_pos < static_cast<int>(m_value.length()))
             m_pos++;
         return true;
     }
@@ -103,7 +103,7 @@ void DefaultArgumentHandler::handle_text_input()
     auto str = App::instance().input_buffer();
     if (str.empty())
         return;
-    if (m_pos <= m_value.length()) {
+    if (m_pos <= static_cast<int>(m_value.length())) {
         switch (m_parameter.type) {
         case CommandParameterType::String: {
             m_value.insert(m_pos, str);

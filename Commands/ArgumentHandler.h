@@ -150,7 +150,7 @@ public:
             return true;
         };
         case SDLK_DOWN: {
-            if (m_current < m_matches.size() - 1)
+            if (m_current < static_cast<int>(m_matches.size()) - 1)
                 m_current++;
             while (m_current > m_top + m_lines - 1)
                 m_top++;
@@ -167,7 +167,7 @@ public:
             return true;
         };
         case SDLK_PAGEDOWN: {
-            if (m_current < m_matches.size() - m_lines) {
+            if (m_current < static_cast<int>(m_matches.size()) - m_lines) {
                 m_current += m_lines;
                 m_top += m_lines;
             }
@@ -195,9 +195,9 @@ public:
             return;
         }
         for (auto const& e : m_entries) {
-            auto s_ix = 0;
+            auto s_ix = 0u;
             auto text = line_text(e, m_current_context);
-            for (auto ix = 0; ix < text.length(); ++ix) {
+            for (auto ix = 0u; ix < text.length(); ++ix) {
                 if (toupper(m_search_str[s_ix]) == toupper(text[ix])) {
                     if (++s_ix == m_search_str.length()) {
                         break;

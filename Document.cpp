@@ -236,7 +236,7 @@ size_t Document::parsed() const
 
 void Document::split_line()
 {
-    if (m_point >= m_text.length()) {
+    if (m_point >= static_cast<int>(m_text.length())) {
         m_text += "\n";
     } else {
         m_text.insert(m_point, "\n");
@@ -331,7 +331,7 @@ void Document::extend_selection(int num)
             left = 0;
     } else {
         right += num;
-        if (right > m_text.length())
+        if (right > static_cast<int>(m_text.length()))
             right = text_length();
     }
     add_edit_action(EditAction::move_cursor(point, m_point));
@@ -344,12 +344,12 @@ void Document::select_word()
     if (isalnum(m_text[m_point]) || m_text[m_point] == '_') {
         while (m_point > 0 && (isalnum(m_text[m_point - 1]) || m_text[m_point - 1] == '_'))
             --m_point;
-        while (m_mark < m_text.length() && (isalnum(m_text[m_mark]) || m_text[m_mark] == '_'))
+        while (m_mark < static_cast<int>(m_text.length()) && (isalnum(m_text[m_mark]) || m_text[m_mark] == '_'))
             ++m_mark;
     } else {
         while (m_point > 0 && !isalnum(m_text[m_point - 1]) && m_text[m_point - 1] != '_')
             --m_point;
-        while (m_mark < m_text.length() && !isalnum(m_text[m_mark]) && m_text[m_mark] != '_')
+        while (m_mark < text_length() && !isalnum(m_text[m_mark]) && m_text[m_mark] != '_')
             ++m_mark;
     }
     add_edit_action(EditAction::move_cursor(point, m_point));
@@ -357,7 +357,7 @@ void Document::select_word()
 
 void Document::select_line()
 {
-    auto line = find_line_number(m_point);
+    auto line = static_cast<size_t>(find_line_number(m_point));
     move_point(m_lines[line].start_index);
     if (line < m_lines.size() - 1)
         m_mark = m_lines[line + 1].start_index;
@@ -433,7 +433,7 @@ int Document::find_line_number(int cursor) const
     int line_max = line_count() - 1;
     while (true) {
         int line = line_min + (line_max - line_min) / 2;
-        if ((line < m_lines.size() - 1 && m_lines[line].start_index <= cursor && cursor < m_lines[line + 1].start_index) || (line == m_lines.size() - 1 && m_lines[line].start_index <= cursor)) {
+        if ((line < line_count() - 1 && m_lines[line].start_index <= cursor && cursor < m_lines[line + 1].start_index) || (line == line_count() - 1 && m_lines[line].start_index <= cursor)) {
             return line;
         } else {
             if (m_lines[line].start_index > cursor) {
@@ -527,7 +527,7 @@ void Document::move_point(int point)
 
 void Document::add_edit_action(EditAction action)
 {
-    if (m_undo_pointer < m_edits.size() - 1) {
+    if (m_undo_pointer < static_cast<int>(m_edits.size()) - 1) {
         m_edits.erase(m_edits.begin() + clamp(m_undo_pointer, 0, static_cast<int>(m_edits.size()) - 1), m_edits.end());
     }
     if (!m_edits.empty()) {
@@ -544,14 +544,14 @@ void Document::add_edit_action(EditAction action)
 
 void Document::undo()
 {
-    if (!m_edits.empty() && (m_undo_pointer >= 0) && (m_undo_pointer < m_edits.size())) {
+    if (!m_edits.empty() && (m_undo_pointer >= 0) && (m_undo_pointer < static_cast<int>(m_edits.size()))) {
         m_edits[m_undo_pointer--].undo(*this);
     }
 }
 
 void Document::redo()
 {
-    if (!m_edits.empty() && (m_undo_pointer >= 0) && (m_undo_pointer < m_edits.size())) {
+    if (!m_edits.empty() && (m_undo_pointer >= 0) && (m_undo_pointer < static_cast<int>(m_edits.size()))) {
         m_edits[m_undo_pointer++].undo(*this);
     }
 }
@@ -598,7 +598,7 @@ void Document::word_left(bool select)
 
 void Document::right(bool select)
 {
-    if (m_point < m_text.length() - 1)
+    if (m_point < text_length() - 1)
         move_point(m_point + 1);
     update_internals(select);
 }
@@ -606,10 +606,10 @@ void Document::right(bool select)
 void Document::word_right(bool select)
 {
     auto point = m_point;
-    while (point < m_text.length() - 1 && !isalnum(m_text[point])) {
+    while (point < text_length() - 1 && !isalnum(m_text[point])) {
         ++point;
     }
-    while (point < m_text.length() - 1 && isalnum(m_text[point])) {
+    while (point < text_length() - 1 && isalnum(m_text[point])) {
         ++point;
     }
     move_point(point);
@@ -648,7 +648,7 @@ void Document::home(bool select)
 void Document::end(bool select)
 {
     auto point { m_point };
-    for (; point < m_text.length() && m_text[point] != '\n'; ++point)
+    for (; point < text_length() && m_text[point] != '\n'; ++point)
         ;
     move_point(point);
     update_internals(select);
@@ -670,9 +670,9 @@ bool Document::find_next()
     if (!m_found) {
         m_mark = m_point = 0;
     }
-    auto where = static_cast<int>(m_text.find(m_find_term, m_point));
+    auto where = m_text.find(m_find_term, m_point);
     if (where != std::string::npos) {
-        m_mark = where;
+        m_mark = static_cast<int>(where);
         move_point(m_mark + static_cast<int>(m_find_term.length()));
         m_found = true;
         update_internals(true);
@@ -781,7 +781,7 @@ void Document::render()
     bool has_selection = m_point != m_mark;
     int start_selection = std::min(m_point, m_mark);
     int end_selection = std::max(m_point, m_mark);
-    for (auto ix = m_screen_top; ix < m_lines.size() && ix < m_screen_top + m_editor->rows(); ++ix) {
+    for (auto ix = m_screen_top; ix < line_count() && ix < m_screen_top + m_editor->rows(); ++ix) {
         auto const& line = m_lines[ix];
         auto line_len = line_length(ix);
         auto line_end = line.start_index + line_len;
@@ -807,17 +807,17 @@ void Document::render()
         auto len = 0u;
         for (auto const& token : line.tokens) {
             auto t = token.value();
-            if (len + t.length() < m_screen_left) {
+            if (len + t.length() < static_cast<size_t>(m_screen_left)) {
                 len += t.length();
                 continue;
-            } else if (len < m_screen_left) {
+            } else if (len < static_cast<size_t>(m_screen_left)) {
                 t = t.substr(m_screen_left - len);
-            } else if (len + t.length() > m_screen_left + columns()) {
+            } else if (len + t.length() > static_cast<size_t>(m_screen_left + columns())) {
                 t = t.substr(0, m_screen_left + columns() - len);
             }
             m_editor->append(m_parser->colorize(token.code(), t));
             len += token.value().length();
-            if (len >= m_screen_left + m_editor->columns())
+            if (len >= static_cast<size_t>(m_screen_left + m_editor->columns()))
                 break;
         }
         m_editor->newline();

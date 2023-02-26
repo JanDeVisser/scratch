@@ -34,8 +34,7 @@ void WidgetContainer::resize(Box const& outline)
 {
     debug(scratch, "Resizing container within outline '{}'", outline);
     m_outlines.clear();
-    for (auto ix = 0; ix < m_components.size(); ++ix)
-        m_outlines.emplace_back();
+    m_outlines.resize(m_components.size());
     auto allocated = 0;
     auto stretch_count = 0;
     auto total = (m_orientation == ContainerOrientation::Vertical) ? outline.height() : outline.width();
@@ -46,7 +45,7 @@ void WidgetContainer::resize(Box const& outline)
     auto fixed_pos_coord = (m_orientation == ContainerOrientation::Vertical) ? 0 : 1;
     auto var_pos_coord = (m_orientation == ContainerOrientation::Vertical) ? 1 : 0;
 
-    for (auto ix = 0; ix < m_components.size(); ++ix) {
+    for (auto ix = 0u; ix < m_components.size(); ++ix) {
         auto const& c = m_components[ix];
         m_outlines[ix].size[fixed_size_coord] = fixed_size;
         m_outlines[ix].position[fixed_pos_coord] = fixed_pos;
@@ -85,7 +84,7 @@ void WidgetContainer::resize(Box const& outline)
     }
 
     auto offset = 0;
-    for (auto ix = 0; ix < m_components.size(); ++ix) {
+    for (auto ix = 0u; ix < m_components.size(); ++ix) {
         auto& o  = m_outlines[ix];
         o.position[var_pos_coord] = offset;
         offset += o.size[var_size_coord];
@@ -134,9 +133,10 @@ void WidgetContainer::handle_click(Box const& outline, SDL_MouseButtonEvent cons
 
 void WidgetContainer::handle_wheel(Box const& outline, SDL_MouseWheelEvent const& event)
 {
-    if (outline.contains((int) event.mouseX, (int) event.mouseY)) {
+    Position mouse = App::instance().mouse_position();
+    if (outline.contains(mouse.left(), mouse.top())) {
         for (auto const& c : m_components) {
-            if (c->outline().contains((int) event.mouseX, (int) event.mouseY)) {
+            if (c->outline().contains(mouse.left(), mouse.top())) {
                 c->handle_wheel(event);
                 return;
             }

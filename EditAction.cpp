@@ -44,11 +44,11 @@ std::optional<EditAction> EditAction::merge(EditAction const& merge_with) const
         return {};
     switch (type()) {
     case EditActionType::InsertText:
-        if (merge_with.cursor() == cursor() + text().length())
+        if (merge_with.cursor() == cursor() + static_cast<int>(text().length()))
             return EditAction { EditActionType::InsertText, cursor(), text() + merge_with.text() };
         break;
     case EditActionType::DeleteText:
-        if (cursor() == merge_with.cursor() + merge_with.text().length())
+        if (cursor() == merge_with.cursor() + static_cast<int>(merge_with.text().length()))
             return EditAction { EditActionType::DeleteText, merge_with.cursor(), merge_with.text() + text() };
         break;
     case EditActionType::CursorMove:

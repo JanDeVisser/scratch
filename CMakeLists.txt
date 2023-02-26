@@ -67,6 +67,7 @@ add_executable(
         Commands/DefaultArgumentHandler.cpp
         Parser/CPlusPlus.cpp
         Parser/PlainText.cpp
+        Scribble/Interp/Value.cpp
         Scribble/Parser.cpp
         Scribble/Processor.cpp
         Scribble/Scribble.cpp
@@ -83,7 +84,7 @@ add_executable(
         Widget/Widget.cpp
         Widget/WindowedWidget.cpp
         Widget/WidgetContainer.cpp
-)
+        Scribble/Interp/Operator.h Scribble/Interp/ExpressionResult.cpp Scribble/Interp/ExpressionResult.h Scribble/Interp/Interpreter.cpp Scribble/Interp/Interpreter.h)
 
 target_link_libraries(
         scratch

@@ -65,6 +65,7 @@ class Value {
 public:
     explicit Value(ValueType type = ValueType::Null);
     explicit Value(std::string);
+    explicit Value(std::string_view);
     explicit Value(double);
     Value(Value const&) noexcept = default;
     Value(Value&&) noexcept;
@@ -99,6 +100,7 @@ public:
     [[nodiscard]] bool is_type_compatible_with(ValueType) const;
     [[nodiscard]] bool is_null() const;
     [[nodiscard]] bool is_int() const;
+    [[nodiscard]] bool is_string() const;
 
     [[nodiscard]] auto const& value() const
     {

@@ -174,7 +174,7 @@ Token const& CPlusPlusParser::next_token()
 
 void CPlusPlusParser::parse_include()
 {
-    Token t = skip_whitespace();
+    Token t = lex_whitespace();
     switch (t.code()) {
     case Obelix::TokenCode::DoubleQuotedString:
         lex();
@@ -200,7 +200,7 @@ void CPlusPlusParser::parse_include()
 
 void CPlusPlusParser::parse_define()
 {
-    Token t = skip_whitespace();
+    Token t = lex_whitespace();
     if (t.code() != TokenCode::Identifier)
         return;
     t = get_next(TokenMacroName);
@@ -223,7 +223,7 @@ void CPlusPlusParser::parse_define()
 
     auto escape { false };
     std::string def_string;
-    skip_whitespace();
+    lex_whitespace();
     t = peek();
     auto start_loc = t.location();
     auto end_loc = start_loc;
@@ -260,7 +260,7 @@ void CPlusPlusParser::parse_define()
 
 void CPlusPlusParser::parse_ifdef()
 {
-    Token t = skip_whitespace();
+    Token t = lex_whitespace();
     if (t.code() != TokenCode::Identifier)
         return;
     lex();
@@ -269,7 +269,7 @@ void CPlusPlusParser::parse_ifdef()
 
 void CPlusPlusParser::parse_hashif()
 {
-    Token t = skip_whitespace();
+    Token t = lex_whitespace();
     auto escape { false };
     std::string expr;
     t = peek();
@@ -306,7 +306,7 @@ void CPlusPlusParser::parse_hashif()
     }
 }
 
-Token const& CPlusPlusParser::skip_whitespace()
+Token const& CPlusPlusParser::lex_whitespace()
 {
     if (peek().code() != TokenCode::Whitespace)
         return peek();
@@ -318,7 +318,7 @@ Token const& CPlusPlusParser::get_next(TokenCode code)
 {
     Token t = lex();
     m_pending.emplace_back(t.location(), (code != TokenCode::Unknown) ? code : t.code(), t.value());
-    return skip_whitespace();
+    return lex_whitespace();
 }
 
 }

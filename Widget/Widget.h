@@ -10,10 +10,10 @@
 
 #include <SDL.h>
 
-#include <Forward.h>
-#include <Geometry.h>
-#include <SDLContext.h>
+#include "SDLContext.h"
+#include <App/Forward.h>
 #include <Commands/Command.h>
+#include <Widget/Geometry.h>
 
 namespace Scratch {
 

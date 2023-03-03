@@ -8,12 +8,17 @@
 
 #include <deque>
 
+#include <Commands/Command.h>
 #include <Parser/ScratchParser.h>
 
 using namespace Obelix;
 using namespace Scratch::Parser;
 
 namespace Scratch::Scribble {
+
+struct ScribbleCommands : public Commands {
+    ScribbleCommands();
+};
 
 class Scribble : public ScratchParser {
 public:
@@ -43,12 +48,16 @@ public:
     constexpr static TokenCode KeywordTrue = TokenCode::Keyword31;
     constexpr static TokenCode KeywordFalse = TokenCode::Keyword32;
 
-    Scribble();
+    explicit Scribble(bool = false);
     Token const& next_token() override;
     DisplayToken colorize(TokenCode, std::string_view const&) override;
+    std::optional<ScheduledCommand> command(std::string const&) const override;
+    [[nodiscard]] virtual std::vector<Command> commands() const override;
 
 private:
     std::deque<Token> m_pending;
+    bool m_ignore_ws { false };
+    static ScribbleCommands s_scribble_commands;
 
 };
 

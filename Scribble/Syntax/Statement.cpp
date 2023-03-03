@@ -155,21 +155,24 @@ std::string Block::to_string() const
 
 // -- Module ----------------------------------------------------------------
 
-Module::Module(Statements const& statements, std::string name)
+Module::Module(Statements const& statements, std::string name, std::shared_ptr<StringBuffer> buffer)
     : Block({}, statements)
     , m_name(std::move(name))
+    , m_buffer(std::move(buffer))
 {
 }
 
-Module::Module(Span location, Statements const& statements, std::string name)
+Module::Module(Span location, Statements const& statements, std::string name, std::shared_ptr<StringBuffer> buffer)
     : Block(location, statements)
     , m_name(std::move(name))
+    , m_buffer(std::move(buffer))
 {
 }
 
 Module::Module(std::shared_ptr<Module> const& original, Statements const& statements)
     : Block(original->location(), statements)
     , m_name(original->name())
+    , m_buffer(original->buffer())
 {
 }
 
@@ -188,12 +191,18 @@ const std::string& Module::name() const
     return m_name;
 }
 
+std::shared_ptr<StringBuffer> const& Module::buffer() const
+{
+    return m_buffer;
+}
+
 // -- Project -----------------------------------------------------------
 
-Project::Project(Modules modules, std::string main_module)
+Project::Project(Modules modules, std::string main_module, std::shared_ptr<StringBuffer> main_buffer)
     : SyntaxNode(Span {})
     , m_modules(std::move(modules))
     , m_main_module(std::move(main_module))
+    , m_main_buffer(std::move(main_buffer))
 {
     for (auto const& module : m_modules) {
         if (module->name() == "/")
@@ -201,9 +210,10 @@ Project::Project(Modules modules, std::string main_module)
     }
 }
 
-Project::Project(std::string main_module)
+Project::Project(std::string main_module, std::shared_ptr<StringBuffer> main_buffer)
     : SyntaxNode(Span {})
     , m_main_module(std::move(main_module))
+    , m_main_buffer(std::move(main_buffer))
 {
 }
 
@@ -220,6 +230,11 @@ std::shared_ptr<Module> const& Project::root() const
 std::string const& Project::main_module() const
 {
     return m_main_module;
+}
+
+std::shared_ptr<StringBuffer> const& Project::main_buffer() const
+{
+    return m_main_buffer;
 }
 
 Nodes Project::children() const

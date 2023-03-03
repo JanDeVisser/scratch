@@ -133,18 +133,18 @@ ErrorOrNode process_tree(std::shared_ptr<SyntaxNode> const& tree, Context& ctx, 
     switch (tree->node_type()) {
 
     case SyntaxNodeType::Project: {
-        auto compilation = std::dynamic_pointer_cast<Project>(tree);
+        auto project = std::dynamic_pointer_cast<Project>(tree);
         Modules modules;
-        for (auto& module : compilation->modules()) {
+        for (auto& module : project->modules()) {
             modules.push_back(TRY_AND_CAST(Module, module, ctx));
         }
-        ret = make_node<Project>(modules, compilation->main_module());
+        ret = make_node<Project>(modules, project->main_module(), project->main_buffer());
         break;
     }
 
     case SyntaxNodeType::Module: {
         auto module = std::dynamic_pointer_cast<Module>(tree);
-        ret = TRY(process_block<Module>(tree, ctx, result, processor, module->name()));
+        ret = TRY(process_block<Module>(tree, ctx, result, processor, module->name(), module->buffer()));
         break;
     }
 
@@ -361,30 +361,30 @@ ProcessResult& process(std::shared_ptr<SyntaxNode> const& tree, Ctx& ctx, Proces
         result.value(nullptr);
         return result;
     }
-    std::string log_message;
+    std::string log_message  = format("<{} {}> => ", tree->node_type(), tree);
+    ErrorOrNode processed = tree;
     debug(scribble, "Process <{} {}>", tree->node_type(), tree);
     switch (tree->node_type()) {
 #undef ENUM_SYNTAXNODETYPE
-#define ENUM_SYNTAXNODETYPE(type)                                                           \
-    case SyntaxNodeType::type: {                                                            \
-        log_message = format("<{} {}> => ", #type, tree);                                   \
-        ErrorOrNode processed = process_node<Ctx, SyntaxNodeType::type>(tree, ctx, result); \
-        if (processed.is_error()) {                                                         \
-            log_message += format("Error {}", processed.error());                           \
-            result.error(processed.error());                                                \
-            result = tree;                                                                  \
-        } else {                                                                            \
-            result = processed.value();                                                     \
-            log_message += format("<{} {}>", result.value()->node_type(), result.value());  \
-        }                                                                                   \
-        debug(scribble, "{}", log_message);                                                \
-        return result;                                                                      \
-    }
+#define ENUM_SYNTAXNODETYPE(type)                                               \
+    case SyntaxNodeType::type:                                                  \
+        processed = process_node<Ctx, SyntaxNodeType::type>(tree, ctx, result); \
+        break;
         ENUMERATE_SYNTAXNODETYPES(ENUM_SYNTAXNODETYPE)
 #undef ENUM_SYNTAXNODETYPE
     default:
         fatal("Unknown SyntaxNodeType '{}'", tree->node_type());
     }
+    if (processed.is_error()) {                                                         \
+        log_message += format("Error {}", processed.error());                           \
+        result.error(processed.error());                                                \
+        result = tree;                                                                  \
+    } else {                                                                            \
+        result = processed.value();                                                     \
+        log_message += format("<{} {}>", result.value()->node_type(), result.value());  \
+    }                                                                                   \
+    debug(scribble, "{}", log_message);                                                \
+    return result;                                                                      \
 }
 
 template<typename Ctx>

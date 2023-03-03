@@ -10,7 +10,7 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 
-#include <SDLContext.h>
+#include "SDLContext.h"
 
 using namespace Obelix;
 
@@ -190,6 +190,14 @@ SDL_Rect SDLContext::SDLFont::render_centered(int x, int y, std::string const& t
     return rect;
 }
 
+int SDLContext::SDLFont::text_width(std::string const& text) const
+{
+    int width, height;
+    if (TTF_SizeUTF8(font, text.c_str(), &width, &height) != 0)
+        fatal("Error getting text width: {}", TTF_GetError());
+    return width;
+}
+
 SDLContext::SDLCursor::SDLCursor(SDL_SystemCursor cursor_id)
     : id(cursor_id)
 {
@@ -268,6 +276,11 @@ SDL_Rect SDLContext::render_text_right_aligned(int x, int y, std::string const& 
 SDL_Rect SDLContext::render_text_centered(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily family) const
 {
     return m_fonts[(size_t)family].render_centered(x, y, text, color);
+}
+
+int SDLContext::text_width(std::string const& text, SDLFontFamily family) const
+{
+    return m_fonts[(size_t)family].text_width(text);
 }
 
 }

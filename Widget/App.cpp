@@ -10,11 +10,10 @@
 
 #include <SDL2_gfxPrimitives.h>
 
-#include <App.h>
-#include <Commands/CommandHandler.h>
-#include <Forward.h>
-#include <SDLContext.h>
-#include <Text.h>
+#include "App.h"
+#include "App/Text.h"
+#include "Commands/CommandHandler.h"
+#include "SDLContext.h"
 
 namespace Scratch {
 
@@ -111,7 +110,7 @@ void App::render()
             m_pending_commands.pop_front();
         }
     } else {
-        for (auto const& m : m_modals) {
+        for (auto& m : m_modals) {
             m->render();
         }
     }

@@ -8,7 +8,7 @@
 
 #include <deque>
 
-#include <EditorState.h>
+#include <App/EditorState.h>
 #include <Parser/ScratchParser.h>
 
 using namespace Obelix;
@@ -69,7 +69,7 @@ private:
     void parse_define();
     void parse_hashif();
     void parse_ifdef();
-    Token const& skip_whitespace();
+    Token const& lex_whitespace();
     Token const& get_next(TokenCode = TokenCode::Unknown);
 
     std::deque<Token> m_pending;

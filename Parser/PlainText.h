@@ -7,7 +7,7 @@
 #pragma once
 
 #include <lexer/Token.h>
-#include <EditorState.h>
+#include <App/EditorState.h>
 #include <Parser/ScratchParser.h>
 
 namespace Scratch::Parser {

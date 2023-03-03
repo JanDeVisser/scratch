@@ -83,15 +83,17 @@ protected:
 
 NODE_CLASS(Module, Block)
 public:
-    Module(Statements const&, std::string);
-    Module(Span, Statements const&, std::string);
+    Module(Statements const&, std::string, std::shared_ptr<StringBuffer>);
+    Module(Span, Statements const&, std::string, std::shared_ptr<StringBuffer>);
     Module(std::shared_ptr<Module> const&, Statements const&);
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] std::string to_string() const override;
     [[nodiscard]] const std::string& name() const;
+    [[nodiscard]] std::shared_ptr<StringBuffer> const& buffer() const;
 
 private:
     std::string m_name;
+    std::shared_ptr<StringBuffer> m_buffer;
 };
 
 using pModule = std::shared_ptr<Module>;
@@ -99,8 +101,9 @@ using Modules = std::vector<pModule>;
 
 NODE_CLASS(Project, SyntaxNode)
 public:
-    Project(Modules, std::string);
-    explicit Project(std::string);
+    Project(Modules, std::string, std::shared_ptr<StringBuffer>);
+    Project(std::string, std::shared_ptr<StringBuffer>);
+    [[nodiscard]] std::shared_ptr<StringBuffer> const& main_buffer() const;
     [[nodiscard]] Modules const& modules() const;
     [[nodiscard]] std::shared_ptr<Module> const& root() const;
     [[nodiscard]] std::string const& main_module() const;
@@ -114,6 +117,7 @@ private:
     Modules m_modules;
     std::shared_ptr<Module> m_root;
     std::string m_main_module;
+    std::shared_ptr<StringBuffer> m_main_buffer;
 };
 
 NODE_CLASS(ExpressionStatement, Statement)

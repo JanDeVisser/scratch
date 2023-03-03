@@ -13,14 +13,14 @@
 
 #include <SDL.h>
 
-#include <core/Logging.h>
+#include "obelixlibs/core/Logging.h"
 
-#include <Commands/Command.h>
-#include <EditorState.h>
+#include "App/EditorState.h"
+#include "Commands/Command.h"
 //#include <Scrollbar.h>
-#include <Geometry.h>
-#include <Key.h>
-#include <Widget/Widget.h>
+#include "App/Key.h"
+#include "Geometry.h"
+#include "Widget.h"
 
 #ifndef WIDGET_BORDER_X
 #define WIDGET_BORDER_X 8

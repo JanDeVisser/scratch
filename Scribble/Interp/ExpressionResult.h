@@ -12,10 +12,11 @@ namespace Scratch::Interp {
 
 using namespace std::literals;
 using namespace Obelix;
+using namespace Scratch::Scribble;
 
 NODE_CLASS(ExpressionResult, SyntaxNode)
 public:
-    explicit ExpressionResult(Span, Value);
+    ExpressionResult(Span, Value);
     std::string to_string() const override;
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] Value const& value() const;

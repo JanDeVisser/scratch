@@ -13,9 +13,9 @@
 #include <SDL.h>
 #include <SDL_ttf.h>
 
-#include <core/Logging.h>
+#include "obelixlibs/core/Logging.h"
 
-#include <Geometry.h>
+#include "Geometry.h"
 
 using namespace Obelix;
 
@@ -52,6 +52,7 @@ public:
     SDL_Rect render_text(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily = SDLFontFamily::Fixed) const;
     SDL_Rect render_text_right_aligned(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily = SDLFontFamily::Fixed) const;
     SDL_Rect render_text_centered(int x, int y, std::string const& text, SDL_Color const& color, SDLFontFamily = SDLFontFamily::Fixed) const;
+    int text_width(std::string const&, SDLFontFamily = SDLFontFamily::Fixed) const;
 
 private:
     struct SDLInit {
@@ -99,6 +100,7 @@ private:
         SDL_Rect render(int, int, std::string const& text, SDL_Color color) const;
         SDL_Rect render_right_aligned(int, int, std::string const& text, SDL_Color color) const;
         SDL_Rect render_centered(int, int, std::string const& text, SDL_Color color) const;
+        int text_width(std::string const&) const;
 
         SDLRenderer& renderer;
         TTF_Font *font;

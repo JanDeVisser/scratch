@@ -53,12 +53,25 @@ enum class Associativity {
 
 class Parser {
 public:
-    static ErrorOr<std::shared_ptr<Parser>,SystemError> create(ParserContext&, std::string const&);
+    explicit Parser(ParserContext&);
     std::shared_ptr<Module> parse();
     [[nodiscard]] Scribble const& lexer() const;
 
+    ErrorOr<void,SystemError> read_file(std::string const&, BufferLocator* locator = nullptr);
+    void assign(StringBuffer&&);
+    void assign(std::shared_ptr<StringBuffer>);
+    void assign(std::string const&);
+    void assign(std::vector<std::string> const&);
+
 protected:
-    explicit Parser(ParserContext&);
+    Token const& peek();
+    Token const& lex();
+    Token const& replace(Token const&);
+    std::optional<Token const> match(TokenCode, char const* = nullptr);
+    Token const& skip(TokenCode);
+    TokenCode current_code();
+    bool expect(TokenCode, char const* = nullptr);
+    bool expect(char const*, char const* = nullptr);
 
 private:
     std::shared_ptr<Statement> parse_statement();
@@ -71,21 +84,20 @@ private:
     std::shared_ptr<WhileStatement> parse_while_statement(Token const&);
     std::shared_ptr<ForStatement> parse_for_statement(Token const&);
     std::shared_ptr<VariableDeclaration> parse_variable_declaration(Token const&, bool);
-    std::shared_ptr<Statement> parse_struct(Token const&);
     std::shared_ptr<Import> parse_import_statement(Token const&);
     std::shared_ptr<Expression> parse_expression();
 
     std::shared_ptr<Expression> parse_expression_1(std::shared_ptr<Expression> lhs, int min_precedence);
     std::shared_ptr<Expression> parse_primary_expression();
 
-    Scribble m_lexer;
+    Scribble m_lexer { true };
     ParserContext& m_ctx;
     std::vector<std::string> m_modules;
     std::string m_current_module;
 };
 
 [[nodiscard]] std::string sanitize_module_name(std::string const&);
-[[nodiscard]] ProcessResult parse(std::string const&);
-[[nodiscard]] ProcessResult compile_project();
+[[nodiscard]] ProcessResult compile_project(std::string const&);
+[[nodiscard]] ProcessResult compile_project(std::string const&, std::shared_ptr<StringBuffer>);
 
 }

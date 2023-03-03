@@ -9,8 +9,8 @@
 
 #include <core/Logging.h>
 
-#include <SDLContext.h>
-#include <Scratch.h>
+#include "Widget/SDLContext.h"
+#include <App/Scratch.h>
 
 #ifndef WINDOW_WIDTH
 #define WINDOW_WIDTH 1024

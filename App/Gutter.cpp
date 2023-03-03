@@ -6,9 +6,9 @@
 
 #include <core/Format.h>
 
-#include <Gutter.h>
-#include <Scratch.h>
-#include <SDLContext.h>
+#include "Widget/SDLContext.h"
+#include <App/Gutter.h>
+#include <App/Scratch.h>
 
 namespace Scratch {
 

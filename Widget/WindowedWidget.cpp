@@ -6,7 +6,7 @@
 
 #include <SDL2_gfxPrimitives.h>
 
-#include <App.h>
+#include "App.h"
 #include <Widget/Widget.h>
 
 namespace Scratch {

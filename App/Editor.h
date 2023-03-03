@@ -8,8 +8,8 @@
 
 #include <SDL.h>
 
-#include <Document.h>
-#include <EditorState.h>
+#include <App/Document.h>
+#include <App/EditorState.h>
 #include <Widget/Widget.h>
 
 namespace Scratch {

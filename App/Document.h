@@ -13,7 +13,7 @@
 
 #include <lexer/BasicParser.h>
 
-#include <Forward.h>
+#include <App/Forward.h>
 #include <Commands/Command.h>
 #include <Parser/CPlusPlus.h>
 #include <Widget/Widget.h>
@@ -87,6 +87,7 @@ public:
 
     [[nodiscard]] int text_length() const;
     [[nodiscard]] std::string line(size_t) const;
+    [[nodiscard]] std::string const& text() const { return m_text; }
     [[nodiscard]] int line_length(size_t) const;
     [[nodiscard]] int line_count() const;
     [[nodiscard]] bool empty() const;
@@ -154,18 +155,21 @@ public:
     std::string save_as(std::string const&);
     [[nodiscard]] bool dirty() const { return m_dirty; }
 
-    void render();
-    bool dispatch(SDL_Keysym);
+    void render() override;
+    bool dispatch(SDL_Keysym) override;
     void mousedown(int, int);
     void motion(int, int);
     void click(int, int, int);
     void wheel(int);
-    void handle_text_input();
+    void handle_text_input() override;
 
     Token const& lex();
     void rewind();
     void invalidate();
     [[nodiscard]] auto last_parse_time() const { return m_last_parse_time.count(); }
+
+    std::optional<ScheduledCommand> command(std::string const&) const override;
+    [[nodiscard]] std::vector<Command> commands() const override;
 
 private:
     void insert_text(std::string const&, int = -1);

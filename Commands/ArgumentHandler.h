@@ -8,7 +8,7 @@
 
 #include <SDL.h>
 
-#include <Scratch.h>
+#include <App/Scratch.h>
 #include <Commands/Command.h>
 #include <Commands/CommandHandler.h>
 

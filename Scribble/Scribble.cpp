@@ -4,16 +4,55 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <App/Document.h>
+#include <App/Scratch.h>
+#include <Scribble/Interp/ExpressionResult.h>
+#include <Scribble/Interp/Interpreter.h>
 #include <Scribble/Scribble.h>
+#include <Scribble/Parser.h>
+#include <Scribble/Syntax/Statement.h>
+#include <Widget/Alert.h>
 
 namespace Scratch::Scribble {
 
-Scribble::Scribble()
+using namespace Scratch::Interp;
+
+ScribbleCommands::ScribbleCommands()
+{
+    register_command(
+        { "evaluate-buffer", "Evaluates the script in the current buffer", {},
+            [](Widget& w, strings const&) -> void {
+                auto* doc = Scratch::editor()->document();
+                auto& text = doc->text();
+                auto project_maybe = compile_project(doc->path(), std::make_shared<StringBuffer>(text));
+                if (project_maybe.is_error()) {
+                    doc->end(false);
+                    doc->insert("\n// " + project_maybe.error().to_string());
+                    return;
+                }
+                auto result = interpret(std::dynamic_pointer_cast<Project>(project_maybe.value()));
+                if (result.is_error()) {
+                    doc->end(false);
+                    doc->insert("\n// " + result.error().to_string());
+                    return;
+                }
+                auto r = std::dynamic_pointer_cast<Interp::ExpressionResult>(result.value());
+                doc->end(false);
+                doc->insert("\n// " + r->value().to_string());
+            } },
+        { SDLK_e, KMOD_CTRL });
+}
+
+ScribbleCommands Scribble::s_scribble_commands;
+
+Scribble::Scribble(bool ignore_ws)
+    : ScratchParser()
+    , m_ignore_ws(ignore_ws)
 {
     lexer().add_scanner<Obelix::QStringScanner>("\"'", true);
     lexer().add_scanner<Obelix::IdentifierScanner>();
     lexer().add_scanner<Obelix::NumberScanner>(Obelix::NumberScanner::Config { true, false, true, false, true });
-    lexer().add_scanner<Obelix::WhitespaceScanner>(Obelix::WhitespaceScanner::Config { false, false, false });
+    lexer().add_scanner<Obelix::WhitespaceScanner>(Obelix::WhitespaceScanner::Config { m_ignore_ws, m_ignore_ws, m_ignore_ws });
     lexer().add_scanner<Obelix::CommentScanner>(true,
         Obelix::CommentScanner::CommentMarker { false, false, "/*", "*/" },
         Obelix::CommentScanner::CommentMarker { false, true, "//", "" });
@@ -42,8 +81,7 @@ Scribble::Scribble()
         KeywordWhile, "while",
 
         KeywordTrue, "true",
-        KeywordFalse, "false"
-    );
+        KeywordFalse, "false");
 }
 
 DisplayToken Scribble::colorize(TokenCode code, std::string_view const& text)
@@ -83,5 +121,18 @@ Token const& Scribble::next_token()
 {
     return lex();
 }
+
+std::optional<ScheduledCommand> Scribble::command(std::string const& name) const
+{
+    if (auto* cmd = s_scribble_commands.get(name); cmd != nullptr)
+        return ScheduledCommand { dynamic_cast<Widget&>(*Scratch::editor()->document()), *cmd };
+    return {};
+}
+
+std::vector<Command> Scribble::commands() const
+{
+    return *s_scribble_commands;
+}
+
 
 } // Scratch

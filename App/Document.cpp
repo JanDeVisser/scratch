@@ -9,13 +9,13 @@
 
 #include <core/Format.h>
 
-#include <App.h>
-#include <Document.h>
-#include <Editor.h>
+#include <App/Document.h>
+#include <App/Editor.h>
+#include <App/Scratch.h>
 #include <Parser/CPlusPlus.h>
 #include <Parser/PlainText.h>
-#include <Scratch.h>
 #include <Scribble/Scribble.h>
+#include <Widget/App.h>
 
 using namespace Obelix;
 using namespace Scratch::Parser;
@@ -928,6 +928,27 @@ Token const& Document::lex()
 void Document::rewind()
 {
     m_parser->rewind();
+}
+
+std::optional<ScheduledCommand> Document::command(std::string const& name) const
+{
+    if (auto ret = Widget::command(name); ret.has_value())
+        return ret;
+    if (m_parser != nullptr) {
+        if (auto ret = m_parser->command(name); ret.has_value())
+            return ret;
+    }
+    return {};
+}
+
+std::vector<Command> Document::commands() const
+{
+    auto ret = Widget::commands();
+    if (m_parser != nullptr) {
+        auto mode_commands = m_parser->commands();
+        ret.insert(ret.cend(), mode_commands.cbegin(), mode_commands.cend());
+    }
+    return ret;
 }
 
 }

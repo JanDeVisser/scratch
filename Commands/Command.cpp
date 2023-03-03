@@ -7,9 +7,9 @@
 #include <core/Format.h>
 #include <core/StringUtil.h>
 
+#include "Widget/SDLContext.h"
+#include <App/Scratch.h>
 #include <Commands/Command.h>
-#include <SDLContext.h>
-#include <Scratch.h>
 
 using namespace Obelix;
 
@@ -61,6 +61,14 @@ Command* Commands::get(std::string const& cmd_name)
     if (!m_commands.contains(cmd_name))
         return nullptr;
     return &m_commands.at(cmd_name);
+}
+
+std::vector<Command> Commands::operator*()
+{
+    std::vector<Command> ret;
+    for (auto const& [ name, cmd ] : m_commands)
+        ret.push_back(cmd);
+    return ret;
 }
 
 } // Scratch

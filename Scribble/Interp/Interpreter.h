@@ -14,6 +14,6 @@ namespace Scratch::Interp {
 
 using namespace Obelix;
 
-[[nodiscard]] ProcessResult interpret(Project const&);
+[[nodiscard]] ProcessResult interpret(std::shared_ptr<Project> const&);
 
 }

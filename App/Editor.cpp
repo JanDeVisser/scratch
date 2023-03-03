@@ -9,10 +9,10 @@
 
 #include <SDL2_gfxPrimitives.h>
 
-#include <App.h>
-#include <Editor.h>
-#include <Scratch.h>
-#include <SDLContext.h>
+#include "Widget/App.h"
+#include "Widget/SDLContext.h"
+#include <App/Editor.h>
+#include <App/Scratch.h>
 
 namespace Scratch {
 

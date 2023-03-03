@@ -98,6 +98,12 @@ Value::Value(std::string value)
 {
 }
 
+Value::Value(std::string_view value)
+    : m_type(ValueType::Text)
+    , m_value(std::string(value))
+{
+}
+
 Value::Value(double value)
 {
     if (trunc(value) == value) {
@@ -157,6 +163,11 @@ bool Value::is_null() const
 bool Value::is_int() const
 {
     return m_value.has_value() && (std::holds_alternative<int64_t>(m_value.value()) || std::holds_alternative<uint64_t>(m_value.value()));
+}
+
+bool Value::is_string() const
+{
+    return m_value.has_value() && std::holds_alternative<std::string>(m_value.value());
 }
 
 std::string Value::to_string() const
@@ -310,6 +321,9 @@ ErrorOr<Value> Value::add(Value const& other) const
             return Value { result.value_unchecked() };
         });
     }
+
+    if (is_string() && other.is_string())
+        return Value { to_string() + other.to_string() };
 
     auto lhs = to_double();
     auto rhs = other.to_double();

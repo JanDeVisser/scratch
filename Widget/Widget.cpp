@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <App.h>
-#include <SDLContext.h>
+#include "App.h"
+#include "SDLContext.h"
 #include <Widget/Widget.h>
 
 namespace Scratch {
@@ -42,8 +42,7 @@ std::vector<Command> Widget::commands() const
 {
     std::vector<Command> ret;
     if (m_commands != nullptr) {
-        for (auto const& [ name, cmd ] : m_commands->commands())
-            ret.push_back(cmd);
+        ret = **m_commands;
     }
     return ret;
 }

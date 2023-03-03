@@ -14,8 +14,8 @@
 
 #include <SDL.h>
 
-#include <Forward.h>
-#include <Key.h>
+#include <App/Forward.h>
+#include <App/Key.h>
 
 namespace Scratch {
 
@@ -48,6 +48,11 @@ public:
     CommandHandlerFunction function;
 };
 
+struct ScheduledCommand {
+    Widget& owner;
+    Command const& command;
+};
+
 class Commands {
 public:
     std::map<std::string, Command> const& commands();
@@ -56,15 +61,11 @@ public:
     bool is_bound(SDLKey const&);
     Command* command_for_key(SDLKey const&);
     Command* get(std::string const&);
+    [[nodiscard]] std::vector<Command> operator*();
 
 private:
     std::map<std::string, Command> m_commands;
     std::map<SDLKey, std::string> m_key_bindings;
-};
-
-struct ScheduledCommand {
-    Widget& owner;
-    Command const& command;
 };
 
 }

@@ -11,7 +11,7 @@ namespace Scratch::Interp {
 using namespace Obelix;
 
 ExpressionResult::ExpressionResult(Span location, Value value)
-    : SyntaxNode(std::move(location))
+    : SyntaxNode(location)
     , m_value(std::move(value))
 {
 }

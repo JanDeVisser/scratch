@@ -49,24 +49,24 @@ include_directories(
 
 add_executable(
         scratch
-        App.cpp
-        Document.cpp
-        EditAction.cpp
-        Editor.cpp
-        EditorState.cpp
-        Geometry.h
-        Gutter.cpp
-        Key.cpp
-        Scratch.cpp
-        SDLContext.cpp
-        StatusBar.cpp
-        Text.cpp
+        App/Document.cpp
+        App/EditAction.cpp
+        App/Editor.cpp
+        App/EditorState.cpp
+        App/Gutter.cpp
+        App/Key.cpp
+        App/Scratch.cpp
+        App/StatusBar.cpp
+        App/Text.cpp
         Commands/ArgumentHandler.cpp
         Commands/Command.cpp
         Commands/CommandHandler.cpp
         Commands/DefaultArgumentHandler.cpp
         Parser/CPlusPlus.cpp
         Parser/PlainText.cpp
+        Parser/ScratchParser.cpp
+        Scribble/Interp/ExpressionResult.cpp
+        Scribble/Interp/Interpreter.cpp
         Scribble/Interp/Value.cpp
         Scribble/Parser.cpp
         Scribble/Processor.cpp
@@ -78,13 +78,17 @@ add_executable(
         Scribble/Syntax/Statement.cpp
         Scribble/Syntax/Syntax.cpp
         Scribble/Syntax/Variable.cpp
+        Widget/Alert.cpp
+        Widget/App.cpp
         Widget/Frame.cpp
+        Widget/Geometry.h
         Widget/Layout.cpp
         Widget/ModalWidget.cpp
+        Widget/SDLContext.cpp
         Widget/Widget.cpp
         Widget/WindowedWidget.cpp
         Widget/WidgetContainer.cpp
-        Scribble/Interp/Operator.h Scribble/Interp/ExpressionResult.cpp Scribble/Interp/ExpressionResult.h Scribble/Interp/Interpreter.cpp Scribble/Interp/Interpreter.h)
+        Parser/ScratchParser.cpp)
 
 target_link_libraries(
         scratch

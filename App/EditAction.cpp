@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <Document.h>
+#include <App/Document.h>
 
 namespace Scratch {
 

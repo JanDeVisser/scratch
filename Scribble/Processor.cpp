@@ -6,6 +6,8 @@
 
 #include <memory>
 
+#include <core/FileBuffer.h>
+
 #include <Scribble/Processor.h>
 #include <Scribble/Syntax/Statement.h>
 #include <Scribble/Syntax/Syntax.h>
@@ -29,14 +31,25 @@ std::string sanitize_module_name(std::string const& unsanitized)
 
 ProcessResult parse(ParserContext& ctx, std::string const& module_name)
 {
-    auto parser_or_error = Parser::create(ctx, module_name);
-    if (parser_or_error.is_error()) {
-        return SyntaxError { {}, parser_or_error.error().message() };
-    }
-    auto parser = parser_or_error.value();
     ProcessResult ret;
-    ret = parser->parse();
-    for (auto const& e : parser->lexer().errors())
+    auto parser = Parser(ctx);
+    if (auto loaded_maybe = parser.read_file(module_name); loaded_maybe.is_error()) {
+        ret = SyntaxError { {}, loaded_maybe.error().code() };
+        return ret;
+    }
+    ret = parser.parse();
+    for (auto const& e : parser.lexer().errors())
+        ret.error(e);
+    return ret;
+}
+
+ProcessResult parse(ParserContext& ctx, std::shared_ptr<StringBuffer> buffer)
+{
+    ProcessResult ret;
+    auto parser = Parser(ctx);
+    parser.assign(std::move(buffer));
+    ret = parser.parse();
+    for (auto const& e : parser.lexer().errors())
         ret.error(e);
     return ret;
 }
@@ -62,7 +75,26 @@ ProcessResult compile_project(std::string const& name)
     ParserContext ctx;
 
     ProcessResult result;
-    result = std::make_shared<Project>(name);
+    auto buffer = FileBuffer::from_file(name);
+    if (buffer.is_error()) {
+        result = SyntaxError { {}, buffer.error().code() };
+        return result;
+    }
+    result = std::make_shared<Project>(name, buffer.value());
+    process(result.value(), ctx, result);
+    if (result.is_error())
+        return result;
+    if (true)
+        std::cout << "\n\nParsed tree:\n" << result.value()->to_xml() << "\n";
+    return result;
+}
+
+ProcessResult compile_project(std::string const& name, std::shared_ptr<StringBuffer> buffer)
+{
+    ParserContext ctx;
+
+    ProcessResult result;
+    result = std::make_shared<Project>(name, buffer);
     process(result.value(), ctx, result);
     if (result.is_error())
         return result;
@@ -75,13 +107,13 @@ INIT_NODE_PROCESSOR(ParserContext)
 
 NODE_PROCESSOR(Project)
 {
-    auto compilation = std::dynamic_pointer_cast<Project>(tree);
-    Modules modules = compilation->modules();
-    auto main_done = std::any_of(modules.begin(), modules.end(), [&compilation](auto const& m) {
-        return m->name() == compilation->main_module();
+    auto project = std::dynamic_pointer_cast<Project>(tree);
+    Modules modules = project->modules();
+    auto main_done = std::any_of(modules.begin(), modules.end(), [&project](auto const& m) {
+        return m->name() == project->main_module();
     });
     if (!main_done) {
-        auto res = parse(ctx, compilation->main_module());
+        auto res = parse(ctx, project->main_buffer());
         result += res;
         if (result.is_error())
             return result.error();
@@ -100,16 +132,7 @@ NODE_PROCESSOR(Project)
             }
         }
     }
-    auto root_done = std::any_of(modules.begin(), modules.end(), [](auto const& m) {
-        return m->name() == "/";
-    });
-    if (!root_done) {
-        auto res = parse(ctx, "/");
-        if (res.has_value())
-            modules.push_back(std::dynamic_pointer_cast<Module>(res.value()));
-        result += res;
-    }
-    return std::make_shared<Project>(modules, compilation->main_module());
+    return std::make_shared<Project>(modules, project->main_module(), project->main_buffer());
 }
 
 }

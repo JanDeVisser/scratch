@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include <Text.h>
+#include <App/Text.h>
 
 namespace Scratch {
 

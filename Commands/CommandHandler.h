@@ -20,7 +20,7 @@ public:
 
 private:
     Widget& m_owner;
-    Command const& m_command;
+    Command m_command;
     ModalWidget* m_current_handler { nullptr };
     std::vector<std::string> m_arguments;
     int m_current_parameter { 0 };

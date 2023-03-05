@@ -50,7 +50,7 @@ public:
 
 struct ScheduledCommand {
     Widget& owner;
-    Command const& command;
+    Command command;
 };
 
 class Commands {

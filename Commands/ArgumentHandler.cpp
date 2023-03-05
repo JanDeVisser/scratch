@@ -106,8 +106,8 @@ template<>
 std::vector<Command> get_entries(CommandParameter const& param, int const&)
 {
     std::vector<Command> entries;
-    for (auto const& cmd : App::instance().commands()) {
-        entries.push_back(cmd);
+    for (auto cmd : App::instance().commands()) {
+        entries.push_back(cmd.command);
     }
     std::sort(entries.begin(), entries.end(), [](auto const& e1, auto const& e2) -> bool {
         return e1.name < e2.name;

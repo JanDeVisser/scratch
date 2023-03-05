@@ -621,7 +621,7 @@ std::shared_ptr<Expression> Parser::parse_primary_expression()
         expr = std::make_shared<BooleanLiteral>(t);
         break;
     case TokenCode::Identifier:
-        expr = std::make_shared<Variable>(t.location(), t.to_string());
+        expr = std::make_shared<Variable>(t.location(), t.string_value());
         break;
     default:
         if (operator_defs.is_unary(t.code())) {

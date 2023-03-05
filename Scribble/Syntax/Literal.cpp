@@ -67,4 +67,12 @@ StringLiteral::StringLiteral(Token token)
 {
 }
 
+std::string StringLiteral::string() const
+{
+    auto s = token().string_value();
+    if (s.starts_with('"') && s.ends_with('"'))
+        s = s.substr(1, s.length() - 2);
+    return s;
+}
+
 }

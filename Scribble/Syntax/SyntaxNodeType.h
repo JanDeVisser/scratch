@@ -69,6 +69,7 @@ namespace Scratch::Scribble {
     S(DefaultCase)                      \
     S(SwitchStatement)                  \
     S(ExpressionResult)                 \
+    S(ExpressionResultList)             \
     S(StatementExecutionResult)
 
 enum class SyntaxNodeType {

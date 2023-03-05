@@ -38,11 +38,13 @@ std::optional<ScheduledCommand> Widget::command(std::string const& name) const
     return {};
 }
 
-std::vector<Command> Widget::commands() const
+std::vector<ScheduledCommand> Widget::commands() const
 {
-    std::vector<Command> ret;
+    std::vector<ScheduledCommand> ret;
     if (m_commands != nullptr) {
-        ret = **m_commands;
+        for (auto const& [ _, cmd ] : m_commands->commands()) {
+            ret.push_back({ const_cast<Widget&>(*this), cmd });
+        }
     }
     return ret;
 }

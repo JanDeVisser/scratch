@@ -98,8 +98,7 @@ private:
         auto __casted = try_and_try_cast<cls>(expr, ctx, result); \
         if (__casted.is_error())                                  \
             return __casted.error();                              \
-        std::shared_ptr<cls> __ret = __casted.value();            \
-        __ret;                                                    \
+        __casted.value();                                         \
     })
 
 #define TRY_AND_CAST(cls, expr, ctx)                          \
@@ -107,8 +106,7 @@ private:
         auto __casted = try_and_cast<cls>(expr, ctx, result); \
         if (__casted.is_error())                              \
             return __casted.error();                          \
-        std::shared_ptr<cls> __ret = __casted.value();        \
-        __ret;                                                \
+        __casted.value();                                     \
     })
 
 #define TRY_AND_TRY_CAST_RETURN(cls, expr, ctx, return_value)     \

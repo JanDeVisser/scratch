@@ -941,12 +941,12 @@ std::optional<ScheduledCommand> Document::command(std::string const& name) const
     return {};
 }
 
-std::vector<Command> Document::commands() const
+std::vector<ScheduledCommand> Document::commands() const
 {
     auto ret = Widget::commands();
     if (m_parser != nullptr) {
-        auto mode_commands = m_parser->commands();
-        ret.insert(ret.cend(), mode_commands.cbegin(), mode_commands.cend());
+        for (auto cmd : m_parser->commands())
+            ret.push_back({ const_cast<Document&>(*this), cmd });
     }
     return ret;
 }

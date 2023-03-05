@@ -52,7 +52,7 @@ public:
     Token const& next_token() override;
     DisplayToken colorize(TokenCode, std::string_view const&) override;
     std::optional<ScheduledCommand> command(std::string const&) const override;
-    [[nodiscard]] virtual std::vector<Command> commands() const override;
+    [[nodiscard]] std::vector<Command> commands() const override;
 
 private:
     std::deque<Token> m_pending;

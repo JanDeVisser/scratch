@@ -8,6 +8,7 @@
 
 #include <Scribble/Interp/Operator.h>
 #include <Scribble/Interp/Value.h>
+#include <Scribble/Interp/Function.h>
 
 namespace Scratch::Interp {
 
@@ -71,7 +72,7 @@ static decltype(auto) downsize_integer(Value const& value, Callback&& callback)
 }
 
 template<typename Callback>
-static ErrorOr<Value> perform_integer_operation(Value const& lhs, Value const& rhs, Callback&& callback)
+static Value perform_integer_operation(Value const& lhs, Value const& rhs, Callback&& callback)
 {
     assert(lhs.is_int());
     assert(rhs.is_int());
@@ -84,7 +85,7 @@ static ErrorOr<Value> perform_integer_operation(Value const& lhs, Value const& r
             return callback(lhs.to_int<uint64_t>().value(), rhs_value.value());
     }
 
-    return ErrorCode::IntegerOverflow;
+    return Value { ErrorCode::IntegerOverflow };
 }
 
 Value::Value(ValueType type)
@@ -120,6 +121,18 @@ Value::Value(double value)
     }
     m_type = ValueType::Float;
     m_value = value;
+}
+
+Value::Value(ErrorCode value)
+    : m_type(ValueType::Error)
+    , m_value(value)
+{
+}
+
+Value::Value(pFunction value)
+    : m_type(ValueType::Function)
+    , m_value(value)
+{
 }
 
 Value::Value(Value&& other) noexcept
@@ -170,6 +183,16 @@ bool Value::is_string() const
     return m_value.has_value() && std::holds_alternative<std::string>(m_value.value());
 }
 
+bool Value::is_error() const
+{
+    return m_value.has_value() && std::holds_alternative<ErrorCode>(m_value.value());
+}
+
+bool Value::is_function() const
+{
+    return m_value.has_value() && std::holds_alternative<pFunction>(m_value.value());
+}
+
 std::string Value::to_string() const
 {
     if (is_null())
@@ -179,7 +202,9 @@ std::string Value::to_string() const
         [](std::string const& value) -> std::string { return value; },
         [](Integer auto value) -> std::string { return Obelix::to_string<decltype(value)>()(value); },
         [](double value) -> std::string { return Obelix::to_string<double>()(value); },
-        [](bool value) -> std::string { return value ? "true" : "false"; });
+        [](bool value) -> std::string { return value ? "true" : "false"; },
+        [](ErrorCode value) -> std::string { return ErrorCode_name(value); },
+        [](pFunction const& value) -> std::string { return value->to_string(); });
 }
 
 std::optional<double> Value::to_double() const
@@ -191,7 +216,9 @@ std::optional<double> Value::to_double() const
         [](std::string const& value) -> std::optional<double> { return Obelix::try_to_double<std::string>()(value); },
         [](Integer auto value) -> std::optional<double> { return static_cast<double>(value); },
         [](double value) -> std::optional<double> { return value; },
-        [](bool value) -> std::optional<double> { return static_cast<double>(value); });
+        [](bool value) -> std::optional<double> { return static_cast<double>(value); },
+        [](ErrorCode value) -> std::optional<double> { return static_cast<double>(value); },
+        [](pFunction const& value) -> std::optional<double> { return {}; });
 }
 
 std::optional<bool> Value::to_bool() const
@@ -209,7 +236,37 @@ std::optional<bool> Value::to_bool() const
         },
         [](Integer auto value) -> std::optional<bool> { return static_cast<bool>(value); },
         [](double value) -> std::optional<bool> { return fabs(value) > std::numeric_limits<double>::epsilon(); },
-        [](bool value) -> std::optional<bool> { return value; });
+        [](bool value) -> std::optional<bool> { return value; },
+        [](ErrorCode value) -> std::optional<bool> { return value == ErrorCode::NoError; },
+        [](pFunction const& value) -> std::optional<bool> { return {}; });
+}
+
+std::optional<ErrorCode> Value::to_error() const
+{
+    if (is_null())
+        return {};
+
+    return visit(
+        [](std::string const& value) -> std::optional<ErrorCode> { return {}; },
+        [](Integer auto value) -> std::optional<ErrorCode> { return {}; },
+        [](double value) -> std::optional<ErrorCode> { return {}; },
+        [](bool value) -> std::optional<ErrorCode> { return {}; },
+        [](ErrorCode value) -> std::optional<ErrorCode> { return value; },
+        [](pFunction const& value) -> std::optional<ErrorCode> { return {}; });
+}
+
+std::optional<pFunction> Value::to_function() const
+{
+    if (is_null())
+        return {};
+
+    return visit(
+        [](std::string const& value) -> std::optional<pFunction> { return {}; },
+        [](Integer auto value) -> std::optional<pFunction> { return {}; },
+        [](double value) -> std::optional<pFunction> { return {}; },
+        [](bool value) -> std::optional<pFunction> { return {}; },
+        [](ErrorCode value) -> std::optional<pFunction> { return {}; },
+        [](pFunction const& value) -> std::optional<pFunction> { return value; });
 }
 
 Value& Value::operator=(Value value)
@@ -229,6 +286,20 @@ Value& Value::operator=(std::string value)
 Value& Value::operator=(double value)
 {
     m_type = ValueType::Float;
+    m_value = value;
+    return *this;
+}
+
+Value& Value::operator=(ErrorCode value)
+{
+    m_type = ValueType::Error;
+    m_value = value;
+    return *this;
+}
+
+Value& Value::operator=(pFunction const& value)
+{
+    m_type = ValueType::Function;
     m_value = value;
     return *this;
 }
@@ -266,6 +337,24 @@ int Value::compare(Value const& other) const
             if (!casted.has_value())
                 return 1;
             return value ^ *casted;
+        },
+        [&](ErrorCode value) -> int {
+            auto casted = other.to_error();
+            if (!casted.has_value())
+                return 1;
+
+            if (value == *casted)
+                return 0;
+            return value < *casted ? -1 : 1;
+        },
+        [&](pFunction const& value) -> int {
+            auto casted = other.to_function();
+            if (!casted.has_value())
+                return 1;
+
+            if (value == *casted)
+                return 0;
+            return 1;
         });
 }
 
@@ -282,6 +371,11 @@ bool Value::operator==(std::string_view const& value) const
 bool Value::operator==(double value) const
 {
     return to_double() == value;
+}
+
+bool Value::operator==(pFunction const& value) const
+{
+    return to_function() == value;
 }
 
 bool Value::operator!=(Value const& value) const
@@ -309,15 +403,15 @@ bool Value::operator>=(Value const& value) const
     return compare(value) >= 0;
 }
 
-ErrorOr<Value> Value::add(Value const& other) const
+Value Value::add(Value const& other) const
 {
     if (is_int() && other.is_int()) {
-        return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> ErrorOr<Value> {
+        return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> Value {
             Checked result { lhs };
             result.add(rhs);
 
             if (result.has_overflow())
-                return ErrorCode::IntegerOverflow;
+                return Value { ErrorCode::IntegerOverflow };
             return Value { result.value_unchecked() };
         });
     }
@@ -329,19 +423,19 @@ ErrorOr<Value> Value::add(Value const& other) const
     auto rhs = other.to_double();
 
     if (!lhs.has_value() || !rhs.has_value())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
     return Value { lhs.value() + rhs.value() };
 }
 
-ErrorOr<Value> Value::subtract(Value const& other) const
+Value Value::subtract(Value const& other) const
 {
     if (is_int() && other.is_int()) {
-        return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> ErrorOr<Value> {
+        return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> Value {
             Checked result { lhs };
             result.sub(rhs);
 
             if (result.has_overflow())
-                return ErrorCode::IntegerOverflow;
+                return Value { ErrorCode::IntegerOverflow };
             return Value { result.value_unchecked() };
         });
     }
@@ -350,19 +444,19 @@ ErrorOr<Value> Value::subtract(Value const& other) const
     auto rhs = other.to_double();
 
     if (!lhs.has_value() || !rhs.has_value())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
     return Value { lhs.value() - rhs.value() };
 }
 
-ErrorOr<Value> Value::multiply(Value const& other) const
+Value Value::multiply(Value const& other) const
 {
     if (is_int() && other.is_int()) {
-        return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> ErrorOr<Value> {
+        return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> Value {
             Checked result { lhs };
             result.mul(rhs);
 
             if (result.has_overflow())
-                return ErrorCode::IntegerOverflow;
+                return Value { ErrorCode::IntegerOverflow };
             return Value { result.value_unchecked() };
         });
     }
@@ -371,44 +465,44 @@ ErrorOr<Value> Value::multiply(Value const& other) const
     auto rhs = other.to_double();
 
     if (!lhs.has_value() || !rhs.has_value())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
     return Value { lhs.value() * rhs.value() };
 }
 
-ErrorOr<Value> Value::divide(Value const& other) const
+Value Value::divide(Value const& other) const
 {
     auto lhs = to_double();
     auto rhs = other.to_double();
 
     if (!lhs.has_value() || !rhs.has_value())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
     if (rhs == 0.0)
-        return ErrorCode::IntegerOverflow;
+        return Value { ErrorCode::IntegerOverflow };
 
     return Value { lhs.value() / rhs.value() };
 }
 
-ErrorOr<Value> Value::modulo(Value const& other) const
+Value Value::modulo(Value const& other) const
 {
     if (!is_int() || !other.is_int())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
 
-    return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> ErrorOr<Value> {
+    return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> Value {
         Checked result { lhs };
         result.mod(rhs);
 
         if (result.has_overflow())
-            return ErrorCode::IntegerOverflow;
+            return Value { ErrorCode::IntegerOverflow };
         return Value { result.value_unchecked() };
     });
 }
 
-ErrorOr<Value> Value::negate() const
+Value Value::negate() const
 {
     if (type() == ValueType::Integer) {
         auto value = to_int<int64_t>();
         if (!value.has_value())
-            return ErrorCode::ArgumentTypeMismatch;
+            return Value { ErrorCode::ArgumentTypeMismatch };
 
         return Value { value.value() * -1 };
     }
@@ -416,67 +510,67 @@ ErrorOr<Value> Value::negate() const
     if (type() == ValueType::Float)
         return Value { -to_double().value() };
 
-    return ErrorCode::ArgumentTypeMismatch;
+    return Value { ErrorCode::ArgumentTypeMismatch };
 }
 
-ErrorOr<Value> Value::shift_left(Value const& other) const
+Value Value::shift_left(Value const& other) const
 {
     if (!is_int() || !other.is_int())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
 
-    return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> ErrorOr<Value> {
+    return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> Value {
         using LHS = decltype(lhs);
         using RHS = decltype(rhs);
 
         static constexpr auto max_shift = static_cast<RHS>(sizeof(LHS) * 8);
         if (rhs < 0 || rhs >= max_shift)
-            return ErrorCode::IntegerOverflow;
+            return Value { ErrorCode::IntegerOverflow };
 
         return Value { lhs << rhs };
     });
 }
 
-ErrorOr<Value> Value::shift_right(Value const& other) const
+Value Value::shift_right(Value const& other) const
 {
     if (!is_int() || !other.is_int())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
 
-    return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> ErrorOr<Value> {
+    return perform_integer_operation(*this, other, [](auto lhs, auto rhs) -> Value {
         using LHS = decltype(lhs);
         using RHS = decltype(rhs);
 
         static constexpr auto max_shift = static_cast<RHS>(sizeof(LHS) * 8);
         if (rhs < 0 || rhs >= max_shift)
-            return ErrorCode::IntegerOverflow;
+            return Value { ErrorCode::IntegerOverflow };
 
         return Value { lhs >> rhs };
     });
 }
 
-ErrorOr<Value> Value::bitwise_or(Value const& other) const
+Value Value::bitwise_or(Value const& other) const
 {
     if (!is_int() || !other.is_int())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
 
     return perform_integer_operation(*this, other, [](auto lhs, auto rhs) {
         return Value { lhs | rhs };
     });
 }
 
-ErrorOr<Value> Value::bitwise_and(Value const& other) const
+Value Value::bitwise_and(Value const& other) const
 {
     if (!is_int() || !other.is_int())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
 
     return perform_integer_operation(*this, other, [](auto lhs, auto rhs) {
         return Value { lhs & rhs };
     });
 }
 
-ErrorOr<Value> Value::bitwise_not() const
+Value Value::bitwise_not() const
 {
     if (!is_int())
-        return ErrorCode::ArgumentTypeMismatch;
+        return Value { ErrorCode::ArgumentTypeMismatch };
 
     return downsize_integer(*this, [](auto value, auto) {
         return Value { ~value };

@@ -13,7 +13,7 @@ namespace Scratch::Scribble {
 
 ABSTRACT_NODE_CLASS(Literal, Expression)
 protected:
-    Literal(Token);
+    explicit Literal(Token);
 
 public:
     [[nodiscard]] std::string attributes() const override;
@@ -26,27 +26,28 @@ private:
 
 NODE_CLASS(IntLiteral, Literal)
 public:
-    IntLiteral(Token);
+    explicit IntLiteral(Token);
 };
 
 NODE_CLASS(CharLiteral, Literal)
 public:
-    CharLiteral(Token);
+    explicit CharLiteral(Token);
 };
 
 NODE_CLASS(FloatLiteral, Literal)
 public:
-    FloatLiteral(Token);
+    explicit FloatLiteral(Token);
 };
 
 NODE_CLASS(StringLiteral, Literal)
 public:
-    StringLiteral(Token);
+    explicit StringLiteral(Token);
+    [[nodiscard]] std::string string() const;
 };
 
 NODE_CLASS(BooleanLiteral, Literal)
 public:
-    BooleanLiteral(Token);
+    explicit BooleanLiteral(Token);
 };
 
 }

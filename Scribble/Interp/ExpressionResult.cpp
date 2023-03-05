@@ -31,4 +31,25 @@ Value const& ExpressionResult::value() const
     return m_value;
 }
 
+ExpressionResultList::ExpressionResultList(Span location, Values values)
+    : SyntaxNode(location)
+    , m_values(std::move(values))
+{
+}
+
+std::string ExpressionResultList::to_string() const
+{
+    return Obelix::to_string<Values>()(m_values);
+}
+
+std::string ExpressionResultList::attributes() const
+{
+    return format(R"(ExpressionResultList attributes TODO)");
+}
+
+Values const& ExpressionResultList::values() const
+{
+    return m_values;
+}
+
 }

@@ -4,20 +4,29 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <App/Scratch.h>
+#include <Scribble/Interp/CommandAdapter.h>
 #include <Scribble/Interp/Interpreter.h>
 #include <Scribble/Interp/Value.h>
+#include <Scribble/Interp/Function.h>
 #include <Scribble/Context.h>
 
 namespace Scratch::Interp {
 
 using namespace Obelix;
 using namespace Scratch::Scribble;
-using InterpreterContext = Context<Value, bool>;
+using InterpreterContext = Context<Value>;
 
 ProcessResult interpret(std::shared_ptr<Project> const& project)
 {
-    Context<Value, bool> ctx;
     ProcessResult result;
+    InterpreterContext ctx;
+
+    if (auto res = ctx.declare("setFixedWidthFont", Value { std::make_shared<CommandAdapter>("setFixedWidthFont", *Scratch::scratch().command("set-fixed-width-font")) } ); res.is_error()) {
+        result = res.error();
+        return result;
+    }
+
     process(project, ctx, result);
     return result;
 }
@@ -59,12 +68,21 @@ NODE_PROCESSOR(Block)
 
 ALIAS_NODE_PROCESSOR(Module, Block);
 
+NODE_PROCESSOR(ExpressionStatement)
+{
+    auto stmt = std::dynamic_pointer_cast<ExpressionStatement>(tree);
+    auto expr = TRY_AND_CAST(ExpressionResult, stmt->expression(), ctx);
+    return std::make_shared<ExpressionResult>(stmt->location(), expr->value());
+}
+
 NODE_PROCESSOR(VariableDeclaration)
 {
     auto decl = std::dynamic_pointer_cast<VariableDeclaration>(tree);
+    if (ctx.contains(decl->identifier()->name()))
+        return SyntaxError { tree->location(), ErrorCode::VariableAlreadyDeclared };
+
     std::shared_ptr<ExpressionResult> expr;
     Value v;
-
     if (decl->expression() != nullptr) {
         expr = TRY_AND_CAST(ExpressionResult, decl->expression(), ctx);
         v = expr->value();
@@ -78,9 +96,12 @@ NODE_PROCESSOR(VariableDeclaration)
 NODE_PROCESSOR(BinaryExpression)
 {
     auto expr = std::dynamic_pointer_cast<BinaryExpression>(tree);
-    auto rhs = TRY_AND_CAST(ExpressionResult, expr->rhs(), ctx);
+    auto lhs = TRY_AND_TRY_CAST(ExpressionResult, expr->lhs(), ctx);
+    auto rhs_node = TRY_AND_CAST(SyntaxNode, expr->rhs(), ctx);
+    auto rhs = std::dynamic_pointer_cast<ExpressionResult>(rhs_node);
 
-    if (expr->op().code() == TokenCode::Equals) {
+    switch (expr->op().code()) {
+    case TokenCode::Equals: {
         if (expr->lhs()->node_type() != SyntaxNodeType::Identifier)
             return SyntaxError { expr->location(), ErrorCode::CannotAssignToRValue, expr->lhs() };
         auto ident = std::dynamic_pointer_cast<Identifier>(expr->lhs());
@@ -88,32 +109,46 @@ NODE_PROCESSOR(BinaryExpression)
         return rhs;
     }
 
-    auto lhs = TRY_AND_CAST(ExpressionResult, expr->lhs(), ctx);
+    case TokenCode::OpenParen: {
+        if (lhs->value().is_error())
+            return SyntaxError { expr->location(), *lhs->value().to_error(), expr->lhs() };
+        if (!lhs->value().is_function())
+            return SyntaxError { expr->location(), ErrorCode::FunctionUndefined, expr->lhs() };
+        Values args;
+        if (rhs_node->node_type() == SyntaxNodeType::ExpressionResultList) {
+            args = std::dynamic_pointer_cast<ExpressionResultList>(rhs_node)->values();
+        } else {
+            args = { rhs->value() };
+        }
+        auto f = *(lhs->value().to_function());
+        return std::make_shared<ExpressionResult>(expr->location(), f->execute(args));
+    }
 
-    switch (expr->op().code()) {
     case TokenCode::Plus: {
-        auto res_maybe = lhs->value().add(rhs->value());
-        if (res_maybe.is_error())
-            return SyntaxError { expr->location(), res_maybe.error() };
-        return std::make_shared<ExpressionResult>(expr->location(), res_maybe.value());
+        auto res = lhs->value().add(rhs->value());
+        if (res.is_error())
+            return SyntaxError { expr->location(), *res.to_error() };
+        return std::make_shared<ExpressionResult>(expr->location(), res);
     };
+
     case TokenCode::Minus: {
-        auto res_maybe = lhs->value().subtract(rhs->value());
-        if (res_maybe.is_error())
-            return SyntaxError { expr->location(), res_maybe.error() };
-        return std::make_shared<ExpressionResult>(expr->location(), res_maybe.value());
+        auto res = lhs->value().subtract(rhs->value());
+        if (res.is_error())
+            return SyntaxError { expr->location(), *res.to_error() };
+        return std::make_shared<ExpressionResult>(expr->location(), res);
     };
+
     default:
         fatal("Unimplemented operator {}", expr->op().value());
     }
 }
 
-NODE_PROCESSOR(Identifier)
+NODE_PROCESSOR(Variable)
 {
     auto ident = std::dynamic_pointer_cast<Identifier>(tree);
     auto value_maybe = ctx.get(ident->name());
     if (!value_maybe.has_value())
-        return SyntaxError { ident->location(), ErrorCode::UndeclaredVariable, ident->name() };
+        value_maybe = ErrorCode::UndeclaredVariable;
     return std::make_shared<ExpressionResult>(ident->location(), value_maybe.value());
 }
 
@@ -126,7 +161,20 @@ NODE_PROCESSOR(IntLiteral)
 NODE_PROCESSOR(StringLiteral)
 {
     auto literal = std::dynamic_pointer_cast<StringLiteral>(tree);
-    return std::make_shared<ExpressionResult>(literal->location(), Value(literal->token().value()));
+    return std::make_shared<ExpressionResult>(literal->location(), Value(literal->string()));
+}
+
+NODE_PROCESSOR(ExpressionList)
+{
+    auto list = std::dynamic_pointer_cast<ExpressionList>(tree);
+    Values values;
+    for (auto const& expr : list->expressions()) {
+        auto value = TRY_AND_CAST(ExpressionResult, expr, ctx);
+        if (value->value().is_error())
+            return SyntaxError { expr->location(), *value->value().to_error() };
+        values.push_back(value->value());
+    }
+    return std::make_shared<ExpressionResultList>(list->location(), values);
 }
 
 }

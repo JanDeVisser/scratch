@@ -44,12 +44,14 @@ std::optional<ScheduledCommand> Layout::command(std::string const& name) const
     return {};
 }
 
-std::vector<Command> Layout::commands() const
+std::vector<ScheduledCommand> Layout::commands() const
 {
-    std::vector<Command> ret;
+    std::vector<ScheduledCommand> ret;
     for (auto* c : m_container.components()) {
         auto component_commands = c->commands();
-        ret.insert(ret.cend(), component_commands.cbegin(), component_commands.cend());
+        for (auto const cmd : component_commands) {
+            ret.push_back(cmd);
+        }
     }
     return ret;
 }

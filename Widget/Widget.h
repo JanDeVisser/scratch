@@ -36,7 +36,7 @@ public:
     virtual void handle_text_input() { }
     virtual void resize(Box const&);
     [[nodiscard]] virtual std::optional<ScheduledCommand> command(std::string const&) const;
-    [[nodiscard]] virtual std::vector<Command> commands() const;
+    [[nodiscard]] virtual std::vector<ScheduledCommand> commands() const;
 
 protected:
     Widget() = default;
@@ -194,7 +194,7 @@ public:
     void handle_wheel(SDL_MouseWheelEvent const&) override;
     void handle_motion(SDL_MouseMotionEvent const&) override;
     std::optional<ScheduledCommand> command(std::string const&) const override;
-    [[nodiscard]] std::vector<Command> commands() const override;
+    [[nodiscard]] std::vector<ScheduledCommand> commands() const override;
 
     template <class ComponentClass>
     requires std::derived_from<ComponentClass, WindowedWidget>

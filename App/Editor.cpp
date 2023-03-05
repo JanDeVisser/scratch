@@ -233,11 +233,11 @@ std::optional<ScheduledCommand> Editor::command(std::string const& name) const
     return {};
 }
 
-std::vector<Command> Editor::commands() const
+std::vector<ScheduledCommand> Editor::commands() const
 {
     auto ret = Widget::commands();
-    auto document_commands = document()->commands();
-    ret.insert(ret.cend(), document_commands.cbegin(), document_commands.cend());
+    for (auto cmd : document()->commands())
+        ret.push_back(cmd);
     return ret;
 }
 

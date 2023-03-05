@@ -19,6 +19,8 @@
 #include <core/Logging.h>
 #include <core/StringUtil.h>
 
+#include <Scribble/Syntax/Syntax.h>
+
 namespace Scratch::Interp {
 
 using namespace std::literals;
@@ -30,12 +32,14 @@ concept Boolean = std::is_same_v<std::remove_cvref<T>, bool>;
 template<typename T>
 concept Integer = (std::is_integral_v<T> && !Boolean<T>);
 
-#define ENUMERATE_TYPES(S) \
-    S("null", Null)            \
-    S("text", Text)            \
-    S("int", Integer)          \
-    S("float", Float)          \
-    S("bool", Boolean)
+#define ENUMERATE_TYPES(S)  \
+    S("null", Null)         \
+    S("text", Text)         \
+    S("int", Integer)       \
+    S("float", Float)       \
+    S("bool", Boolean)      \
+    S("function", Function) \
+    S("error", Error)
 
 enum class ValueType {
 #undef __ENUMERATE_TYPE
@@ -58,6 +62,9 @@ constexpr std::string_view ValueType_name(ValueType t)
     }
 }
 
+class Function;
+using pFunction = std::shared_ptr<Function>;
+
 class Value {
     template<Integer T>
     using IntegerType = std::conditional_t<std::is_signed_v<T>, int64_t, uint64_t>;
@@ -67,6 +74,8 @@ public:
     explicit Value(std::string);
     explicit Value(std::string_view);
     explicit Value(double);
+    explicit Value(ErrorCode);
+    explicit Value(pFunction);
     Value(Value const&) noexcept = default;
     Value(Value&&) noexcept;
     ~Value();
@@ -101,6 +110,8 @@ public:
     [[nodiscard]] bool is_null() const;
     [[nodiscard]] bool is_int() const;
     [[nodiscard]] bool is_string() const;
+    [[nodiscard]] bool is_error() const;
+    [[nodiscard]] bool is_function() const;
 
     [[nodiscard]] auto const& value() const
     {
@@ -111,6 +122,8 @@ public:
     [[nodiscard]] std::string to_string() const;
     [[nodiscard]] std::optional<double> to_double() const;
     [[nodiscard]] std::optional<bool> to_bool() const;
+    [[nodiscard]] std::optional<ErrorCode> to_error() const;
+    [[nodiscard]] std::optional<pFunction> to_function() const;
 
     template<class... Fs>
     struct Visitor : Fs... {
@@ -157,12 +170,16 @@ public:
                     return {};
                 return static_cast<T>(round(value));
             },
-            [](bool value) -> std::optional<T> { return static_cast<T>(value); });
+            [](bool value) -> std::optional<T> { return static_cast<T>(value); },
+            [](ErrorCode value) -> std::optional<T> { return static_cast<T>(value); },
+            [](pFunction const& value) -> std::optional<T> { return {}; });
     }
 
     Value& operator=(Value);
     Value& operator=(std::string);
     Value& operator=(double);
+    Value& operator=(ErrorCode);
+    Value& operator=(pFunction const&);
 
     Value& operator=(Integer auto value)
     {
@@ -182,6 +199,8 @@ public:
     bool operator==(Value const&) const;
     bool operator==(std::string_view const&) const;
     bool operator==(double) const;
+    bool operator==(ErrorCode) const;
+    bool operator==(pFunction const&) const;
 
     template<Integer T>
     bool operator==(T value)
@@ -195,23 +214,25 @@ public:
     bool operator>(Value const&) const;
     bool operator>=(Value const&) const;
 
-    [[nodiscard]] ErrorOr<Value> add(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> subtract(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> multiply(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> divide(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> modulo(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> negate() const;
-    [[nodiscard]] ErrorOr<Value> shift_left(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> shift_right(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> bitwise_or(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> bitwise_and(Value const&) const;
-    [[nodiscard]] ErrorOr<Value> bitwise_not() const;
+    [[nodiscard]] Value add(Value const&) const;
+    [[nodiscard]] Value subtract(Value const&) const;
+    [[nodiscard]] Value multiply(Value const&) const;
+    [[nodiscard]] Value divide(Value const&) const;
+    [[nodiscard]] Value modulo(Value const&) const;
+    [[nodiscard]] Value negate() const;
+    [[nodiscard]] Value shift_left(Value const&) const;
+    [[nodiscard]] Value shift_right(Value const&) const;
+    [[nodiscard]] Value bitwise_or(Value const&) const;
+    [[nodiscard]] Value bitwise_and(Value const&) const;
+    [[nodiscard]] Value bitwise_not() const;
 
 private:
-    using ValueImplType = std::variant<std::string, int64_t, uint64_t, double, bool>;
+    using ValueImplType = std::variant<std::string, int64_t, uint64_t, double, bool, ErrorCode, pFunction>;
 
     ValueType m_type { ValueType::Null };
     std::optional<ValueImplType> m_value;
 };
+
+using Values = std::vector<Value>;
 
 }

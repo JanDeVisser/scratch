@@ -130,7 +130,7 @@ void SDLContext::SDLFont::set_font(std::string const& font_name)
 {
     name = font_name;
     if (font = TTF_OpenFont(format("fonts/{}.ttf", name).c_str(), size); font == nullptr)
-        fatal("Could not load font '{}'", name);
+        fatal("Could not load font '{}': {}", name, TTF_GetError());
     set_size(size);
 }
 

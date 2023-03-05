@@ -74,7 +74,7 @@ public:
     void handle_wheel(SDL_MouseWheelEvent const& event) override;
     void handle_text_input() override;
     std::optional<ScheduledCommand> command(std::string const&) const override;
-    [[nodiscard]] std::vector<Command> commands() const override;
+    [[nodiscard]] std::vector<ScheduledCommand> commands() const override;
 
     void append(DisplayToken const&);
     void newline();

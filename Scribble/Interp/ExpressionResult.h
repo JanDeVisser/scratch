@@ -24,4 +24,14 @@ private:
     Value m_value;
 };
 
+NODE_CLASS(ExpressionResultList, SyntaxNode)
+public:
+    ExpressionResultList(Span, Values);
+    std::string to_string() const override;
+    [[nodiscard]] std::string attributes() const override;
+    [[nodiscard]] Values const& values() const;
+private:
+    Values m_values;
+};
+
 }

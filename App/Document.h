@@ -169,7 +169,7 @@ public:
     [[nodiscard]] auto last_parse_time() const { return m_last_parse_time.count(); }
 
     std::optional<ScheduledCommand> command(std::string const&) const override;
-    [[nodiscard]] std::vector<Command> commands() const override;
+    [[nodiscard]] std::vector<ScheduledCommand> commands() const override;
 
 private:
     void insert_text(std::string const&, int = -1);

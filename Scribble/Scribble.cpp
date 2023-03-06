@@ -50,7 +50,9 @@ Scribble::Scribble(bool ignore_ws)
     , m_ignore_ws(ignore_ws)
 {
     lexer().add_scanner<Obelix::QStringScanner>("\"'", true);
-    lexer().add_scanner<Obelix::IdentifierScanner>();
+    IdentifierScanner::Config ident_config;
+    ident_config.filter = "X_-";
+    lexer().add_scanner<Obelix::IdentifierScanner>(ident_config);
     lexer().add_scanner<Obelix::NumberScanner>(Obelix::NumberScanner::Config { true, false, true, false, true });
     lexer().add_scanner<Obelix::WhitespaceScanner>(Obelix::WhitespaceScanner::Config { m_ignore_ws, m_ignore_ws, m_ignore_ws });
     lexer().add_scanner<Obelix::CommentScanner>(true,

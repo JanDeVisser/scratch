@@ -22,7 +22,7 @@ ProcessResult interpret(std::shared_ptr<Project> const& project)
     ProcessResult result;
     InterpreterContext ctx;
 
-    if (auto res = ctx.declare("setFixedWidthFont", Value { std::make_shared<CommandAdapter>("setFixedWidthFont", *Scratch::scratch().command("set-fixed-width-font")) } ); res.is_error()) {
+    if (auto res = ctx.declare("set-fixed-width-font", Value { std::make_shared<CommandAdapter>("set-fixed-width-font", *Scratch::scratch().command("set-fixed-width-font")) } ); res.is_error()) {
         result = res.error();
         return result;
     }

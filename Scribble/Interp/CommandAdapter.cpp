@@ -15,7 +15,7 @@ CommandAdapter::CommandAdapter(std::string function, ScheduledCommand const& com
 {
 }
 
-Value CommandAdapter::execute(std::vector<Value> const& arguments) const
+Value CommandAdapter::execute(std::vector<Value> const& arguments, InterpreterContext&) const
 {
     strings args;
     if (arguments.size() < m_command.command.parameters.size())

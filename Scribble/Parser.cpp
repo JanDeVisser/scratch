@@ -199,11 +199,8 @@ std::shared_ptr<Statement> Parser::parse_function_definition(Token const& func_t
             m_lexer.add_error(peek(), "Expected parameter name, got '{}'");
             return nullptr;
         }
-        auto param_name = param_name_maybe.value();
-        if (!expect(TokenCode::Colon))
-            return nullptr;
-
-        params.push_back(std::make_shared<Identifier>(param_name.location(), param_name.to_string()));
+        auto param_name = *param_name_maybe;
+        params.push_back(std::make_shared<Identifier>(param_name.location(), param_name.string_value()));
         switch (current_code()) {
         case TokenCode::Comma:
             lex();
@@ -218,15 +215,12 @@ std::shared_ptr<Statement> Parser::parse_function_definition(Token const& func_t
     }
     lex(); // Eat the closing paren
 
-    if (!expect(TokenCode::Colon))
-        return nullptr;
-
-    auto func_ident = std::make_shared<Identifier>(name.location(), name.to_string());
+    auto func_ident = std::make_shared<Identifier>(name.location(), name.string_value());
     std::shared_ptr<FunctionDecl> func_decl;
     if (current_code() == Scribble::KeywordLink) {
         lex();
         if (auto link_target_maybe = match(TokenCode::DoubleQuotedString, "after '->'"); link_target_maybe.has_value()) {
-            return std::make_shared<NativeFunctionDecl>(name.location(), m_current_module, func_ident, params, link_target_maybe.value().to_string());
+            return std::make_shared<NativeFunctionDecl>(name.location(), m_current_module, func_ident, params, (*link_target_maybe).string_value());
         }
         return nullptr;
     }
@@ -352,7 +346,7 @@ std::shared_ptr<ForStatement> Parser::parse_for_statement(Token const& for_token
     auto stmt = parse_statement();
     if (!stmt)
         return nullptr;
-    auto variable_node = std::make_shared<Variable>(variable.value().location(), variable.value().to_string());
+    auto variable_node = std::make_shared<Variable>(variable.value().location(), (*variable).string_value());
     return std::make_shared<ForStatement>(for_token.location(), variable_node, expr, stmt);
 }
 
@@ -363,7 +357,7 @@ std::shared_ptr<VariableDeclaration> Parser::parse_variable_declaration(Token co
         return nullptr;
     }
     auto identifier = identifier_maybe.value();
-    auto var_ident = std::make_shared<Identifier>(identifier.location(), identifier.to_string());
+    auto var_ident = std::make_shared<Identifier>(identifier.location(), identifier.string_value());
     std::shared_ptr<Expression> expr { nullptr };
     if (skip(TokenCode::Whitespace).code() == TokenCode::Equals) {
         lex();

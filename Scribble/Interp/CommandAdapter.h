@@ -15,7 +15,7 @@ namespace Scratch::Interp {
 class CommandAdapter : public Function {
 public:
     CommandAdapter(std::string, ScheduledCommand const&);
-    Value execute(std::vector<Value> const&) const override;
+    Value execute(std::vector<Value> const&, InterpreterContext&) const override;
 private:
     ScheduledCommand const& m_command;
 };

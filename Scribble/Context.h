@@ -155,6 +155,16 @@ public:
         return m_data;
     }
 
+    [[nodiscard]] Payload const& operator*() const
+    {
+        return m_data;
+    }
+
+    [[nodiscard]] Payload& operator*()
+    {
+        return m_data;
+    }
+
     Payload& root_data()
     {
         if (parent() != nullptr)

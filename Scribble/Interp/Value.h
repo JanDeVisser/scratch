@@ -236,3 +236,33 @@ private:
 using Values = std::vector<Value>;
 
 }
+
+namespace Obelix {
+
+using namespace Scratch::Interp;
+
+template<>
+struct to_string<Value const&> {
+    std::string operator()(Value const& val)
+    {
+        return val.to_string();
+    }
+};
+
+template<>
+struct try_to_double<Value const&> {
+    std::optional<double> operator()(Value const& val)
+    {
+        return val.to_double();
+    }
+};
+
+template<>
+struct try_to_long<Value const&> {
+    std::optional<long> operator()(Value const& val)
+    {
+        return val.to_int<long>();
+    }
+};
+
+}

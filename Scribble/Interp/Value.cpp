@@ -461,6 +461,16 @@ Value Value::multiply(Value const& other) const
         });
     }
 
+    if (is_string() && other.is_int()) {
+        std::string ret;
+        auto how_many = *other.to_int<int>();
+
+        for (auto ix = 0u; ix < how_many; ++ix) {
+            ret += to_string();
+        }
+        return Value { ret };
+    }
+
     auto lhs = to_double();
     auto rhs = other.to_double();
 

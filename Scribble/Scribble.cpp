@@ -69,7 +69,7 @@ Scribble::Scribble(bool ignore_ws)
         KeywordElse, "else",
         KeywordElif, "elif",
         KeywordFor, "for",
-        KeywordFor, "func",
+        KeywordFunc, "func",
         KeywordIf, "if",
         KeywordImport, "import",
         KeywordIn, "in",

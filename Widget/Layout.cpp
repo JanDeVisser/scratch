@@ -49,7 +49,7 @@ std::vector<ScheduledCommand> Layout::commands() const
     std::vector<ScheduledCommand> ret;
     for (auto* c : m_container.components()) {
         auto component_commands = c->commands();
-        for (auto const cmd : component_commands) {
+        for (auto const& cmd : component_commands) {
             ret.push_back(cmd);
         }
     }

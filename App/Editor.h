@@ -45,14 +45,17 @@ class Editor : public WindowedWidget {
 public:
     Editor();
 
-    [[nodiscard]] Document* document() const { return m_current_document; }
-    void new_buffer();
-    std::string open_file(fs::path const&);
-    std::string save_file() const;
-    std::string save_file_as(fs::path const&) const;
-    std::string save_all() const;
-    void move_to(int , int, bool) const;
+    [[nodiscard]] Buffer* buffer() const;
+    [[nodiscard]] Document* document() const;
     void switch_to(std::string const&);
+    [[nodiscard]] std::vector<Buffer*> buffers() const;
+    [[nodiscard]] std::vector<Document*> documents() const;
+    [[nodiscard]] Buffer* buffer(std::string const&) const;
+    [[nodiscard]] Document* document(fs::path const&) const;
+
+    void new_file();
+    std::string open_file(fs::path const&);
+    std::string save_all() const;
 
     [[nodiscard]] int rows() const;
     [[nodiscard]] int columns() const;
@@ -79,12 +82,9 @@ public:
     void append(DisplayToken const&);
     void newline();
 
-    [[nodiscard]] std::vector<Document*> documents() const;
-    [[nodiscard]] Document* document(fs::path const&) const;
-
 private:
-    std::vector<std::unique_ptr<Document>> m_documents {};
-    Document* m_current_document { nullptr };
+    std::vector<std::unique_ptr<Buffer>> m_buffers {};
+    Buffer* m_current_buffer { nullptr };
     int m_line { 0 };
     int m_column { 0 };
     int m_rows { -1 };

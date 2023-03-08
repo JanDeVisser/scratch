@@ -154,6 +154,7 @@ class WidgetContainer {
 public:
     explicit WidgetContainer(ContainerOrientation);
     void add_component(WindowedWidget*);
+    void remove_component(WindowedWidget*);
     [[nodiscard]] std::vector<Widget*> components() const;
     void resize(Box const&);
 
@@ -188,6 +189,7 @@ public:
     void resize(Box const&) override;
     std::vector<Widget*> components();
     void add_component(WindowedWidget*);
+    void remove_component(WindowedWidget*);
     WidgetContainer const& container() const;
     void handle_mousedown(SDL_MouseButtonEvent const&) override;
     void handle_click(SDL_MouseButtonEvent const&) override;

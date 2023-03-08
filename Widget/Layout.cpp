@@ -72,6 +72,11 @@ void Layout::add_component(WindowedWidget* widget)
     m_container.add_component(widget);
 }
 
+void Layout::remove_component(WindowedWidget* widget)
+{
+    m_container.remove_component(widget);
+}
+
 WidgetContainer const& Layout::container() const
 {
     return m_container;

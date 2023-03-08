@@ -21,7 +21,7 @@ StatusBar::StatusBar()
     add_component(new WindowedWidget());
 }
 
-void StatusBar::add_applet(int sz, Renderer renderer)
+Frame* StatusBar::add_applet(int sz, Renderer renderer)
 {
     auto widget = new WindowedWidget(SizePolicy::Stretch);
     widget->set_renderer(std::move(renderer));

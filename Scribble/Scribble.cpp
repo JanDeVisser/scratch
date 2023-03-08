@@ -26,18 +26,18 @@ ScribbleCommands::ScribbleCommands()
                 auto& text = doc->text();
                 auto project_maybe = compile_project(doc->path(), std::make_shared<StringBuffer>(text));
                 if (project_maybe.is_error()) {
-                    doc->end(false);
+                    doc->bottom(false);
                     doc->insert("\n// " + project_maybe.error().to_string());
                     return;
                 }
                 auto result = interpret(std::dynamic_pointer_cast<Project>(project_maybe.value()));
                 if (result.is_error()) {
-                    doc->end(false);
+                    doc->bottom(false);
                     doc->insert("\n// " + result.error().to_string());
                     return;
                 }
                 auto r = std::dynamic_pointer_cast<Interp::ExpressionResult>(result.value());
-                doc->end(false);
+                doc->bottom(false);
                 doc->insert("\n// " + r->value().to_string());
             } },
         { SDLK_e, KMOD_CTRL });
@@ -127,7 +127,7 @@ Token const& Scribble::next_token()
 std::optional<ScheduledCommand> Scribble::command(std::string const& name) const
 {
     if (auto* cmd = s_scribble_commands.get(name); cmd != nullptr)
-        return ScheduledCommand { dynamic_cast<Widget&>(*Scratch::editor()->document()), *cmd };
+        return ScheduledCommand { dynamic_cast<Widget&>(*Scratch::editor()->buffer()), *cmd };
     return {};
 }
 

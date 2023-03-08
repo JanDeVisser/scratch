@@ -6,14 +6,14 @@
 
 #pragma once
 
-#include "Widget/App.h"
+#include <Widget/App.h>
 
 namespace Scratch {
 
 class StatusBar : public Layout {
 public:
     explicit StatusBar();
-    void add_applet(int, Renderer);
+    Frame* add_applet(int, Renderer);
 };
 
 }

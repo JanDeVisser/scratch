@@ -13,7 +13,7 @@
 
 #include <lexer/BasicParser.h>
 
-#include <App/Forward.h>
+#include <App/Buffer.h>
 #include <Commands/Command.h>
 #include <Parser/CPlusPlus.h>
 #include <Widget/Widget.h>
@@ -81,7 +81,7 @@ private:
     std::string m_text;
 };
 
-class Document : public Widget {
+class Document : public Buffer {
 public:
     explicit Document(Editor *);
 
@@ -93,11 +93,12 @@ public:
     [[nodiscard]] bool empty() const;
     [[nodiscard]] size_t parsed() const;
     [[nodiscard]] fs::path const& path() const;
+    [[nodiscard]] std::string title() const override;
+    [[nodiscard]] std::string short_title() const override;
+    [[nodiscard]] std::string status() const override;
 
     [[nodiscard]] int screen_top() const { return m_screen_top; }
     [[nodiscard]] int screen_left() const { return m_screen_left; }
-    [[nodiscard]] int rows() const;
-    [[nodiscard]] int columns() const;
 
     [[nodiscard]] int find_line_number(int) const;
     [[nodiscard]] DocumentPosition position(int) const;
@@ -145,6 +146,8 @@ public:
     void page_down(bool);
     void home(bool);
     void end(bool);
+    void top(bool);
+    void bottom(bool);
 
     bool find(std::string const&);
     bool find_next();
@@ -157,10 +160,10 @@ public:
 
     void render() override;
     bool dispatch(SDL_Keysym) override;
-    void mousedown(int, int);
-    void motion(int, int);
-    void click(int, int, int);
-    void wheel(int);
+    void mousedown(int, int) override;
+    void motion(int, int) override;
+    void click(int, int, int) override;
+    void wheel(int) override;
     void handle_text_input() override;
 
     Token const& lex();
@@ -178,7 +181,6 @@ private:
     void update_internals(bool, int = -1);
     void add_edit_action(EditAction);
 
-    Editor* m_editor;
     fs::path m_path {};
     bool m_dirty { false };
     FileType m_filetype;

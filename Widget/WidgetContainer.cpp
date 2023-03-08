@@ -20,6 +20,13 @@ void WidgetContainer::add_component(WindowedWidget* widget)
     m_components.emplace_back(widget);
 }
 
+void WidgetContainer::remove_component(WindowedWidget* widget)
+{
+    std::erase_if(m_components, [widget](auto& component) {
+        return widget == component.get();
+    });
+}
+
 std::vector<Widget*> WidgetContainer::components() const
 {
     std::vector<Widget*> ret;

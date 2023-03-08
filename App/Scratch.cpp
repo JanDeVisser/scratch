@@ -167,7 +167,10 @@ void Scratch::run_app(int argc, char const** argv)
     });
     app.add_status_bar_applet(7, [](WindowedWidget* applet) -> void {
         PaletteIndex box_color;
-        auto t = Scratch::scratch().editor()->document()->last_parse_time();
+        auto *doc = Scratch::scratch().editor()->document();
+        if (doc == nullptr)
+            return;
+        auto t = doc->last_parse_time();
         if (t < 10) {
             box_color = PaletteIndex::ANSIGreen;
         } else if (t < 20) {

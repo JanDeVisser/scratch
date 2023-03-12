@@ -73,6 +73,7 @@ public:
     [[nodiscard]] virtual std::string to_string() const;
     [[nodiscard]] std::string to_xml() const;
     [[nodiscard]] Span const& location() const;
+    [[nodiscard]] virtual bool is_complete() const { return true; }
 
 private:
     Span m_location;

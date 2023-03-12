@@ -48,6 +48,13 @@ std::string ExpressionList::to_string() const
     return join(ret, ", ");
 }
 
+bool ExpressionList::is_complete() const
+{
+    return std::all_of(m_expressions.begin(), m_expressions.end(), [](auto const& expr) -> bool {
+        return expr->is_complete();
+    });
+}
+
 // -- Identifier ------------------------------------------------------------
 
 Identifier::Identifier(Span location, std::string name)
@@ -118,6 +125,11 @@ Token BinaryExpression::op() const
     return m_operator;
 }
 
+bool BinaryExpression::is_complete() const
+{
+    return (m_lhs != nullptr && m_lhs->is_complete() && m_operator.code() != TokenCode::Unknown && m_rhs != nullptr && m_rhs->is_complete());
+}
+
 // -- UnaryExpression -------------------------------------------------------
 
 UnaryExpression::UnaryExpression(Token op, std::shared_ptr<Expression> operand)
@@ -150,6 +162,11 @@ Token UnaryExpression::op() const
 std::shared_ptr<Expression> const& UnaryExpression::operand() const
 {
     return m_operand;
+}
+
+bool UnaryExpression::is_complete() const
+{
+    return (m_operand != nullptr && m_operand->is_complete() && m_operator.code() != TokenCode::Unknown);
 }
 
 }

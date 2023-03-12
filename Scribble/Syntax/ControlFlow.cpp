@@ -81,6 +81,11 @@ std::shared_ptr<Statement> const& Branch::statement() const
     return m_statement;
 }
 
+bool Branch::is_complete() const
+{
+    return ((m_condition == nullptr) || m_condition->is_complete()) && ((m_statement != nullptr) && m_statement->is_complete());
+}
+
 // -- IfStatement -----------------------------------------------------------
 
 IfStatement::IfStatement(Span location, Branches branches)
@@ -147,6 +152,17 @@ Branches const& IfStatement::branches() const
     return m_branches;
 }
 
+bool IfStatement::is_complete() const
+{
+    if (m_branches.empty())
+        return false;
+    if (std::any_of(m_branches.begin(), m_branches.end(), [](auto const& branch) -> bool { return branch->condition() == nullptr || !branch->is_complete(); }))
+        return false;
+    if (m_else != nullptr)
+        return m_else->is_complete();
+    return true;
+}
+
 // -- WhileStatement --------------------------------------------------------
 
 WhileStatement::WhileStatement(Span location, std::shared_ptr<Expression> condition, std::shared_ptr<Statement> stmt)
@@ -174,6 +190,11 @@ std::shared_ptr<Statement> const& WhileStatement::statement() const
 std::string WhileStatement::to_string() const
 {
     return format("while ({})\n{}", m_condition->to_string());
+}
+
+bool WhileStatement::is_complete() const
+{
+    return m_condition != nullptr && m_condition->is_complete() && m_stmt != nullptr && m_stmt->is_complete();
 }
 
 // -- ForStatement ----------------------------------------------------------
@@ -216,6 +237,13 @@ std::string ForStatement::to_string() const
     return format("for ({} in {})\n{}", m_variable, m_range->to_string(), m_stmt->to_string());
 }
 
+bool ForStatement::is_complete() const
+{
+    return m_variable != nullptr && m_variable->is_complete() &&
+        m_range != nullptr && m_range->is_complete() &&
+        m_stmt != nullptr && m_stmt->is_complete();
+}
+
 // -- CaseStatement ---------------------------------------------------------
 
 CaseStatement::CaseStatement(Span location, std::shared_ptr<Expression> const& case_expression, std::shared_ptr<Statement> const& stmt)
@@ -226,6 +254,11 @@ CaseStatement::CaseStatement(Span location, std::shared_ptr<Expression> const& c
 CaseStatement::CaseStatement(std::shared_ptr<SyntaxNode> const& node, std::shared_ptr<Expression> const& case_expression, std::shared_ptr<Statement> const& stmt)
     : Branch(node, case_expression, stmt)
 {
+}
+
+bool CaseStatement::is_complete() const
+{
+    return condition() != nullptr && Branch::is_complete();
 }
 
 // -- DefaultCase -----------------------------------------------------------
@@ -243,6 +276,11 @@ DefaultCase::DefaultCase(std::shared_ptr<SyntaxNode> const& node, std::shared_pt
 DefaultCase::DefaultCase(std::shared_ptr<SyntaxNode> const& node, std::shared_ptr<Expression> const&, std::shared_ptr<Statement> const& stmt)
     : Branch(node, nullptr, stmt)
 {
+}
+
+bool DefaultCase::is_complete() const
+{
+    return condition() == nullptr && Branch::is_complete();
 }
 
 // -- SwitchStatement -------------------------------------------------------
@@ -294,6 +332,17 @@ std::string SwitchStatement::to_string() const
         ret += m_default->to_string();
     }
     return ret + "}";
+}
+
+bool SwitchStatement::is_complete() const
+{
+    if (expression() == nullptr || !expression()->is_complete())
+        return false;
+    if (m_cases.empty() && m_default == nullptr)
+        return false;
+    if (std::any_of(m_cases.begin(), m_cases.end(), [](auto const& case_stmt) -> bool { return !case_stmt->is_complete(); }))
+        return false;
+    return (m_default == nullptr) || m_default->is_complete();
 }
 
 }

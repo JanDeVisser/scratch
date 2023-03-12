@@ -60,4 +60,9 @@ std::shared_ptr<Expression> const& VariableDeclaration::expression() const
     return m_expression;
 }
 
+bool VariableDeclaration::is_complete() const
+{
+    return m_identifier != nullptr && m_identifier->is_complete() && (m_expression == nullptr || m_expression->is_complete());
+}
+
 }

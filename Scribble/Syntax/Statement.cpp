@@ -72,7 +72,7 @@ std::string Pass::to_string() const
 
 // -- Label -----------------------------------------------------------------
 
-int Label::m_current_id = 0;
+int Label::m_current_id = 1;
 
 Label::Label(Span location)
     : Statement(location)
@@ -148,9 +148,15 @@ Nodes Block::children() const
     ret.push_back(std::make_shared<NodeList<Statement>>("statements", m_statements));
     return ret;
 }
+
 std::string Block::to_string() const
 {
     return format("[ ... {} statements ... ]", m_statements.size());
+}
+
+bool Block::is_complete() const
+{
+    return !m_statements.empty() && std::all_of(m_statements.begin(), m_statements.end(), [](auto const& stmt) -> bool { return stmt->is_complete(); });
 }
 
 // -- Module ----------------------------------------------------------------
@@ -277,6 +283,13 @@ std::string Project::root_to_xml() const
     return ret + format("</{}>", node_type());
 }
 
+bool Project::is_complete() const
+{
+    return std::all_of(m_modules.begin(), m_modules.end(), [](auto const& mod) -> bool {
+       return mod->is_complete();
+    });
+}
+
 // -- ExpressionStatement ---------------------------------------------------
 
 ExpressionStatement::ExpressionStatement(std::shared_ptr<Expression> expression)
@@ -298,6 +311,11 @@ Nodes ExpressionStatement::children() const
 std::string ExpressionStatement::to_string() const
 {
     return m_expression->to_string();
+}
+
+bool ExpressionStatement::is_complete() const
+{
+    return (m_expression == nullptr) && m_expression->is_complete();
 }
 
 // -- Return ----------------------------------------------------------------
@@ -337,6 +355,11 @@ std::shared_ptr<Expression> const& Return::expression() const
 bool Return::return_error() const
 {
     return m_return_error;
+}
+
+bool Return::is_complete() const
+{
+    return (m_expression == nullptr) || m_expression->is_complete();
 }
 
 }

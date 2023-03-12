@@ -23,6 +23,7 @@ public:
     [[nodiscard]] bool is_typed() const;
     [[nodiscard]] bool is_const() const;
     [[nodiscard]] std::shared_ptr<Expression> const& expression() const;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::shared_ptr<Identifier> m_identifier;

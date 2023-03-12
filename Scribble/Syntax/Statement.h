@@ -26,6 +26,7 @@ public:
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] std::string to_string() const override;
     [[nodiscard]] std::string const& name() const;
+    [[nodiscard]] bool is_complete() const override { return !m_name.empty(); }
 
 private:
     std::string m_name;
@@ -52,6 +53,7 @@ public:
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] std::string to_string() const override;
     [[nodiscard]] int label_id() const;
+    [[nodiscard]] bool is_complete() const override { return m_label_id > 0; }
     static int reserve_id();
 
 private:
@@ -65,6 +67,7 @@ public:
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] std::string to_string() const override;
     [[nodiscard]] int label_id() const;
+    [[nodiscard]] bool is_complete() const override { return m_label_id > 0; }
 
 private:
     int m_label_id;
@@ -76,6 +79,7 @@ public:
     [[nodiscard]] Statements const& statements() const;
     [[nodiscard]] Nodes children() const override;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 
 protected:
     Statements m_statements {};
@@ -112,6 +116,7 @@ public:
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] std::string root_to_xml() const;
     [[nodiscard]] int unbound_statements() const;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     Modules m_modules;
@@ -126,6 +131,7 @@ public:
     [[nodiscard]] std::shared_ptr<Expression> const& expression() const;
     [[nodiscard]] Nodes children() const override;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::shared_ptr<Expression> m_expression;
@@ -139,6 +145,7 @@ public:
     [[nodiscard]] std::string to_string() const override;
     [[nodiscard]] std::shared_ptr<Expression> const& expression() const;
     [[nodiscard]] bool return_error() const;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::shared_ptr<Expression> m_expression;

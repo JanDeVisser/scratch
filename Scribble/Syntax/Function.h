@@ -22,6 +22,7 @@ public:
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] Nodes children() const override;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 
 protected:
     [[nodiscard]] std::string parameters_to_string() const;
@@ -38,6 +39,7 @@ public:
     [[nodiscard]] std::string const& native_function_name() const;
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::string m_native_function_name;
@@ -59,6 +61,7 @@ public:
     [[nodiscard]] std::shared_ptr<Statement> const& statement() const;
     [[nodiscard]] Nodes children() const override;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 
 protected:
     std::shared_ptr<FunctionDecl> m_function_decl;

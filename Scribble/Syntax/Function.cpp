@@ -64,6 +64,12 @@ std::string FunctionDecl::parameters_to_string() const
     return join(m_parameters, ", ", [](auto const& param) { return param->name(); });
 }
 
+bool FunctionDecl::is_complete() const
+{
+    return m_identifier->is_complete() &&
+        std::all_of(m_parameters.begin(), m_parameters.end(), [](auto const& param) -> bool { return param->is_complete(); });
+}
+
 // -- NativeFunctionDecl ----------------------------------------------------
 
 NativeFunctionDecl::NativeFunctionDecl(Span location, std::string module, std::shared_ptr<Identifier> identifier, Identifiers parameters, std::string native_function)
@@ -85,6 +91,11 @@ std::string NativeFunctionDecl::attributes() const
 std::string NativeFunctionDecl::to_string() const
 {
     return format("{} -> \"{}\"", FunctionDecl::to_string(), native_function_name());
+}
+
+bool NativeFunctionDecl::is_complete() const
+{
+    return FunctionDecl::is_complete() && !native_function_name().empty();
 }
 
 // -- IntrinsicDecl ---------------------------------------------------------
@@ -151,6 +162,11 @@ std::string FunctionDef::to_string() const
         ret += m_statement->to_string();
     }
     return ret;
+}
+
+bool FunctionDef::is_complete() const
+{
+    return declaration() != nullptr && declaration()->is_complete() && m_statement != nullptr && m_statement->is_complete();
 }
 
 }

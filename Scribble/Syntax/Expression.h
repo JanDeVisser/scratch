@@ -23,6 +23,7 @@ public:
     [[nodiscard]] Expressions const& expressions() const;
     [[nodiscard]] Nodes children() const override;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 private:
     Expressions m_expressions;
 };
@@ -33,6 +34,7 @@ public:
     [[nodiscard]] std::string const& name() const;
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override { return !m_identifier.empty(); }
 
 private:
     std::string m_identifier;
@@ -55,6 +57,7 @@ public:
     [[nodiscard]] std::shared_ptr<Expression> const& lhs() const;
     [[nodiscard]] std::shared_ptr<Expression> const& rhs() const;
     [[nodiscard]] Token op() const;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::shared_ptr<Expression> m_lhs;
@@ -70,6 +73,7 @@ public:
     [[nodiscard]] std::string to_string() const override;
     [[nodiscard]] Token op() const;
     [[nodiscard]] std::shared_ptr<Expression> const& operand() const;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     Token m_operator;

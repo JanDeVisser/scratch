@@ -33,6 +33,7 @@ public:
     [[nodiscard]] std::string to_string() const override;
     [[nodiscard]] std::shared_ptr<Expression> const& condition() const;
     [[nodiscard]] std::shared_ptr<Statement> const& statement() const;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::shared_ptr<Expression> m_condition { nullptr };
@@ -51,6 +52,7 @@ public:
     [[nodiscard]] Nodes children() const override;
     [[nodiscard]] std::string to_string() const override;
     [[nodiscard]] Branches const& branches() const;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     Branches m_branches {};
@@ -64,6 +66,7 @@ public:
     [[nodiscard]] std::shared_ptr<Expression> const& condition() const;
     [[nodiscard]] std::shared_ptr<Statement> const& statement() const;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::shared_ptr<Expression> m_condition;
@@ -79,6 +82,7 @@ public:
     [[nodiscard]] std::shared_ptr<Expression> const& range() const;
     [[nodiscard]] std::shared_ptr<Statement> const& statement() const;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::shared_ptr<Variable> m_variable;
@@ -90,6 +94,7 @@ NODE_CLASS(CaseStatement, Branch)
 public:
     CaseStatement(Span, std::shared_ptr<Expression> const&, std::shared_ptr<Statement> const&);
     CaseStatement(std::shared_ptr<SyntaxNode> const&, std::shared_ptr<Expression> const&, std::shared_ptr<Statement> const&);
+    [[nodiscard]] bool is_complete() const override;
 };
 
 using CaseStatements = std::vector<std::shared_ptr<CaseStatement>>;
@@ -99,6 +104,7 @@ public:
     DefaultCase(Span, std::shared_ptr<Statement> const&);
     DefaultCase(std::shared_ptr<SyntaxNode> const&, std::shared_ptr<Statement> const&);
     DefaultCase(std::shared_ptr<SyntaxNode> const&, std::shared_ptr<Expression> const&, std::shared_ptr<Statement> const&);
+    [[nodiscard]] bool is_complete() const override;
 };
 
 NODE_CLASS(SwitchStatement, Statement)
@@ -109,6 +115,7 @@ public:
     [[nodiscard]] std::shared_ptr<DefaultCase> const& default_case() const;
     [[nodiscard]] Nodes children() const override;
     [[nodiscard]] std::string to_string() const override;
+    [[nodiscard]] bool is_complete() const override;
 
 private:
     std::shared_ptr<Expression> m_switch_expression;

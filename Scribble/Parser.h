@@ -54,7 +54,7 @@ enum class Associativity {
 class Parser {
 public:
     explicit Parser(ParserContext&);
-    std::shared_ptr<Module> parse();
+    std::shared_ptr<Module> parse(bool = false);
     [[nodiscard]] Scribble const& lexer() const;
 
     ErrorOr<void,SystemError> read_file(std::string const&, BufferLocator* locator = nullptr);

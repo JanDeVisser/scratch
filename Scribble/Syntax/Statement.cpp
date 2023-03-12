@@ -161,24 +161,27 @@ bool Block::is_complete() const
 
 // -- Module ----------------------------------------------------------------
 
-Module::Module(Statements const& statements, std::string name, std::shared_ptr<StringBuffer> buffer)
+Module::Module(Statements const& statements, std::string name, std::shared_ptr<StringBuffer> buffer, std::vector<Token> tokens)
     : Block({}, statements)
     , m_name(std::move(name))
     , m_buffer(std::move(buffer))
+    , m_tokens(std::move(tokens))
 {
 }
 
-Module::Module(Span location, Statements const& statements, std::string name, std::shared_ptr<StringBuffer> buffer)
+Module::Module(Span location, Statements const& statements, std::string name, std::shared_ptr<StringBuffer> buffer, std::vector<Token> tokens)
     : Block(location, statements)
     , m_name(std::move(name))
     , m_buffer(std::move(buffer))
+    , m_tokens(std::move(tokens))
 {
 }
 
-Module::Module(std::shared_ptr<Module> const& original, Statements const& statements)
+Module::Module(std::shared_ptr<Module> const& original, Statements const& statements, std::vector<Token> tokens)
     : Block(original->location(), statements)
     , m_name(original->name())
     , m_buffer(original->buffer())
+    , m_tokens(std::move(tokens))
 {
 }
 
@@ -200,6 +203,11 @@ const std::string& Module::name() const
 std::shared_ptr<StringBuffer> const& Module::buffer() const
 {
     return m_buffer;
+}
+
+std::vector<Token> const& Module::tokens() const
+{
+    return m_tokens;
 }
 
 // -- Project -----------------------------------------------------------

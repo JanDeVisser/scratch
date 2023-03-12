@@ -87,17 +87,19 @@ protected:
 
 NODE_CLASS(Module, Block)
 public:
-    Module(Statements const&, std::string, std::shared_ptr<StringBuffer>);
-    Module(Span, Statements const&, std::string, std::shared_ptr<StringBuffer>);
-    Module(std::shared_ptr<Module> const&, Statements const&);
+    Module(Statements const&, std::string, std::shared_ptr<StringBuffer>, std::vector<Token> = {});
+    Module(Span, Statements const&, std::string, std::shared_ptr<StringBuffer>, std::vector<Token> = {});
+    Module(std::shared_ptr<Module> const&, Statements const&, std::vector<Token> = {});
     [[nodiscard]] std::string attributes() const override;
     [[nodiscard]] std::string to_string() const override;
-    [[nodiscard]] const std::string& name() const;
+    [[nodiscard]] std::string const& name() const;
+    [[nodiscard]] std::vector<Token> const& tokens() const;
     [[nodiscard]] std::shared_ptr<StringBuffer> const& buffer() const;
 
 private:
     std::string m_name;
     std::shared_ptr<StringBuffer> m_buffer;
+    std::vector<Token> m_tokens;
 };
 
 using pModule = std::shared_ptr<Module>;

@@ -52,7 +52,7 @@ Scribble const& Parser::lexer() const
     return m_lexer;
 }
 
-std::shared_ptr<Module> Parser::parse()
+std::shared_ptr<Module> Parser::parse(bool keep_tokens)
 {
     if (!m_lexer.errors().empty())
         return nullptr;
@@ -60,6 +60,8 @@ std::shared_ptr<Module> Parser::parse()
     parse_statements(statements, true);
     if (m_lexer.has_errors())
         return nullptr;
+    if (keep_tokens)
+        return std::make_shared<Module>(statements, m_current_module, m_lexer.buffer(), m_lexer.tokens());
     return std::make_shared<Module>(statements, m_current_module, m_lexer.buffer());
 }
 

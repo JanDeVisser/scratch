@@ -20,6 +20,8 @@ struct ScribbleCommands : public Commands {
     ScribbleCommands();
 };
 
+DisplayToken token_for(TokenCode, std::string_view const&);
+
 class Scribble : public ScratchParser {
 public:
     constexpr static TokenCode KeywordBreak = TokenCode::Keyword0;
@@ -58,7 +60,6 @@ private:
     std::deque<Token> m_pending;
     bool m_ignore_ws { false };
     static ScribbleCommands s_scribble_commands;
-
 };
 
 } // Scratch

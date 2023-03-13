@@ -88,35 +88,7 @@ Scribble::Scribble(bool ignore_ws)
 
 DisplayToken Scribble::colorize(TokenCode code, std::string_view const& text)
 {
-    PaletteIndex color = PaletteIndex::Default;
-    if (code >= TokenCode::Keyword0 && code <= TokenCode::Keyword30) {
-        color = PaletteIndex::Keyword;
-    } else {
-        switch (code) {
-        case TokenCode::Comment:
-            color = PaletteIndex::Comment;
-            break;
-        case TokenCode::Identifier:
-            color = PaletteIndex::Identifier;
-            break;
-        case TokenCode::DoubleQuotedString:
-            color = PaletteIndex::CharLiteral;
-            break;
-        case TokenCode::SingleQuotedString:
-            color = PaletteIndex::String;
-            break;
-        case KeywordTrue:
-        case KeywordFalse:
-        case TokenCode::Integer:
-        case TokenCode::Float:
-            color = PaletteIndex::Number;
-            break;
-        default:
-            color = PaletteIndex::Punctuation;
-            break;
-        }
-    }
-    return DisplayToken { text, color };
+    return token_for(code, text);
 }
 
 Token const& Scribble::next_token()
@@ -136,5 +108,37 @@ std::vector<Command> Scribble::commands() const
     return *s_scribble_commands;
 }
 
+DisplayToken token_for(TokenCode code, std::string_view const& text)
+{
+    PaletteIndex color;
+    if (code >= TokenCode::Keyword0 && code <= TokenCode::Keyword30) {
+        color = PaletteIndex::Keyword;
+    } else {
+        switch (code) {
+        case TokenCode::Comment:
+            color = PaletteIndex::Comment;
+            break;
+        case TokenCode::Identifier:
+            color = PaletteIndex::Identifier;
+            break;
+        case TokenCode::DoubleQuotedString:
+            color = PaletteIndex::CharLiteral;
+            break;
+        case TokenCode::SingleQuotedString:
+            color = PaletteIndex::String;
+            break;
+        case Scribble::KeywordTrue:
+        case Scribble::KeywordFalse:
+        case TokenCode::Integer:
+        case TokenCode::Float:
+            color = PaletteIndex::Number;
+            break;
+        default:
+            color = PaletteIndex::Punctuation;
+            break;
+        }
+    }
+    return DisplayToken { text, color };
+}
 
 } // Scratch

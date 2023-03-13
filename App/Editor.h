@@ -41,6 +41,12 @@ public:
     EditorCommands();
 };
 
+struct BufferId {
+    size_t index;
+    std::string title;
+    std::string short_title;
+};
+
 class Editor : public WindowedWidget {
 public:
     Editor();
@@ -48,9 +54,12 @@ public:
     [[nodiscard]] Buffer* buffer() const;
     [[nodiscard]] Document* document() const;
     void switch_to(std::string const&);
+    void switch_to(size_t);
     [[nodiscard]] std::vector<Buffer*> buffers() const;
+    [[nodiscard]] std::vector<BufferId> buffer_ids() const;
     [[nodiscard]] std::vector<Document*> documents() const;
     [[nodiscard]] Buffer* buffer(std::string const&) const;
+    [[nodiscard]] Buffer* buffer(size_t) const;
     [[nodiscard]] Document* document(fs::path const&) const;
 
     void new_file();

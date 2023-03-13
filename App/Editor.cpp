@@ -45,6 +45,10 @@ EditorCommands::EditorCommands()
             { "Buffer", CommandParameterType::Buffer }
         },
         [](Widget&, strings const& args) -> void {
+            if (auto ix_maybe = Obelix::try_to_ulong<std::string>()(args[0]); ix_maybe) {
+                Scratch::editor()->switch_to(*ix_maybe);
+                return;
+            }
             Scratch::editor()->switch_to(args[0]);
         }
     }, { SDLK_b, KMOD_CTRL });
@@ -293,6 +297,21 @@ void Editor::switch_to(std::string const& buffer_name)
     }
 }
 
+void Editor::switch_to(size_t buffer_index)
+{
+    if (buffer_index >= m_buffers.size()) {
+        log_error("Editor::switch_to(): Buffer index out of range: {} >= {}", buffer_index, m_buffers.size());
+        return;
+    }
+    auto const& buf = m_buffers[buffer_index];
+    if (buf != nullptr) {
+        if (m_current_buffer != nullptr && buf.get() != m_current_buffer)
+            m_current_buffer->on_deactivate();
+        m_current_buffer = buf.get();
+        m_current_buffer->on_activate();
+    }
+}
+
 std::vector<Buffer*> Editor::buffers() const
 {
     std::vector<Buffer*> ret;
@@ -302,6 +321,21 @@ std::vector<Buffer*> Editor::buffers() const
     std::sort(ret.begin(), ret.end(),
         [](auto const* p1, auto const* p2) {
             return p1->title() < p2->title();
+        });
+    return ret;
+}
+
+std::vector<BufferId> Editor::buffer_ids() const
+{
+    std::vector<BufferId> ret;
+    ret.resize(m_buffers.size());
+    for (auto ix = 0u; ix < m_buffers.size(); ++ix) {
+        auto const& buf = m_buffers[ix];
+        ret[ix] = { ix, buf->title(), buf->short_title() };
+    }
+    std::sort(ret.begin(), ret.end(),
+        [](auto const& id1, auto const& id2) {
+            return id1.title < id2.title;
         });
     return ret;
 }
@@ -340,6 +374,16 @@ Buffer* Editor::buffer(std::string const& title) const
             return buffer.get();
     }
     return nullptr;
+}
+
+Buffer* Editor::buffer(size_t buffer_index) const
+{
+    if (buffer_index >= m_buffers.size()) {
+        log_error("Editor::buffer(size_t): Buffer index out of range: {} >= {}", buffer_index, m_buffers.size());
+        return nullptr;
+    }
+    auto const& buf = m_buffers[buffer_index];
+    return buf.get();
 }
 
 }

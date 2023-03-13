@@ -106,7 +106,7 @@ template<>
 std::vector<Command> get_entries(CommandParameter const& param, int const&)
 {
     std::vector<Command> entries;
-    for (auto cmd : App::instance().commands()) {
+    for (auto const& cmd : App::instance().commands()) {
         entries.push_back(cmd.command);
     }
     std::sort(entries.begin(), entries.end(), [](auto const& e1, auto const& e2) -> bool {
@@ -117,32 +117,25 @@ std::vector<Command> get_entries(CommandParameter const& param, int const&)
 
 
 /*
- * fs::path - for Buffer parameters
+ * BufferId - for Buffer parameters
  */
 
 template<>
-std::string line_text(fs::path const& entry, int const&)
+std::string line_text(BufferId const& entry, int const&)
 {
-    return fs::relative(entry);
+    return entry.title;
 }
 
 template<>
-void submit(CommandHandler* handler, fs::path const& entry, int const&)
+void submit(CommandHandler* handler, BufferId const& entry, int const&)
 {
-    handler->argument_done(fs::absolute(entry).string());
+    handler->argument_done(Obelix::to_string<size_t>()(entry.index));
 }
 
 template<>
-std::vector<fs::path> get_entries(CommandParameter const& param, int const&)
+std::vector<BufferId> get_entries(CommandParameter const& param, int const&)
 {
-    std::vector<fs::path> entries;
-    for (auto const* doc : Scratch::editor()->documents()) {
-        entries.push_back(doc->path());
-    }
-    std::sort(entries.begin(), entries.end(), [](auto const& e1, auto const& e2) -> bool {
-        return e1.string() < e2.string();
-    });
-    return entries;
+    return Scratch::editor()->buffer_ids();
 }
 
 ModalWidget* create_argument_handler(CommandHandler* handler, CommandParameter const& parameter)
@@ -156,7 +149,7 @@ ModalWidget* create_argument_handler(CommandHandler* handler, CommandParameter c
     case CommandParameterType::Command:
         return new ListArgumentHandler<Command>(handler, parameter, 0);
     case CommandParameterType::Buffer:
-        return new ListArgumentHandler<fs::path>(handler, parameter, 0);
+        return new ListArgumentHandler<BufferId>(handler, parameter, 0);
     default:
         return new DefaultArgumentHandler(handler, parameter);
     }

@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <sstream>
 #include <unordered_map>
 
 #include <core/Error.h>
@@ -51,6 +52,7 @@ public:
     [[nodiscard]] bool is_error() const { return !m_errors.empty(); }
     [[nodiscard]] bool has_value() const { return m_errors.empty() && (m_result != nullptr); }
     [[nodiscard]] pSyntaxNode value() const { return m_result; }
+    [[nodiscard]] pSyntaxNode operator*() const { return m_result; }
     void value(pSyntaxNode const& node) { m_result = node; }
     [[nodiscard]] SyntaxError error() const { return m_errors.back(); }
 
@@ -359,9 +361,24 @@ ProcessResult& process(std::shared_ptr<SyntaxNode> const& tree, Ctx& ctx, Proces
         result.value(nullptr);
         return result;
     }
-    std::string log_message  = format("<{} {}> => ", tree->node_type(), tree);
+
+    auto node_to_string = [](std::shared_ptr<SyntaxNode> const& node) -> std::string {
+        if (node == nullptr)
+            return "[Null]";
+
+        std::stringstream ss;
+        ss << "<" << to_string<SyntaxNodeType>()(node->node_type()) << " ";
+        if (node->is_complete())
+            ss << node->to_string();
+        else
+            ss << "[Incomplete]";
+        ss << ">";
+        return ss.str();
+    };
+
+    std::string log_message  = format("{} => ", node_to_string(tree));
     ErrorOrNode processed = tree;
-    debug(scribble, "Process <{} {}>", tree->node_type(), tree);
+    debug(scribble, "Process {}", node_to_string(tree));
     switch (tree->node_type()) {
 #undef ENUM_SYNTAXNODETYPE
 #define ENUM_SYNTAXNODETYPE(type)                                               \
@@ -373,16 +390,16 @@ ProcessResult& process(std::shared_ptr<SyntaxNode> const& tree, Ctx& ctx, Proces
     default:
         fatal("Unknown SyntaxNodeType '{}'", tree->node_type());
     }
-    if (processed.is_error()) {                                                         \
-        log_message += format("Error {}", processed.error());                           \
-        result.error(processed.error());                                                \
-        result = tree;                                                                  \
-    } else {                                                                            \
-        result = processed.value();                                                     \
-        log_message += format("<{} {}>", result.value()->node_type(), result.value());  \
-    }                                                                                   \
-    debug(scribble, "{}", log_message);                                                \
-    return result;                                                                      \
+    if (processed.is_error()) {
+        log_message += format("Error {}", processed.error());
+        result.error(processed.error());
+        result = tree;
+    } else {
+        result = processed.value();
+        log_message += node_to_string(result.value());
+    }
+    debug(scribble, "{}", log_message);
+    return result;
 }
 
 template<typename Ctx>

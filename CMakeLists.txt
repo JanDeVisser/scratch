@@ -50,6 +50,7 @@ include_directories(
 add_executable(
         scratch
         App/Buffer.cpp
+        App/Console.cpp
         App/Document.cpp
         App/EditAction.cpp
         App/Editor.cpp

@@ -46,7 +46,7 @@ std::optional<ScheduledCommand> Layout::command(std::string const& name) const
 
 std::vector<ScheduledCommand> Layout::commands() const
 {
-    std::vector<ScheduledCommand> ret;
+    std::vector<ScheduledCommand> ret = Widget::commands();
     for (auto* c : m_container.components()) {
         auto component_commands = c->commands();
         for (auto const& cmd : component_commands) {

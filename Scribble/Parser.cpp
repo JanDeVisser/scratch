@@ -132,18 +132,8 @@ std::shared_ptr<Statement> Parser::parse_statement()
         m_lexer.lex();
         auto expr = parse_expression();
         if (!expr)
-            return nullptr;
+            return std::make_shared<Return>(token.location(), nullptr);;
         return std::make_shared<Return>(token.location(), expr);
-    }
-    case TokenCode::Identifier: {
-        if (token.value() == "error") {
-            lex();
-            auto expr = parse_expression();
-            if (!expr)
-                return nullptr;
-            return std::make_shared<Return>(token.location(), expr, true);
-        }
-        break;
     }
     case Scribble::KeywordBreak:
         return std::make_shared<Break>(lex().location());
@@ -176,9 +166,8 @@ std::shared_ptr<Block> Parser::parse_block(Statements& block)
 {
     auto token = skip(TokenCode::Whitespace);
     parse_statements(block);
-    if (!m_lexer.expect(TokenCode::CloseBrace)) {
-        return nullptr;
-    }
+    if (!m_lexer.expect(TokenCode::CloseBrace))
+        m_lexer.add_error(m_lexer.peek(), "Syntax Error: Expected '}' to close block");
     return std::make_shared<Block>(token.location(), block);
 }
 
@@ -187,11 +176,13 @@ std::shared_ptr<Statement> Parser::parse_function_definition(Token const& func_t
     auto name_maybe = match(TokenCode::Identifier);
     if (!name_maybe.has_value()) {
         m_lexer.add_error(m_lexer.peek(), "Expecting variable name after the 'func' keyword, got '{}'");
-        return nullptr;
+        return std::make_shared<FunctionDef>(func_token.location(), nullptr, nullptr);
     }
     auto name = name_maybe.value();
+    auto func_ident = std::make_shared<Identifier>(name.location(), name.string_value());
+    auto func_decl = std::make_shared<FunctionDecl>(name.location(), m_current_module, func_ident, Identifiers {});
     if (!expect(TokenCode::OpenParen, "after function name in definition")) {
-        return nullptr;
+        return std::make_shared<FunctionDef>(func_token.location(), func_decl, nullptr);
     }
     Identifiers params {};
     auto done = current_code() == TokenCode::CloseParen;
@@ -199,10 +190,11 @@ std::shared_ptr<Statement> Parser::parse_function_definition(Token const& func_t
         auto param_name_maybe = m_lexer.match(TokenCode::Identifier);
         if (!param_name_maybe.has_value()) {
             m_lexer.add_error(peek(), "Expected parameter name, got '{}'");
-            return nullptr;
+            return std::make_shared<FunctionDef>(func_token.location(), func_decl, nullptr);
         }
         auto param_name = *param_name_maybe;
         params.push_back(std::make_shared<Identifier>(param_name.location(), param_name.string_value()));
+        func_decl = std::make_shared<FunctionDecl>(name.location(), m_current_module, func_ident, params);
         switch (current_code()) {
         case TokenCode::Comma:
             lex();
@@ -212,27 +204,15 @@ std::shared_ptr<Statement> Parser::parse_function_definition(Token const& func_t
             break;
         default:
             m_lexer.add_error(peek(), "Syntax Error: Expected ',' or ')' in function parameter list, got '{}'", peek().value());
-            return nullptr;
+            func_decl = std::make_shared<FunctionDecl>(name.location(), m_current_module, func_ident, params);
+            return std::make_shared<FunctionDef>(func_token.location(), func_decl, nullptr);
         }
     }
     lex(); // Eat the closing paren
 
-    auto func_ident = std::make_shared<Identifier>(name.location(), name.string_value());
-    std::shared_ptr<FunctionDecl> func_decl;
-    if (current_code() == Scribble::KeywordLink) {
-        lex();
-        if (auto link_target_maybe = match(TokenCode::DoubleQuotedString, "after '->'"); link_target_maybe.has_value()) {
-            return std::make_shared<NativeFunctionDecl>(name.location(), m_current_module, func_ident, params, (*link_target_maybe).string_value());
-        }
-        return nullptr;
-    }
-    if (func_token.code() == Scribble::KeywordIntrinsic) {
-        return std::make_shared<IntrinsicDecl>(name.location(), m_current_module, func_ident, params);
-    }
-    func_decl = std::make_shared<FunctionDecl>(name.location(), m_current_module, func_ident, params);
     auto stmt = parse_statement();
     if (stmt == nullptr)
-        return nullptr;
+        return std::make_shared<FunctionDef>(func_token.location(), func_decl, nullptr);
     return std::make_shared<FunctionDef>(func_token.location(), func_decl, stmt);
 }
 
@@ -240,21 +220,25 @@ std::shared_ptr<IfStatement> Parser::parse_if_statement(Token const& if_token)
 {
     auto condition = parse_expression();
     if (!condition)
-        return nullptr;
+        return std::make_shared<IfStatement>(if_token.location(), nullptr, nullptr, Branches {}, nullptr);
     auto if_stmt = parse_statement();
     if (!if_stmt)
-        return nullptr;
+        return std::make_shared<IfStatement>(if_token.location(), condition, nullptr, Branches {}, nullptr);
     Branches branches;
     while (true) {
         switch (current_code()) {
         case Scribble::KeywordElif: {
             auto elif_token = lex();
             auto elif_condition = parse_expression();
-            if (!elif_condition)
-                return nullptr;
+            if (!elif_condition) {
+                branches.push_back(std::make_shared<Branch>(elif_token.location(), nullptr, nullptr));
+                break;
+            }
             auto elif_stmt = parse_statement();
-            if (!elif_stmt)
-                return nullptr;
+            if (!elif_stmt) {
+                branches.push_back(std::make_shared<Branch>(elif_token.location(), elif_condition, nullptr));
+                break;
+            }
             branches.push_back(std::make_shared<Branch>(elif_token.location(), elif_condition, elif_stmt));
         } break;
         case Scribble::KeywordElse: {
@@ -274,9 +258,9 @@ std::shared_ptr<SwitchStatement> Parser::parse_switch_statement(Token const& swi
 {
     auto switch_expr = parse_expression();
     if (!switch_expr)
-        return nullptr;
+        return std::make_shared<SwitchStatement>(switch_token.location(), nullptr, CaseStatements {}, nullptr);
     if (!expect(TokenCode::OpenBrace, "after switch expression")) {
-        return nullptr;
+        return std::make_shared<SwitchStatement>(switch_token.location(), switch_expr, CaseStatements {}, nullptr);
     }
     CaseStatements cases;
     std::shared_ptr<DefaultCase> default_case { nullptr };
@@ -285,24 +269,32 @@ std::shared_ptr<SwitchStatement> Parser::parse_switch_statement(Token const& swi
         case Scribble::KeywordCase: {
             auto case_token = lex();
             auto expr = parse_expression();
-            if (!expr)
-                return nullptr;
+            if (!expr) {
+                cases.push_back(std::make_shared<CaseStatement>(case_token.location(), nullptr, nullptr));
+                break;
+            }
             if (!m_lexer.expect(TokenCode::Colon, "after switch expression")) {
-                return nullptr;
+                cases.push_back(std::make_shared<CaseStatement>(case_token.location(), expr, nullptr));
+                break;
             }
             auto stmt = parse_statement();
-            if (!stmt)
-                return nullptr;
+            if (!stmt) {
+                cases.push_back(std::make_shared<CaseStatement>(case_token.location(), expr, nullptr));
+                break;
+            }
             cases.push_back(std::make_shared<CaseStatement>(case_token.location(), expr, stmt));
         } break;
         case Scribble::KeywordDefault: {
             auto default_token = lex();
             if (!expect(TokenCode::Colon, "after 'default' keyword")) {
-                return nullptr;
+                default_case = std::make_shared<DefaultCase>(default_token.location(), nullptr);
+                break;
             }
             auto stmt = parse_statement();
-            if (!stmt)
-                return nullptr;
+            if (!stmt) {
+                default_case = std::make_shared<DefaultCase>(default_token.location(), nullptr);
+                break;
+            }
             default_case = std::make_shared<DefaultCase>(default_token.location(), stmt);
             break;
         }
@@ -311,7 +303,7 @@ std::shared_ptr<SwitchStatement> Parser::parse_switch_statement(Token const& swi
             return std::make_shared<SwitchStatement>(switch_token.location(), switch_expr, cases, default_case);
         default:
             m_lexer.add_error(peek(), "Syntax Error: Unexpected token '{}' in switch statement");
-            return nullptr;
+            return std::make_shared<SwitchStatement>(switch_token.location(), switch_expr, cases, default_case);
         }
     }
 }
@@ -319,76 +311,68 @@ std::shared_ptr<SwitchStatement> Parser::parse_switch_statement(Token const& swi
 std::shared_ptr<WhileStatement> Parser::parse_while_statement(Token const& while_token)
 {
     if (!m_lexer.expect(TokenCode::OpenParen, " in 'while' statement"))
-        return nullptr;
+        return std::make_shared<WhileStatement>(while_token.location(), nullptr, nullptr);
     auto condition = parse_expression();
     if (!condition)
-        return nullptr;
+        return std::make_shared<WhileStatement>(while_token.location(), nullptr, nullptr);
     if (!expect(TokenCode::CloseParen, " in 'while' statement"))
-        return nullptr;
+        return std::make_shared<WhileStatement>(while_token.location(), condition, nullptr);
     auto stmt = parse_statement();
     if (!stmt)
-        return nullptr;
+        return std::make_shared<WhileStatement>(while_token.location(), condition, nullptr);
     return std::make_shared<WhileStatement>(while_token.location(), condition, stmt);
 }
 
 std::shared_ptr<ForStatement> Parser::parse_for_statement(Token const& for_token)
 {
+    pStatement stmt;
+
     if (!expect(TokenCode::OpenParen, " in 'for' statement"))
-        return nullptr;
+        return std::make_shared<ForStatement>(for_token.location(), nullptr, nullptr, nullptr);
     auto variable = match(TokenCode::Identifier, " in 'for' statement");
-    if (!variable.has_value())
-        return nullptr;
+    if (!variable)
+        return std::make_shared<ForStatement>(for_token.location(), nullptr, nullptr, nullptr);
+    auto variable_node = std::make_shared<Variable>(variable.value().location(), (*variable).string_value());
     if (!expect("in", " in 'for' statement"))
-        return nullptr;
+        return std::make_shared<ForStatement>(for_token.location(), variable_node, nullptr, nullptr);
     auto expr = parse_expression();
     if (!expr)
-        return nullptr;
+        return std::make_shared<ForStatement>(for_token.location(), variable_node, nullptr, nullptr);
     if (!expect(TokenCode::CloseParen, " in 'for' statement"))
-        return nullptr;
-    auto stmt = parse_statement();
+        return std::make_shared<ForStatement>(for_token.location(), variable_node, expr, nullptr);
+    stmt = parse_statement();
     if (!stmt)
-        return nullptr;
-    auto variable_node = std::make_shared<Variable>(variable.value().location(), (*variable).string_value());
+        return std::make_shared<ForStatement>(for_token.location(), variable_node, expr, nullptr);
     return std::make_shared<ForStatement>(for_token.location(), variable_node, expr, stmt);
 }
 
 std::shared_ptr<VariableDeclaration> Parser::parse_variable_declaration(Token const& var_token, bool constant)
 {
     auto identifier_maybe = match(TokenCode::Identifier);
-    if (!identifier_maybe.has_value()) {
-        return nullptr;
-    }
+    pExpression expr { nullptr };
+    if (!identifier_maybe.has_value())
+        return std::make_shared<VariableDeclaration>(var_token.location(), nullptr, nullptr, constant);
     auto identifier = identifier_maybe.value();
     auto var_ident = std::make_shared<Identifier>(identifier.location(), identifier.string_value());
-    std::shared_ptr<Expression> expr { nullptr };
     if (skip(TokenCode::Whitespace).code() == TokenCode::Equals) {
         lex();
-        expr = parse_expression();
-        if (!expr)
-            return nullptr;
-    } else {
-        if (constant) {
-            m_lexer.add_error(peek(), "Syntax Error: Expected expression after constant declaration, got '{}' ({})", peek().value(), peek().code_name());
-            return nullptr;
-        }
+        return std::make_shared<VariableDeclaration>(var_token.location(), var_ident, parse_expression(), constant);
     }
-    return std::make_shared<VariableDeclaration>(var_token.location(), var_ident, expr, constant);
+    if (current_code() != TokenCode::EndOfFile && constant){
+        m_lexer.add_error(peek(), "Syntax Error: Expected expression after constant declaration, got '{}' ({})", peek().value(), peek().code_name());
+    }
+    return std::make_shared<VariableDeclaration>(var_token.location(), var_ident, nullptr, constant);
 }
 
 std::shared_ptr<Import> Parser::parse_import_statement(Token const& import_token)
 {
     std::string module_name;
-    while (true) {
-        auto identifier_maybe = match(TokenCode::Identifier, "in import statement");
-        if (!identifier_maybe.has_value())
-            return nullptr;
-        module_name += identifier_maybe.value().value();
-        if (current_code() != TokenCode::Slash)
-            break;
+    auto module_name_maybe = match(TokenCode::DoubleQuotedString, "in import statement");
+    if (module_name_maybe.has_value()) {
+        module_name = dequote(module_name_maybe.value().string_value());
         lex();
-        module_name += '/';
+        m_ctx.modules.insert(module_name);
     }
-    m_ctx.modules.insert(module_name);
     return std::make_shared<Import>(import_token.location(), module_name);
 }
 
@@ -587,6 +571,8 @@ std::shared_ptr<Expression> Parser::parse_primary_expression()
     std::shared_ptr<Expression> expr { nullptr };
     auto t = lex();
     switch (t.code()) {
+    case TokenCode::EndOfFile:
+        return nullptr;
     case TokenCode::OpenParen: {
         expr = parse_expression();
         if (!expect(TokenCode::CloseParen)) {

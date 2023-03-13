@@ -48,7 +48,7 @@ ProcessResult parse(ParserContext& ctx, std::shared_ptr<StringBuffer> buffer)
     ProcessResult ret;
     auto parser = Parser(ctx);
     parser.assign(std::move(buffer));
-    ret = parser.parse();
+    ret = parser.parse(true);
     for (auto const& e : parser.lexer().errors())
         ret.error(e);
     return ret;
@@ -82,10 +82,6 @@ ProcessResult compile_project(std::string const& name)
     }
     result = std::make_shared<Project>(name, buffer.value());
     process(result.value(), ctx, result);
-    if (result.is_error())
-        return result;
-    if (true)
-        std::cout << "\n\nParsed tree:\n" << result.value()->to_xml() << "\n";
     return result;
 }
 
@@ -96,10 +92,6 @@ ProcessResult compile_project(std::string const& name, std::shared_ptr<StringBuf
     ProcessResult result;
     result = std::make_shared<Project>(name, buffer);
     process(result.value(), ctx, result);
-    if (result.is_error())
-        return result;
-    if (true)
-        std::cout << "\n\nParsed tree:\n" << result.value()->to_xml() << "\n";
     return result;
 }
 

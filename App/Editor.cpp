@@ -204,6 +204,12 @@ void Editor::handle_motion(SDL_MouseMotionEvent const& event)
 
 void Editor::handle_click(SDL_MouseButtonEvent const& event)
 {
+    if (event.button == SDL_BUTTON_RIGHT) {
+        if (auto cmd = Scratch::instance().command("invoke"); cmd) {
+            Scratch::instance().schedule(*cmd);
+            return;
+        }
+    }
     auto offset_x = event.x - left();
     auto offset_y = event.y - top();
     auto column = offset_x / App::instance().context()->character_width();

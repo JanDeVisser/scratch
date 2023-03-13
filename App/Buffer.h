@@ -6,9 +6,28 @@
 
 #pragma once
 
+#include <lexer/Token.h>
 #include <Widget/Widget.h>
 
 namespace Scratch {
+
+struct Line {
+    Line() = default;
+
+    int start_index {0};
+    std::vector<Token> tokens {};
+};
+
+struct DocumentPosition {
+    int line { 0 };
+    int column { 0 };
+
+    void clear()
+    {
+        line = column = 0;
+    }
+    auto operator<=>(DocumentPosition const& other) const = default;
+};
 
 class Buffer : public Widget {
 public:

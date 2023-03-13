@@ -30,24 +30,6 @@ struct FileType {
     std::function<Parser::ScratchParser*()> parser_builder;
 };
 
-struct Line {
-    Line() = default;
-
-    int start_index {0};
-    std::vector<Token> tokens {};
-};
-
-struct DocumentPosition {
-    int line { 0 };
-    int column { 0 };
-
-    void clear()
-    {
-        line = column = 0;
-    }
-    auto operator<=>(DocumentPosition const& other) const = default;
-};
-
 enum class EditActionType {
     InsertText,
     DeleteText,

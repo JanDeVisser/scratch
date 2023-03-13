@@ -31,5 +31,6 @@ struct StatementResult {
 
 using InterpreterContext = Context<Value,StatementResult>;
 [[nodiscard]] ProcessResult interpret(std::shared_ptr<Project> const&);
+[[nodiscard]] ProcessResult interpret(std::shared_ptr<Project> const&, InterpreterContext&);
 
 }

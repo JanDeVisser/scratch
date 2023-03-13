@@ -24,8 +24,13 @@ ErrorOr<void, SyntaxError> register_builtin(InterpreterContext& ctx, std::string
 
 ProcessResult interpret(std::shared_ptr<Project> const& project)
 {
-    ProcessResult result;
     InterpreterContext ctx;
+    return interpret(project, ctx);
+}
+
+ProcessResult interpret(std::shared_ptr<Project> const& project, InterpreterContext& ctx)
+{
+    ProcessResult result;
 
     TRY_RETURN(ctx.declare("set-fixed-width-font", Value { std::make_shared<CommandAdapter>("set-fixed-width-font", *Scratch::scratch().command("set-fixed-width-font")) } ));
     TRY_RETURN(register_builtin(ctx, "string-length", [](Values const& args, InterpreterContext&) -> Value {

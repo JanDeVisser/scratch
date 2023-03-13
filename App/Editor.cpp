@@ -59,10 +59,6 @@ EditorCommands Editor::s_editor_commands;
 Editor::Editor()
     : WindowedWidget()
 {
-    m_buffers.emplace_back(new Document(this));
-    m_current_buffer = m_buffers.front().get();
-    m_current_buffer->on_activate();
-
     Scratch::status_bar()->add_applet(20, [this](WindowedWidget* applet) -> void {
         applet->render_fixed_centered(2, buffer()->status(), SDL_Color { 0xff, 0xff, 0xff, 0xff });
     });
@@ -251,9 +247,7 @@ std::vector<ScheduledCommand> Editor::commands() const
 
 void Editor::new_file()
 {
-    m_buffers.emplace_back(new Document(this));
-    m_current_buffer = m_buffers.back().get();
-    m_current_buffer->on_activate();
+    add_buffer<Document>();
 }
 
 std::string Editor::open_file(fs::path const& path)
@@ -315,7 +309,6 @@ void Editor::switch_to(size_t buffer_index)
 std::vector<Buffer*> Editor::buffers() const
 {
     std::vector<Buffer*> ret;
-    ret.resize(m_buffers.size());
     for (auto& doc : m_buffers)
         ret.push_back(doc.get());
     std::sort(ret.begin(), ret.end(),
@@ -343,7 +336,6 @@ std::vector<BufferId> Editor::buffer_ids() const
 std::vector<Document*> Editor::documents() const
 {
     std::vector<Document*> ret;
-    ret.resize(m_buffers.size());
     for (auto& buf : m_buffers) {
         auto* doc = dynamic_cast<Document*>(buf.get());
         if (doc != nullptr)

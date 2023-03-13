@@ -91,6 +91,17 @@ public:
     void append(DisplayToken const&);
     void newline();
 
+    template <class BufferClass, typename ...Args>
+    requires std::derived_from<BufferClass, Buffer>
+    void add_buffer(Args&&... args)
+    {
+        m_buffers.emplace_back(new BufferClass(this, std::forward<Args>(args)...));
+        if (m_current_buffer != nullptr)
+            m_current_buffer->on_deactivate();
+        m_current_buffer = m_buffers.back().get();
+        m_current_buffer->on_activate();
+    }
+
 private:
     std::vector<std::unique_ptr<Buffer>> m_buffers {};
     Buffer* m_current_buffer { nullptr };

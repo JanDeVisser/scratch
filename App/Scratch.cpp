@@ -9,8 +9,9 @@
 
 #include <core/Logging.h>
 
-#include "Widget/SDLContext.h"
+#include <App/Console.h>
 #include <App/Scratch.h>
+#include <Widget/SDLContext.h>
 
 #ifndef WINDOW_WIDTH
 #define WINDOW_WIDTH 1024
@@ -183,6 +184,8 @@ void Scratch::run_app(int argc, char const** argv)
     });
     main_area->add_component(app.m_gutter = new Gutter());
     main_area->add_component(app.m_editor = new Editor());
+    app.m_editor->add_buffer<Console>();
+    app.m_editor->add_buffer<Document>();
     if (!app.m_config.filename.empty())
         app.m_editor->open_file(app.m_config.filename);
     app.focus(app.m_editor);

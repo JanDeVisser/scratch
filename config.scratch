@@ -1,4 +1,3 @@
-if
 func test-me(x, y) { return x + y }
 
 set-fixed-width-font("VictorMono-Regular")
